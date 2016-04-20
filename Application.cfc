@@ -5,9 +5,19 @@ component extends="zero" {
 	is via overrides of FW/1 in the zero.cfc. You can specify any FW/1 settings you deem necessary.	
 	 */	
 	variables.zero = {
-		//Whether controllers should allow null responses
+		/*
+		Whether controllers should allow null responses. In Zero, it expects controllers
+		to return the response that is passed onto the view.
+		 */
 		throwOnNullControllerResult = true,
-		//Whether the arguments on the controller are checked and only those specific keys passed to it
+
+		/*
+		Whether the arguments on the controller are checked and only those specific keys
+		passed to it. In Zero, the entire RC scope is not passed around. Only the specific keys 
+		that the controller is looking for is passed to it. This allows the internals
+		of the controller to more easily work with what it expects, instead of a huge
+		struct of data which changing elements may have side effects.
+		 */
 		argumentCheckedControllers = true
 	}
 
