@@ -33,6 +33,8 @@ Zero is based on FW/1. For brevity, all of the features of FW/1 are available an
 ###Request Lifecycle
 In zero, there are three lifecycle methods: request(), result() and response(). Request is for handling incoming HTTP request variables and optionally changing them. Result is for optionally handling the data returned from a controller execution. And response is for optionally handling the final text output to be returned by Zero.
 
+The important difference with Zero is it disuades the use of the global request scope, and favors explicity passing variables along to the methods that require them.
+
 
 
  
