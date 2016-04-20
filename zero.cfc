@@ -22,12 +22,7 @@ component extends="one" {
 		default
 			request._zero.contentType = "html";
 		break;
-	}
-
-	variables.framework = {
-		reloadApplicationOnEveryRequest = true,
-		defaultItem = "list"
-	}
+	}	
 
 	variables.zero.throwOnNullControllerResult = true;
 	variables.zero.argumentCheckedControllers = true;
@@ -105,7 +100,6 @@ component extends="one" {
 	  { method = 'update', httpMethods = [ '$PUT','$PATCH', '$POST' ], includeId = true },
 	  { method = 'delete', httpMethods = [ '$DELETE' ], includeId = true }
 	];
-
 	
 	public function before( rc ){
 
@@ -117,7 +111,7 @@ component extends="one" {
 	public function after( rc ){
 
 		if(structKeyExists(this,"result")){
-			rc = result( rc, ((isNull(request._zero.controllerResult))?: request._zero.controllerResult));			
+			rc = result(((isNull(request._zero.controllerResult))?: request._zero.controllerResult));			
 		}
 
 		if(isNull(request._zero.controllerResult)){

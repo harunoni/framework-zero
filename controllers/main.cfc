@@ -11,8 +11,8 @@ component accessors="true" {
 		}
 	}
 
-	public function new(tryme){		
-		return {data:"true"}
-	}
+	// public function new(tryme){		
+	// 	return {data:"true"}
+	// }
 	
 }

@@ -1,12 +1,36 @@
-component extends="zero" {
+component extends="zero" {	
 	
-	
+	/*
+	Zero only have a couple of configurable options. listed below. The rest of the confirugation
+	is via overrides of FW/1 in the zero.cfc. You can specify any FW/1 settings you deem necessary.	
+	 */	
 	variables.zero = {
-		//Whether controllers should return a result
+		//Whether controllers should allow null responses
 		throwOnNullControllerResult = true,
 		//Whether the arguments on the controller are checked and only those specific keys passed to it
 		argumentCheckedControllers = true
 	}
+
+	/*
+	For your reference, thesea are the fw/1 settings which are overrideen by Zero.
+
+	variables.framework = {
+		reloadApplicationOnEveryRequest = true, //These setting causes endless strife for new users, because it caches controller data when they do not expect it. 
+		defaultItem = "list" //Reset the default method from 'default' to 'list', to support our resource routes. List is more common for what the default method does
+	} 
+	
+	//Change the names of the controller routes to match CRUD. After all, these map to CRUD actions,
+	//I find changing the names is confusing to new users
+	variables.framework.resourceRouteTemplates = [
+	  { method = 'list', httpMethods = [ '$GET' ] },
+	  { method = 'new', httpMethods = [ '$GET', '$POST' ], routeSuffix = '/new' },
+	  { method = 'create', httpMethods = [ '$POST' ] },
+	  { method = 'read', httpMethods = [ '$GET' ], includeId = true },
+	  { method = 'update', httpMethods = [ '$PUT','$PATCH', '$POST' ], includeId = true },
+	  { method = 'delete', httpMethods = [ '$DELETE' ], includeId = true }
+	];
+	 */
+
 
 	/**
 	 * Used to manipulate request variables before they are passed to controllers.
@@ -26,8 +50,8 @@ component extends="zero" {
 	 * @result  {any} the result of the call to the controller
 	 * @return {any}    The modified result to be used by the view
 	 */
-	public any function result( rc, result ){				
-		return result;		
+	public any function result( result ){				
+		return result;
 	}
 
 	/**
