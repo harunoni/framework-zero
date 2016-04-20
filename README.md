@@ -14,9 +14,10 @@ Zero was designed with these goals in mind:
 ####MVC as the Appliation Layer
 
 ####Testable Controllers
+Zero makes controllers and views explicit and testable by the following:
 
-..1. Disuade use of "global" scopes like the RC (request context). Controllers should receive certain value, and return certain values, for use by the views, thus:
-..2. Use arguments of a controller function to check for existence of URL & FORM variables, and return specific variables for use by the views. Views should only have access to the values returned by the controller.
+1. Disuade use of "global" scopes like the RC (request context). Controllers should receive certain values, and return certain values, for use by the views.
+2. Use arguments of a controller function to check for existence of URL & FORM variables, and return specific variables for use by the views. Views should only have access to the values returned by the controller.
 
 ####Easy RESTfull & API Applications
 
