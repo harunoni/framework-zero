@@ -12,6 +12,7 @@ Zero was designed with these goals in mind:
 3. Easy RESTful & API Applications
 
 ####MVC as the Appliation Layer
+In Zero, the M in MVC stands for the View Model. The actual domain model is outside of the Zero application. This contracts to traditional monolithic MVC apps where the models, services, controllers and views all form the entire software package. Zero is only concerned with HTTP request and responses, and translating those into the calls of the actual domain model, via the controllers.
 
 ####Testable Controllers
 
