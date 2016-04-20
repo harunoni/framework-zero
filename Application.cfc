@@ -1,99 +1,42 @@
 component extends="zero" {
 	
-	/*
-		This is provided for illustration only - YOU SHOULD NOT USE THIS IN
-		A REAL PROGRAM! ONLY SPECIFY THE DEFAULTS YOU NEED TO CHANGE!
-	variables.framework = {
-		// the name of the URL variable:
-		action = 'action',
-		// whether or not to use subsystems:
-		usingSubsystems = false,
-		// default subsystem name (if usingSubsystems == true):
-		defaultSubsystem = 'home',
-		// default section name:
-		defaultSection = 'main',
-		// default item name:
-		defaultItem = 'default',
-		// if using subsystems, the delimiter between the subsystem and the action:
-		subsystemDelimiter = ':',
-		// if using subsystems, the name of the subsystem containing the global layouts:
-		siteWideLayoutSubsystem = 'common',
-		// the default when no action is specified:
-		home = defaultSubsystem & ':' & defaultSection & '.' & defaultItem,
-		-- or --
-		home = defaultSection & '.' & defaultItem,
-		// the default error action when an exception is thrown:
-		error = defaultSubsystem & ':' & defaultSection & '.error',
-		-- or --
-		error = defaultSection & '.error',
-		// the URL variable to reload the controller/service cache:
-		reload = 'reload',
-		// the value of the reload variable that authorizes the reload:
-		password = 'true',
-		// debugging flag to force reload of cache on each request:
-		reloadApplicationOnEveryRequest = false,
-		// whether to force generation of SES URLs:
-		generateSES = false,
-		// whether to omit /index.cfm in SES URLs:
-		SESOmitIndex = false,
-		// location used to find layouts / views:
-		base = ... relative path from Application.cfc to application files ...
-		// either CGI.SCRIPT_NAME or a specified base URL path:
-		baseURL = 'useCgiScriptName',
-		// location used to find controllers / services:
-		// cfcbase = essentially base with / replaced by .
-		// list of file extensions that FW/1 should not handle:
-		unhandledExtensions = 'cfc',
-		// list of (partial) paths that FW/1 should not handle:
-		unhandledPaths = '/flex2gateway',
-		// flash scope magic key and how many concurrent requests are supported:
-		preserveKeyURLKey = 'fw1pk',
-		maxNumContextsPreserved = 10,
-		// set this to true to cache the results of fileExists for performance:
-		cacheFileExists = false,
-		// change this if you need multiple FW/1 applications in a single CFML application:
-		applicationKey = 'framework.one',
-        // change this if you want a different dependency injection engine:
-        diEngine = 'di1',
-        // change this if you want different locations to be scanned by the D/I engine:
-        diLocations = 'model,controllers',
-        // optional configuration for your dependency injection engine:
-        diConfig = { },
-        // routes (for fancier SES URLs) - see the documentation for details:
-        routes = [ ],
-        routesCaseSensitive = true
-	};
-	*/
+	
 	variables.zero = {
 		//Whether controllers should return a result
 		throwOnNullControllerResult = false,
 		argumentCheckedControllers = true
 	}
 
-	
-	function request( rc ){
+	/**
+	 * Used to manipulate request variables before they are passed to controllers.
+	 * @param  {struct} rc All of the URL and FORM variable put into one structure. RC is a reference to request.context
+	 * @return {Struct}    The result of the RC is then passed onto the controller for this call
+	 */
+	public struct function request( rc ){
 		return rc;
 	}
 
-
 	/**
-	 * Called after controller and view execution. In Framework-Zero, the
-	 * return data from contollers is passed to the result function. 
+	 * Called after controller execution and before the view. Here you 
+	 * can make any additional changes if necessary to inject more values
+	 * for the view.
 	 * 
 	 * @rc  {struct} rc the request of the request context and 
-	 * @result  {struct} the result of the controller data
-	 * @return {any}    The modified result to be used by the rendering code
+	 * @result  {any} the result of the call to the controller
+	 * @return {any}    The modified result to be used by the view
 	 */
 	public any function result( rc, result ){				
 		return result;		
 	}
 
-
 	/**
-	 * Receives the final respons that is going to be returned to the browser. This is the HTML
-	 * or text encoded JSON that will be returned.
+	 * Receives the final respons that is going to be returned to the client. This is the HTML
+	 * or text encoded JSON that will be returned. This function can be used to 
+	 * manipulate optionally manipulate the final text response
+	 *
+	 * 
 	 * @param  {string} string response  the final output to be returned.
-	 * @return {string} Must return a string for the response to output;
+	 * @return {string} Must return a string for the response to complete;
 	 */
 	public string function response( string response){		
 		return response;		
