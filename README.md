@@ -14,6 +14,7 @@ Zero was designed with these goals in mind:
 ####MVC as the Appliation Layer
 
 ####Testable Controllers
+
 Zero makes controllers and views explicit and testable by the following:
 
 1. Disuade use of "global" scopes like the RC (request context). Controllers should receive certain values, and return certain values, for use by the views.
@@ -21,6 +22,7 @@ Zero makes controllers and views explicit and testable by the following:
 
 ####Easy RESTfull & API Applications
 
+Zero deploys with a resource based HTML and JSON enabled setup to enable dual HTML And JSON based applications. In zero, each resource endpoint will return either HTML views, or JSON, depending on the content type requested.
 
 
  
