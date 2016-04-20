@@ -1,5 +1,5 @@
 # framework-zero
-A lightweight RESTful web app and microservice framework for Lucee
+**A lightweight RESTful web app and microservice framework for Lucee**
 
 Zero is inspired by the [Framework-one (fw/1)](https://github.com/framework-one/fw1). Zero, however seeks to provde a better experience for type checked, RESTful and domain driven applications. Zero is based on Fw/1 and requires it, however diverges by removing dependency injection, changing the way controllers are executed, providing a cleaner RESTful experience out of the box, test first design, and sane default. In the future, Zero may be standalone, but fw/1 is very well designed for a number of things that are useful. 
 
