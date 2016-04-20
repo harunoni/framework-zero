@@ -3,7 +3,8 @@ component extends="zero" {
 	
 	variables.zero = {
 		//Whether controllers should return a result
-		throwOnNullControllerResult = false,
+		throwOnNullControllerResult = true,
+		//Whether the arguments on the controller are checked and only those specific keys passed to it
 		argumentCheckedControllers = true
 	}
 
