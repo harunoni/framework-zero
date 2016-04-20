@@ -27,5 +27,12 @@ Zero makes controllers and views explicit and testable by the following:
 
 Zero deploys with a resource based HTML and JSON enabled setup to enable dual HTML And JSON based applications. In zero, each resource endpoint will return either HTML views, or JSON, depending on the content type requested.
 
+#Differences from Framework One Fw/1
+Zero is based on FW/1. For brevity, all of the features of FW/1 are available and work as advertised, except for these differences below. Zero is based on FW/1, but overrides key functionality.
+
+###Request Lifecycle
+In zero, there are three lifecycle methods: request(), result() and response(). Request is for handling incoming HTTP request variables and optionally changing them. Result is for optionally handling the data returned from a controller execution. And response is for optionally handling the final text output to be returned by Zero.
+
+
 
  
