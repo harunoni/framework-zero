@@ -50,7 +50,7 @@ variables.framework.resourceRouteTemplates = [
 	  { method = 'update', httpMethods = [ '$PUT','$PATCH', '$POST' ], includeId = true },
 	  { method = 'delete', httpMethods = [ '$DELETE' ], includeId = true }
 	];
-	```
+```
 
 Zero also changes the behavior of the 'new' method, by allowing a POST. This is useful for when HTML forms can POST to /new with variables that will change how the new form behaves. 
 
