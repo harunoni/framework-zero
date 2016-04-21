@@ -38,6 +38,21 @@ The important difference with Zero is it disuades the use of the global request 
 ###Controller Arguments
 In Zero, controllers only receive the request parameters (url and form) for the arguments they are explicityly expecting. The RC scope is not passed to the controller, instead Zero looks at the arguments and only passes the parameters the controller defines. The controller can therefore define required, optional and default values and only the right values will be passed. This allows you to use the Lucee type system to enforce access to your controllers, instead of having to handle for the existence of parameters manually.
 
+###Default Routes
+Zero is designed for a RESTful applications by default (both HTML and JSON content resources), thus it creates resource routes for every controller by default. The default routes it creates for each controller are:
+
+```
+variables.framework.resourceRouteTemplates = [
+	  { method = 'list', httpMethods = [ '$GET' ] },
+	  { method = 'new', httpMethods = [ '$GET', '$POST' ], routeSuffix = '/new' },
+	  { method = 'create', httpMethods = [ '$POST' ] },
+	  { method = 'read', httpMethods = [ '$GET' ], includeId = true },
+	  { method = 'update', httpMethods = [ '$PUT','$PATCH', '$POST' ], includeId = true },
+	  { method = 'delete', httpMethods = [ '$DELETE' ], includeId = true }
+	];
+	```
+
+Zero also changes the behavior of the 'new' method, by allowing a POST. This is useful for when HTML forms can POST to /new with variables that will change how the new form behaves. 
 
 
  
