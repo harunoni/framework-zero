@@ -92,6 +92,11 @@ component extends="one" {
         routesCaseSensitive = true
 	};
 	*/
+	variables.framework = {
+		reloadApplicationOnEveryRequest = true,
+		defaultItem = "list"
+	}
+
 	variables.framework.resourceRouteTemplates = [
 	  { method = 'list', httpMethods = [ '$GET' ] },
 	  { method = 'new', httpMethods = [ '$GET', '$POST' ], routeSuffix = '/new' },
@@ -133,8 +138,14 @@ component extends="one" {
 			break;
 
 			default:
+				//Clear out the RC scope because only the result from the controller will be passed
+				//to the view
+				rc = {};
 				if(!isNull(request._zero.controllerResult)){
-					structAppend(rc, request._zero.controllerResult);									
+					for(var key in request._zero.controllerResult){
+						rc[key] = request._zero.controllerResult[key];
+					}
+					
 				}							
 			break;
 		}				
