@@ -35,6 +35,9 @@ In zero, there are three lifecycle methods: request(), result() and response(). 
 
 The important difference with Zero is it disuades the use of the global request scope, and favors explicity passing variables along to the methods that require them.
 
+###Controller Arguments
+In Zero, controllers only receive the request parameters (url and form) for the arguments they are explicityly expecting. The RC scope is not passed to the controller, instead Zero looks at the arguments and only passes the parameters the controller defines. The controller can therefore define required, optional and default values and only the right values will be passed. This allows you to use the Lucee type system to enforce access to your controllers, instead of having to handle for the existence of parameters manually.
+
 
 
  
