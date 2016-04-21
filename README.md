@@ -24,11 +24,15 @@ Zero makes controllers and views explicit and testable by the following:
 2. Use arguments of a controller function to check for existence of URL & FORM variables, and return specific variables for use by the views. Views should only have access to the values returned by the controller.
 
 ####Easy RESTfull & API Applications
-
 Zero deploys with a resource based HTML and JSON enabled setup to enable dual HTML And JSON based applications. In zero, each resource endpoint will return either HTML views, or JSON, depending on the content type requested.
 
 #Differences from Framework One Fw/1
 Zero is based on FW/1. For brevity, all of the features of FW/1 are available and work as advertised, except for these differences below. Zero is based on FW/1, but overrides key functionality.
+
+###Easy HTML & JSON Application
+Zero is defined for the type of application where both the HTML client and API client, can utilize the same code base. This is common for Resource based architectures. HTML clients work with the resources via GETs & POSTS, and API based clients (Javascript or otherwise) can optionally utilize all of the HTTP verbs (POST/DELETE/GET).
+
+Zero checks every request for the presence of .json at the end of the resource. If present, Zero will serialize and return the data result from controllers and abort calling the view. Without .json present, Zero defaults to the HTML view. 
 
 ###Request Lifecycle
 In zero, there are three lifecycle methods: request(), result() and response(). Request is for handling incoming HTTP request variables and optionally changing them. Result is for optionally handling the data returned from a controller execution. And response is for optionally handling the final text output to be returned by Zero.
@@ -48,7 +52,8 @@ variables.framework.resourceRouteTemplates = [
 	  { method = 'create', httpMethods = [ '$POST' ] },
 	  { method = 'read', httpMethods = [ '$GET' ], includeId = true },
 	  { method = 'update', httpMethods = [ '$PUT','$PATCH', '$POST' ], includeId = true },
-	  { method = 'delete', httpMethods = [ '$DELETE' ], includeId = true }
+	  { method = 'delete', httpMethods = [ '$DELETE' ], includeId = true },
+	  { method = 'delete', httpMethods = [ '$POST' ], includeId = true, routeSuffic = '/delete' }
 	];
 ```
 
