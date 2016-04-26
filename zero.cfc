@@ -183,6 +183,14 @@ component extends="one" {
 		}				
 	}
 
+	private function isJsonRequest(){
+		return request._zero.contentType IS "json";
+	}
+
+	private function isHTMLRequest(){
+		request._zero.contentType IS "html";
+	}
+
 	function onRequest(){
 
 		var finalOutput = "";
@@ -321,6 +329,22 @@ component extends="one" {
     	}
 
     	throw("Did not expect to get to this point, controller method #method# does not exist. framework zero");
+    }
+
+   	public function onError(exception, event){
+   		// writeDump(arguments);
+   		if(isJsonRequest()){
+   			var out = {
+   				"success":"false",
+   				"message":arguments.exception.message
+
+   			}
+   			writeOutput(serializeJson(out));
+   			abort;
+   		} else {
+   			// failure(argumentcollection=arguments);
+    		super.onError(argumentCollection=arguments);   			
+   		}
     }
 
 }

@@ -19,7 +19,8 @@ component extends="zero" {
 		of the controller to more easily work with what it expects, instead of a huge
 		struct of data which changing elements may have side effects.
 		 */
-		argumentCheckedControllers = true
+		argumentCheckedControllers = true,
+
 	}
 
 	/*
@@ -78,9 +79,8 @@ component extends="zero" {
 		return response;		
 	}
 
-	function onError(){
-		writeDump(arguments);
-
-	}
+	// function onError(){
+	// 	writeDump(arguments);
+	// }
 
 }
