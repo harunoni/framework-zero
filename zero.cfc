@@ -92,6 +92,7 @@ component extends="one" {
         routesCaseSensitive = true
 	};
 	*/
+
 	variables.framework = {
 		reloadApplicationOnEveryRequest = true,
 		defaultItem = "list"
@@ -103,8 +104,30 @@ component extends="one" {
 	  { method = 'create', httpMethods = [ '$POST' ] },
 	  { method = 'read', httpMethods = [ '$GET' ], includeId = true },
 	  { method = 'update', httpMethods = [ '$PUT','$PATCH', '$POST' ], includeId = true },
-	  { method = 'delete', httpMethods = [ '$DELETE' ], includeId = true }
+	  { method = 'delete', httpMethods = [ '$DELETE' ], includeId = true },
+	  { method = 'delete', httpMethods = [ '$POST' ], includeId = true, routeSuffic = '/delete' }
 	];
+
+	
+	loadControllers();
+	/**
+	 * Createa a default RESTful route for each controller present
+	 * in the controllers folder 
+	 * @return {array} The routes created by this function
+	 */
+	private array function loadControllers(){
+		
+		variables.framework.routes = []
+		var controllers = directoryList(path=expandPath("controllers"), filter="*.cfc");
+		// writeDump(controllers);
+		// abort;
+		for(var controller in controllers){
+			file = getFileFromPath(controller);
+			name = listFirst(file, ".");
+			variables.framework.routes.append({ "$RESOURCES" = { resources = name} })
+		}
+		return variables.framework.routes;
+	}
 	
 	public function before( rc ){
 
@@ -114,9 +137,13 @@ component extends="one" {
 	}
 
 	public function after( rc ){
-
 		if(structKeyExists(this,"result")){
-			rc = result(((isNull(request._zero.controllerResult))?: request._zero.controllerResult));			
+			if(isNull(request._zero.controllerResult)){
+				rc = result({});
+			} else {
+				rc = result(request._zero.controllerResult);
+			}
+			// rc = result(((isNull(request._zero.controllerResult))?: request._zero.controllerResult));			
 		}
 
 		if(isNull(request._zero.controllerResult)){
@@ -140,14 +167,19 @@ component extends="one" {
 			default:
 				//Clear out the RC scope because only the result from the controller will be passed
 				//to the view
-				rc = {};
+				rc = {}
 				if(!isNull(request._zero.controllerResult)){
 					for(var key in request._zero.controllerResult){
 						rc[key] = request._zero.controllerResult[key];
-					}
-					
-				}							
-			break;
+					}					
+				}
+				request.context = rc;		
+
+				if(structKeyExists(rc,"goto")){
+					location url="#rc.goto#" addtoken="false";
+				}
+
+			break;			
 		}				
 	}
 

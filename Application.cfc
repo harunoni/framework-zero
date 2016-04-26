@@ -1,5 +1,6 @@
 component extends="zero" {	
 	
+	this.name="zero";
 	/*
 	Zero only have a couple of configurable options. listed below. The rest of the confirugation
 	is via overrides of FW/1 in the zero.cfc. You can specify any FW/1 settings you deem necessary.	
