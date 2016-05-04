@@ -61,6 +61,9 @@ variables.framework.resourceRouteTemplates = [
 
 Zero also changes the behavior of the routed by allowing a POST with suffixes. This is useful for when HTML forms can POST to endpoints which either take a PUT, or need to change the output of the view. For example, and HTML form POST to /list will allow the controller to change aspects of the view data.
 
-##Zero's Unique Features
+#Zero's Unique Features
 ###HTML 5 Nested Form Support
-HTML 5 Spec allows nesting form elements or making submit buttons go to different actions. This makes building RESTful server-size rendered HTML very easy and intuitive. However, no version of internet explorer supported nested forms. Zero provides a convention for mimicing HTML 5 forms by overloading the form scope with all of the forms values on the page, and then choosing the correct controller action.
+HTML 5 Spec allows nesting form elements or making submit buttons go to different actions. This makes building RESTful server-size rendered HTML very easy and intuitive. However, no version of internet explorer supports nested forms yet. Zero provides a convention for mimicing HTML 5 forms by overloading the form scope with all of the forms values on the page, and then choosing the correct controller action.
+
+###Utilize HTML & The Browser to control state
+Zero encourages pushing all client state to the HTML or client data store. This is unconventional for Lucee application which typically store client state in the session scope. But by pushing state control to the client, it greatly simplifies controller code. Zero provides a number of state management features:
