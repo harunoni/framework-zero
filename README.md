@@ -30,7 +30,7 @@ Zero deploys with a resource based HTML and JSON enabled setup to enable dual HT
 Zero is based on FW/1. For brevity, all of the features of FW/1 are available and work as advertised, except for these differences below. Zero is based on FW/1, but overrides key functionality.
 
 ###Easy HTML & JSON Application
-Zero is defined for the type of application where both the HTML client and API client, can utilize the same code base. This is common for Resource based architectures. HTML clients work with the resources via GETs & POSTS, and API based clients (Javascript or otherwise) can optionally utilize all of the HTTP verbs (POST/DELETE/GET).
+Zero was created for the type of application where both the HTML client and API client can utilize the same code base. This is common for Resource based architectures. HTML clients work with the resources via GETs & POSTS, and API based clients (Javascript or otherwise) can optionally utilize all of the HTTP verbs (POST/DELETE/GET).
 
 Zero checks every request for the presence of .json at the end of the resource. If present, Zero will serialize and return the data result from controllers and abort calling the view. Without .json present, Zero defaults to the HTML view. 
 
@@ -40,7 +40,7 @@ In zero, there are three lifecycle methods: request(), result() and response(). 
 The important difference with Zero is it disuades the use of the global request scope, and favors explicity passing variables along to the methods that require them.
 
 ###Controller Arguments
-In Zero, controllers only receive the request parameters (url and form) for the arguments they are explicityly expecting. The RC scope is not passed to the controller, instead Zero looks at the arguments and only passes the parameters the controller defines. The controller can therefore define required, optional and default values and only the right values will be passed. This allows you to use the Lucee type system to enforce access to your controllers, instead of having to handle for the existence of parameters manually.
+In Zero, controllers only receive the request parameters (url and form) for the arguments that they are explicityly expecting. The RC scope is not passed to the controller, instead Zero looks at the arguments and only passes the parameters the controller defines. The controller can therefore define required, optional and default values and only the right values will be passed. This allows you to use the Lucee type system to enforce access to your controllers, instead of having to handle for the existence of parameters manually.
 
 ###Default Routes
 Zero is designed for a RESTful applications by default (both HTML and JSON content resources), thus it creates resource routes for every controller by default. The default routes it creates for each controller are:
@@ -48,16 +48,18 @@ Zero is designed for a RESTful applications by default (both HTML and JSON conte
 ```
 variables.framework.resourceRouteTemplates = [
 	  { method = 'list', httpMethods = [ '$GET' ] },
+	  { method = 'list', httpMethods = [ '$POST' ], routeSuffix = '/list' },
 	  { method = 'new', httpMethods = [ '$GET', '$POST' ], routeSuffix = '/new' },
 	  { method = 'create', httpMethods = [ '$POST' ] },
 	  { method = 'read', httpMethods = [ '$GET' ], includeId = true },
+	  { method = 'read', httpMethods = [ '$POST' ], includeId = true, routeSuffix = '/read' },
 	  { method = 'update', httpMethods = [ '$PUT','$PATCH', '$POST' ], includeId = true },
 	  { method = 'delete', httpMethods = [ '$DELETE' ], includeId = true },
 	  { method = 'delete', httpMethods = [ '$POST' ], includeId = true, routeSuffic = '/delete' }
 	];
 ```
 
-Zero also changes the behavior of the 'new' method, by allowing a POST. This is useful for when HTML forms can POST to /new with variables that will change how the new form behaves. 
+Zero also changes the behavior of the routed by allowing a POST with suffixes. This is useful for when HTML forms can POST to endpoints which either take a PUT, or need to change the output of the view. For example, and HTML form POST to /list will allow the controller to change aspects of the view data.
 
 
  
