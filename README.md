@@ -24,7 +24,7 @@ Zero makes controllers and views explicit and testable by the following:
 2. Use arguments of a controller function to check for existence of URL & FORM variables, and return specific variables for use by the views. Views should only have access to the values returned by the controller.
 
 ####Easy RESTfull & API Applications
-Zero deploys with a resource based HTML and JSON enabled setup to enable dual HTML And JSON based applications. In zero, each resource endpoint will return either HTML views, or JSON, depending on the content type requested.
+Zero deploys with a resource based HTML and JSON enabled setup to enable dual HTML And JSON based applications. In zero, each resource endpoint will return either HTML views, or JSON, depending on the file extension (.json returns json).
 
 #Differences from Framework One Fw/1
 Zero is based on FW/1. For brevity, all of the features of FW/1 are available and work as advertised, except for these differences below. Zero is based on FW/1, but overrides key functionality.
