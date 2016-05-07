@@ -67,3 +67,13 @@ HTML 5 Spec allows nesting form elements or making submit buttons go to differen
 
 ###Utilize HTML & The Browser to control state
 Zero encourages pushing all client state to the HTML or client data store. This is unconventional for Lucee application which typically store client state in the session scope. But by pushing state control to the client, it greatly simplifies controller code. Zero provides a number of state management features:
+
+####Goto
+Zero follows the Post-Redirect-Get convention wherein the browser should be making mutating changes with a post, and then redirect the user to a safe GET url. GETs should almost never mutate the state of the application. However when builind RESTful HTML post, where the user should be redirected to can vary. Therefore we leave this up to the client to decide. Zero will look for a "goto" form parameter on posts and redirect here if provided. 
+
+`<input type="hidden" name="goto" value="{{url to go to after post}}"/>`
+
+####Preserve Response
+When posting to a resource and redirecting back to a resource, sometimes the results of that post need to be displayed on the subsequent get. Zero makes this possible by telling it to preserve the response of the goto.
+
+`<input type="hidden" name="preserve_response" value="{{name of the variable to call the response}}"/>`
