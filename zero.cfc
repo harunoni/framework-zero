@@ -126,6 +126,7 @@ component extends="one" {
 
 	variables.framework.resourceRouteTemplates = [
 	  { method = 'list', httpMethods = [ '$GET' ] },
+	  { method = 'list', httpMethods = [ '$POST' ], routeSuffix = '/list' },
 	  { method = 'new', httpMethods = [ '$GET', '$POST' ], routeSuffix = '/new' },
 	  { method = 'create', httpMethods = [ '$POST' ] },
 	  { method = 'read', httpMethods = [ '$GET' ], includeId = true },	  
@@ -226,16 +227,23 @@ component extends="one" {
 						client[form.preserve_response] = request._zero.controllerResult;
 					}
 
-					var goto = rc.goto;
-					rc = {}
-					if(!isNull(request._zero.controllerResult)){
-						for(var key in request._zero.controllerResult){
-							rc[key] = request._zero.controllerResult[key];
-						}					
-					}
+					/*
+					Pull out goto before overriding scope to contoller result. This needs to be done first
+					because goto comes from the form scope (and is inserted into the rc scope by fw/). After
+					setting a local copy of goto, clearAndSetRCScopeToControllerResult(rc); can set the
+					controller result which can be searched for optional variables provided in the goto
+					(described below)
+					 */
+					var goto = rc.goto; 
+					clearAndSetRCScopeToControllerResult(rc);
 
-					if(goto contains ":"){
-						writeDump(goto);
+					/*
+					goto directives can contain fw/1 route variables. This is useful for
+					redirecting to the IDs of newly created elements after
+					a form post
+					 */
+					var gotoHasVariblePrefix = goto contains ":";
+					if(gotoHasVariablePrefix){						
 						variable = reReplaceNoCase(goto, "(.*):([A-Zaz\.]*)", "\2");
 						
 						tryNull = evaluate("isNull(rc.#variable#)");
@@ -249,21 +257,26 @@ component extends="one" {
 					}					
 					
 					location url="#goto#" addtoken="false";
-				}				
+				}							
 				
-				//Clear out the RC scope because only the result from the controller will be passed
-				//to the view
-				rc = {}
-				if(!isNull(request._zero.controllerResult)){
-					for(var key in request._zero.controllerResult){
-						rc[key] = request._zero.controllerResult[key];
-					}					
-				}
-				request.context = rc;		
+				clearAndSetRCScopeToControllerResult(rc);
 
 			break;			
 		}				
-	}	
+	}
+
+	private function clearAndSetRCScopeToControllerResult( rc ){
+
+		//Clear out the RC scope because only the result from the controller will be passed
+		//to the view
+		rc = {}
+		if(!isNull(request._zero.controllerResult)){
+			for(var key in request._zero.controllerResult){
+				rc[key] = request._zero.controllerResult[key];
+			}					
+		}
+		request.context = rc;
+	}
 
 	function onRequest(){
 
