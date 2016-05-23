@@ -79,8 +79,4 @@ component extends="zero" {
 		return response;		
 	}
 
-	// function onError(){
-	// 	writeDump(arguments);
-	// }
-
 }

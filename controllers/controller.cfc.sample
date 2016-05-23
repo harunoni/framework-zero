@@ -5,23 +5,23 @@ component accessors="true" {
 		return this;
 	}
 	
-	public void function list( rc ) {
+	public struct function list( rc ) {
       
 	}
 
-	public void function create( rc ) {
+	public struct function create( rc ) {
       
 	}
 
-	public void function read( rc ) {
+	public struct function read( rc ) {
       
 	}
 
-	public void function update( rc ) {
+	public struct function update( rc ) {
       
 	}
 
-	public void function delete( rc ) {
+	public struct function delete( rc ) {
       
 	}
 	

@@ -1,17 +1,41 @@
 component extends="one" {	
 
+	copyCGI = duplicate(CGI);	
+	
+	/*
+	Global framework rewrite of the request scope. Allows mimicing HTML 5 
+	nested form feature, which is not currently supported by Internet Explorer.
+	Will introspect the form data and override the copied CGI information
+	with the route in the form so what fw/1 routes pick the intended controller
+	 */	
+	if(structKeyExists(form,"zero_form")){
+		zeroForms = listToArray(form.zero_form);
+		for(zeroFormName in zeroForms){			
+			if(structKeyExists(form,zeroFormName)){
+				formgroup = duplicate(form[zeroFormName]);			
+				if(structKeyExists(formgroup,"submit")){
+					actionPathInfo = replaceNoCase(formgroup.action, copyCGI.SCRIPT_NAME, "");
+					copyCGI.path_info = actionPathInfo;	
+					copyCGI.request_method = formgroup.method;						
+					structClear(form);
+					structAppend(form,formgroup.data);			
+				}							
+			}
+		}
+	}
+	
      request._fw1 = {
-        cgiScriptName = replaceNoCase(CGI.SCRIPT_NAME,".json",""),
-        cgiPathInfo = replaceNoCase(CGI.PATH_INFO,".json",""),
-        cgiRequestMethod = CGI.REQUEST_METHOD,
+        cgiScriptName = replaceNoCase(copyCGI.SCRIPT_NAME,".json",""),
+        cgiPathInfo = replaceNoCase(copyCGI.PATH_INFO,".json",""),
+        cgiRequestMethod = copyCGI.REQUEST_METHOD,
         controllers = [ ],
         requestDefaultsInitialized = false,
         routeMethodsMatched = { },
         doTrace = false,
         trace = [ ]
     };
-
-    request._zero.PathInfo = cgi.path_Info;    
+	
+    request._zero.PathInfo = copyCGI.path_Info;    
 	request._zero.ContentType = listLast(request._zero.PathInfo,".");
 
 	switch(lcase(request._zero.ContentType)){
@@ -19,14 +43,17 @@ component extends="one" {
 			request._zero.contentType = "json";			
 		break;
 
-		default
+		default:
 			request._zero.contentType = "html";
 		break;
-	}	
+	}
+
+	
+	this.clientManagement = true;
+	this.clientStorage = "cookie";
 
 	variables.zero.throwOnNullControllerResult = true;
 	variables.zero.argumentCheckedControllers = true;
-
 
 	/*
 		This is provided for illustration only - YOU SHOULD NOT USE THIS IN
@@ -92,7 +119,6 @@ component extends="one" {
         routesCaseSensitive = true
 	};
 	*/
-
 	variables.framework = {
 		reloadApplicationOnEveryRequest = true,
 		defaultItem = "list"
@@ -102,13 +128,13 @@ component extends="one" {
 	  { method = 'list', httpMethods = [ '$GET' ] },
 	  { method = 'new', httpMethods = [ '$GET', '$POST' ], routeSuffix = '/new' },
 	  { method = 'create', httpMethods = [ '$POST' ] },
-	  { method = 'read', httpMethods = [ '$GET' ], includeId = true },
+	  { method = 'read', httpMethods = [ '$GET' ], includeId = true },	  
+	  { method = 'read', httpMethods = [ '$POST' ], includeId = true, routeSuffix = '/read' },	  
 	  { method = 'update', httpMethods = [ '$PUT','$PATCH', '$POST' ], includeId = true },
 	  { method = 'delete', httpMethods = [ '$DELETE' ], includeId = true },
-	  { method = 'delete', httpMethods = [ '$POST' ], includeId = true, routeSuffic = '/delete' }
+	  { method = 'delete', httpMethods = [ '$POST' ], includeId = true, routeSuffix = '/delete' }
 	];
 
-	
 	loadControllers();
 	/**
 	 * Createa a default RESTful route for each controller present
@@ -136,15 +162,43 @@ component extends="one" {
 		}
 	}
 
-	public function after( rc ){
-		if(structKeyExists(this,"result")){
-			if(isNull(request._zero.controllerResult)){
-				rc = result({});
-			} else {
-				rc = result(request._zero.controllerResult);
-			}
-			// rc = result(((isNull(request._zero.controllerResult))?: request._zero.controllerResult));			
+	public function onError(error, event){
+		
+		switch(request._zero.contentType){
+			case "json":				
+
+				if(!error.errorCode == "0"){
+					var errorcode = error.errorCode
+				} else {
+					var errorcode = "500";
+				}
+
+				var out = {
+					"success":false,
+					"message":error.message,
+					"status_code":errorCode,
+				}				
+				
+				header statuscode="#errorCode#";				
+				writeOutput(serializeJson(out));
+				abort;
+			break;
+
+			case "html":				
+				super.onError(error, event);
+			break;
 		}
+	}
+
+	public function after( rc ){
+		// if(structKeyExists(this,"result")){
+		// 	if(isNull(request._zero.controllerResult)){
+		// 		rc = result({});
+		// 	} else {
+		// 		rc = result(request._zero.controllerResult);
+		// 	}
+		// 	// rc = result(((isNull(request._zero.controllerResult))?: request._zero.controllerResult));			
+		// }
 
 		if(isNull(request._zero.controllerResult)){
 			if(variables.zero.throwOnNullControllerResult){
@@ -165,6 +219,38 @@ component extends="one" {
 			break;
 
 			default:
+
+				if(structKeyExists(rc,"goto")){
+
+					if(structKeyExists(form,"preserve_response")){						
+						client[form.preserve_response] = request._zero.controllerResult;
+					}
+
+					var goto = rc.goto;
+					rc = {}
+					if(!isNull(request._zero.controllerResult)){
+						for(var key in request._zero.controllerResult){
+							rc[key] = request._zero.controllerResult[key];
+						}					
+					}
+
+					if(goto contains ":"){
+						writeDump(goto);
+						variable = reReplaceNoCase(goto, "(.*):([A-Zaz\.]*)", "\2");
+						
+						tryNull = evaluate("isNull(rc.#variable#)");
+						if(tryNull){
+							throw("Value not found");
+						} else {
+							value = getVariable("rc.#variable#");
+							goto = replaceNoCase(goto, ":#variable#", value);
+						}
+
+					}					
+					
+					location url="#goto#" addtoken="false";
+				}				
+				
 				//Clear out the RC scope because only the result from the controller will be passed
 				//to the view
 				rc = {}
@@ -175,21 +261,9 @@ component extends="one" {
 				}
 				request.context = rc;		
 
-				if(structKeyExists(rc,"goto")){
-					location url="#rc.goto#" addtoken="false";
-				}
-
 			break;			
 		}				
-	}
-
-	private function isJsonRequest(){
-		return request._zero.contentType IS "json";
-	}
-
-	private function isHTMLRequest(){
-		request._zero.contentType IS "html";
-	}
+	}	
 
 	function onRequest(){
 
@@ -200,6 +274,10 @@ component extends="one" {
 
 		finalOutput = response(finalOutput);
 		writeOutput(finalOutput);
+
+		//Clear out the client at the end of the request
+		client = {};
+		structClear(client);		
 	}
 
 	/*
@@ -286,9 +364,14 @@ component extends="one" {
                 		request.context.headers = request._fw1.headers;
                 		
                 		for(var arg in args){
+                			
                 			if(structKeyExists(request.context,arg.name)){
                 				argsToPass[arg.name] = request.context[arg.name];
-                			}                			     
+                			}    
+
+                			if(structKeyExists(client,arg.name)){                			
+                				argsToPass[arg.name] = client[arg.name];
+                			}              			     
                 		}
 	                	request._zero.controllerResult = evaluate( 'cfc.#method#( argumentCollection = argsToPass)' );                		
                 	} else {
@@ -296,7 +379,7 @@ component extends="one" {
                 	}
 	                
             	} else {
-            		request._zero.controllerResult = evaluate( 'cfc.#method#( rc = request.context, headers = request._fw1.headers )' );
+            		request._zero.controllerLifecycleResult = evaluate( 'cfc.#method#( rc = request.context, headers = request._fw1.headers )' );
             	}
 
             } catch ( any e ) {
@@ -329,22 +412,6 @@ component extends="one" {
     	}
 
     	throw("Did not expect to get to this point, controller method #method# does not exist. framework zero");
-    }
-
-   	public function onError(exception, event){
-   		// writeDump(arguments);
-   		if(isJsonRequest()){
-   			var out = {
-   				"success":"false",
-   				"message":arguments.exception.message
-
-   			}
-   			writeOutput(serializeJson(out));
-   			abort;
-   		} else {
-   			// failure(argumentcollection=arguments);
-    		super.onError(argumentCollection=arguments);   			
-   		}
     }
 
 }
