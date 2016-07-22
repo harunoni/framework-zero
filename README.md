@@ -10,6 +10,7 @@ Zero was designed with these goals in mind:
 1. MVC is the Application layer in a Domain Driven Design. This means that controllers should deal only with HTTP request and Response values. All business logic exists within the Domain Model. 
 2. Controllers should be testable and rely on the Lucee type system.
 3. Easy RESTful & API Applications
+4. Modern Web Application Defaults
 
 ####MVC as the Appliation Layer
 In Zero, the M in MVC stands for the View Model. The actual domain model is outside of the Zero application. This contrasts with traditional monolithic MVC apps where the models, services, controllers and views all form the entire software package. Zero is only concerned with HTTP request and responses, and translating those into the calls of the actual domain model, via the controllers. While this is possible in a traditional MVC architecute like fw/1, the conventions lend themselves to the business domain model bleeding into the application layer.
