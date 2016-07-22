@@ -37,6 +37,26 @@ Zero checks every request for the presence of .json at the end of the resource. 
 ###Request Lifecycle
 In zero, there are three lifecycle methods: request(), result() and response(). Request is for handling incoming HTTP request variables and optionally changing them. Result is for optionally handling the data returned from a controller execution. And response is for optionally handling the final text output to be returned by Zero.
 
+```
+public struct function request( rc ){
+	return rc;
+}
+```
+
+```
+public any function result( controllerResult ){				
+	return controllerResult;
+}
+```
+
+```
+public string function response( string response ){		
+	return response;		
+}		
+```
+
+####Controller Request() & Result()
+Each controller can optionally have request() & result() methods matching the signatures above
 The important difference with Zero is it disuades the use of the global request scope, and favors explicity passing variables along to the methods that require them.
 
 ###Controller Arguments

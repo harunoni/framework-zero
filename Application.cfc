@@ -62,8 +62,8 @@ component extends="zero" {
 	 * @result  {any} the result of the call to the controller
 	 * @return {any}    The modified result to be used by the view
 	 */
-	public any function result( result ){				
-		return result;
+	public any function result( controllerResult ){						
+		return controllerResult;
 	}
 
 	/**

@@ -126,7 +126,6 @@ component extends="one" {
 
 	variables.framework.resourceRouteTemplates = [
 	  { method = 'list', httpMethods = [ '$GET' ] },
-	  { method = 'list', httpMethods = [ '$POST' ], routeSuffix = '/list' },
 	  { method = 'new', httpMethods = [ '$GET', '$POST' ], routeSuffix = '/new' },
 	  { method = 'create', httpMethods = [ '$POST' ] },
 	  { method = 'read', httpMethods = [ '$GET' ], includeId = true },	  
@@ -158,9 +157,16 @@ component extends="one" {
 	
 	public function before( rc ){
 
+		//If the user's Application CFC has the request method, then we call it
 		if(structKeyExists(this,"request")){
 			request( rc );			
 		}
+	}
+
+	public function buildURL(value){
+		var value = super.buildURL(value);
+		value = replaceNoCase(value,":","/");
+		return value;
 	}
 
 	public function onError(error, event){
@@ -191,21 +197,20 @@ component extends="one" {
 		}
 	}
 
-	public function after( rc ){
-		// if(structKeyExists(this,"result")){
-		// 	if(isNull(request._zero.controllerResult)){
-		// 		rc = result({});
-		// 	} else {
-		// 		rc = result(request._zero.controllerResult);
-		// 	}
-		// 	// rc = result(((isNull(request._zero.controllerResult))?: request._zero.controllerResult));			
-		// }
+	public function after( rc, headers, controllerResult ){		
 
 		if(isNull(request._zero.controllerResult)){
 			if(variables.zero.throwOnNullControllerResult){
-				throw("The controller #request.action# did not have a return value but it expected one for a json request")
+				throw("The controller #request.action# #request.item# did not have a return value but it expected one for a json request")
 			}
 		}
+
+		//If the user's Application CFC has the request method, then we call it
+		if(structKeyExists(this,"result")){
+			request._zero.controllerResult = result( controllerResult );			
+		}
+
+		structAppend(rc, client);
 
 		switch(request._zero.contentType){
 			case "json":								
@@ -223,29 +228,31 @@ component extends="one" {
 
 				if(structKeyExists(rc,"goto")){
 
-					if(structKeyExists(form,"preserve_response")){						
-						client[form.preserve_response] = request._zero.controllerResult;
+					if(structKeyExists(form,"preserve_response")){
+						// writeDump(now());
+						// abort;
+						try {
+							client[form.preserve_response] = request._zero.controllerResult;							
+						} catch(any e){
+							writeDump(now());
+							writeDump("Error saving cooking data");
+						}
 					}
 
-					/*
-					Pull out goto before overriding scope to contoller result. This needs to be done first
-					because goto comes from the form scope (and is inserted into the rc scope by fw/). After
-					setting a local copy of goto, clearAndSetRCScopeToControllerResult(rc); can set the
-					controller result which can be searched for optional variables provided in the goto
-					(described below)
-					 */
-					var goto = rc.goto; 
-					clearAndSetRCScopeToControllerResult(rc);
+					var goto = rc.goto;
+					rc = {}
+					if(!isNull(request._zero.controllerResult)){
+						for(var key in request._zero.controllerResult){
+							rc[key] = request._zero.controllerResult[key];
+						}					
+					}
 
-					/*
-					goto directives can contain fw/1 route variables. This is useful for
-					redirecting to the IDs of newly created elements after
-					a form post
-					 */
-					var gotoHasVariblePrefix = goto contains ":";
-					if(gotoHasVariablePrefix){						
+					if(goto contains ":"){
+						writeDump(goto);
 						variable = reReplaceNoCase(goto, "(.*):([A-Zaz\.]*)", "\2");
-						
+						// writeDump(variable);
+						// writeDump(rc);
+						// abort;
 						tryNull = evaluate("isNull(rc.#variable#)");
 						if(tryNull){
 							throw("Value not found");
@@ -255,28 +262,28 @@ component extends="one" {
 						}
 
 					}					
-					
+					if(structKeyExists(client,"goto")){
+						structDelete(client,"goto");//Remove the goto so that it is not an infinite redirect						
+					}
+
+
 					location url="#goto#" addtoken="false";
-				}							
+				}				
 				
-				clearAndSetRCScopeToControllerResult(rc);
+				//Clear out the RC scope because only the result from the controller will be passed
+				//to the view
+				rc = {}
+				if(!isNull(request._zero.controllerResult)){
+					for(var key in request._zero.controllerResult){
+						rc[key] = request._zero.controllerResult[key];
+					}					
+				}
+				request.context = rc;		
 
 			break;			
-		}				
-	}
-
-	private function clearAndSetRCScopeToControllerResult( rc ){
-
-		//Clear out the RC scope because only the result from the controller will be passed
-		//to the view
-		rc = {}
-		if(!isNull(request._zero.controllerResult)){
-			for(var key in request._zero.controllerResult){
-				rc[key] = request._zero.controllerResult[key];
-			}					
-		}
-		request.context = rc;
-	}
+		}	
+		return controllerResult;					
+	}	
 
 	function onRequest(){
 
@@ -359,8 +366,43 @@ component extends="one" {
 
 	}
 
+	private boolean function controllerHasFunction(cfc, funcName){
+
+		var functions = getMetaData(cfc).functions;
+		for(var func in functions){
+			if(func.name == funcName){
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	private void function doController( struct tuple, string method, string lifecycle ) {
         var cfc = tuple.controller;
+
+
+        getArgumentsToPass = function(){
+	    	var args = getMetaDataFunctionArguments(cfc, method);
+			// writeDump(args);
+			// abort;
+			argsToPass = {};
+
+			request.context.headers = request._fw1.headers;
+			
+			for(var arg in args){
+				
+				if(structKeyExists(request.context,arg.name)){
+					argsToPass[arg.name] = request.context[arg.name];
+				}    
+
+				if(structKeyExists(client,arg.name)){                			
+					argsToPass[arg.name] = client[arg.name];
+				}              			     
+			}
+	    }
+
+
         if ( structKeyExists( cfc, method ) ) {
             try {
                 internalFrameworkTrace( 'calling #lifecycle# controller', tuple.subsystem, tuple.section, method );
@@ -368,33 +410,46 @@ component extends="one" {
                 // 
                 if(arguments.lifecycle == "item"){
 
-                	if(variables.zero.argumentCheckedControllers){
-                		var args = getMetaDataFunctionArguments(cfc, method);
-                		// writeDump(args);
-                		// abort;
-                		argsToPass = {};
+                	if(controllerHasFunction(cfc, "request")){
+                		evaluate( 'cfc.request( rc = request.context, headers = request._fw1.headers)' );
+                	}
 
-                		request.context.headers = request._fw1.headers;
-                		
-                		for(var arg in args){
-                			
-                			if(structKeyExists(request.context,arg.name)){
-                				argsToPass[arg.name] = request.context[arg.name];
-                			}    
-
-                			if(structKeyExists(client,arg.name)){                			
-                				argsToPass[arg.name] = client[arg.name];
-                			}              			     
-                		}
-	                	request._zero.controllerResult = evaluate( 'cfc.#method#( argumentCollection = argsToPass)' );                		
+                	if(variables.zero.argumentCheckedControllers){                		
+	                	request._zero.controllerResult = evaluate( 'cfc.#method#( argumentCollection = getArgumentsToPass)' );                		
                 	} else {
                 		request._zero.controllerResult = evaluate( 'cfc.#method#( rc = request.context, headers = request._fw1.headers )' );	
                 	}
+
+                	if(controllerHasFunction(cfc, "result")){
+                		if(isNull(request._zero.controllerResult)){
+							if(variables.zero.throwOnNullControllerResult){								
+								throw("The controller #request.action# #request.item# did not have a return value but it expected one for a json request")
+							}
+						} else {            				
+                			evaluate( 'cfc.result( request._zero.controllerResult )' );
+						}
+                	}
 	                
             	} else {
-            		request._zero.controllerLifecycleResult = evaluate( 'cfc.#method#( rc = request.context, headers = request._fw1.headers )' );
-            	}
 
+            		/* Zero overrides what happens with after methods to pass in the result of the controller call as
+            		an additional parameter
+            		*/
+            		if(method == "after"){
+
+            			request._zero.controllerLifecycleResult = evaluate( 'cfc.#method#( rc = request.context, headers = request._fw1.headers, controllerResult = request._zero.controllerResult)' );
+
+            			if(isNull(request._zero.controllerLifecycleResult)){
+							if(variables.zero.throwOnNullControllerResult){								
+								throw("The controller #request.action# #request.item# after() did not have a return value but it expected one for a json request")
+							}
+						} else {
+            				request._zero.controllerResult = request._zero.controllerLifecycleResult							
+						}
+            		} else {
+            			request._zero.controllerLifecycleResult = evaluate( 'cfc.#method#( rc = request.context, headers = request._fw1.headers )' );
+            		}
+            	}
             } catch ( any e ) {
                 setCfcMethodFailureInfo( cfc, method );
                 rethrow;
@@ -409,6 +464,53 @@ component extends="one" {
             }
         } else {
             internalFrameworkTrace( 'no #lifecycle# controller to call', tuple.subsystem, tuple.section, method );
+        }
+    }
+
+
+     private void function setupSubsystemWrapper( string subsystem ) {
+        if ( !len( subsystem ) ) return;
+        lock name="fw1_#application.applicationName#_#variables.framework.applicationKey#_subsysteminit_#subsystem#" type="exclusive" timeout="30" {
+            if ( !isSubsystemInitialized( subsystem ) ) {
+                getFw1App().subsystems[ subsystem ] = now();
+                // Application.cfc does not get a subsystem bean factory!
+                if ( subsystem != variables.magicApplicationSubsystem ) {
+                    var subsystemConfig = getSubsystemConfig( subsystem );
+                    var diEngine = structKeyExists( subsystemConfig, 'diEngine' ) ? subsystemConfig.diEngine : variables.framework.diEngine;
+                    if ( diEngine == "di1" || diEngine == "aop1" ) {
+                        // we can only reliably automate D/I engine setup for DI/1 / AOP/1
+                        var diLocations = structKeyExists( subsystemConfig, 'diLocations' ) ? subsystemConfig.diLocations : variables.framework.diLocations;
+                        var locations = isSimpleValue( diLocations ) ? listToArray( diLocations ) : diLocations;
+                        var subLocations = "";
+                        for ( var loc in locations ) {
+                            var relLoc = trim( loc );
+                            // make a relative location:
+                            if ( len( relLoc ) > 2 && left( relLoc, 2 ) == "./" ) {
+                                relLoc = right( relLoc, len( relLoc ) - 2 );
+                            } else if ( len( relLoc ) > 1 && left( relLoc, 1 ) == "/" ) {
+                                relLoc = right( relLoc, len( relLoc ) - 1 );
+                            }
+                            if ( usingSubsystems() ) {
+                                subLocations = listAppend( subLocations, variables.framework.base & subsystem & "/" & relLoc );
+                            } else {
+                                subLocations = listAppend( subLocations, variables.framework.base & variables.framework.subsystemsFolder & "/" & subsystem & "/" & relLoc );
+                            }
+                        }
+                        if ( len( sublocations ) ) {
+                            // var diComponent = structKeyExists( subsystemConfig, 'diComponent' ) ? subsystemConfig : variables.framework.diComponent;
+                            // var cfg = structKeyExists( subsystemConfig, 'diConfig' ) ?
+                            //     subsystemConfig.diConfig : structCopy( variables.framework.diConfig );
+                            // cfg.noClojure = true;
+                            // var ioc = new "#diComponent#"( subLocations, cfg );
+                            // ioc.setParent( getDefaultBeanFactory() );
+                            // setSubsystemBeanFactory( subsystem, ioc );
+                        }
+                    }
+                }
+
+                internalFrameworkTrace( 'setupSubsystem() called', subsystem );
+                setupSubsystem( subsystem );
+            }
         }
     }
 
