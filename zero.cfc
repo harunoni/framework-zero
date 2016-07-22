@@ -55,6 +55,9 @@ component extends="one" {
 	variables.zero.throwOnNullControllerResult = true;
 	variables.zero.argumentCheckedControllers = true;
 
+	variables.framework.SESOmitIndex = true;
+	variables.framework.generateSES = true;
+
 	/*
 		This is provided for illustration only - YOU SHOULD NOT USE THIS IN
 		A REAL PROGRAM! ONLY SPECIFY THE DEFAULTS YOU NEED TO CHANGE!
