@@ -403,6 +403,7 @@ component extends="one" {
 					argsToPass[arg.name] = client[arg.name];
 				}              			     
 			}
+			return argsToPass;
 	    }
 
 
@@ -418,7 +419,7 @@ component extends="one" {
                 	}
 
                 	if(variables.zero.argumentCheckedControllers){                		
-	                	request._zero.controllerResult = evaluate( 'cfc.#method#( argumentCollection = getArgumentsToPass)' );                		
+	                	request._zero.controllerResult = evaluate( 'cfc.#method#( argumentCollection = getArgumentsToPass())' );                		
                 	} else {
                 		request._zero.controllerResult = evaluate( 'cfc.#method#( rc = request.context, headers = request._fw1.headers )' );	
                 	}
@@ -440,7 +441,13 @@ component extends="one" {
             		*/
             		if(method == "after"){
 
-            			request._zero.controllerLifecycleResult = evaluate( 'cfc.#method#( rc = request.context, headers = request._fw1.headers, controllerResult = request._zero.controllerResult)' );
+            			if(isNull(request._zero.controllerResult)){
+            				if(variables.zero.throwOnNullControllerResult){								
+								throw("The controller #request.action# #request.item# did not have a return value but it expected one for a json request")
+							}
+            			} else {
+            				request._zero.controllerLifecycleResult = evaluate( 'cfc.#method#( rc = request.context, headers = request._fw1.headers, controllerResult = 	request._zero.controllerResult)' );
+            			}
 
             			if(isNull(request._zero.controllerLifecycleResult)){
 							if(variables.zero.throwOnNullControllerResult){								
