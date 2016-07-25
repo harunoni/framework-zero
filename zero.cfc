@@ -124,7 +124,8 @@ component extends="one" {
 	*/
 	variables.framework = {
 		reloadApplicationOnEveryRequest = true,
-		defaultItem = "list",		
+		defaultItem = "list",
+		usingSubsystems:false	
 	}
 
 	variables.framework.resourceRouteTemplates = [
@@ -138,6 +139,17 @@ component extends="one" {
 	  { method = 'delete', httpMethods = [ '$POST' ], includeId = true, routeSuffix = '/delete' }
 	];
 
+	/**
+	* We have to define our own onSessionStart because fw/1 builds resources rotes before initializing the session. This causes
+	* views to be lost for some reason (an issue internal to FW/1). By defining our own onSessionStart and calling
+	* buildResourceRoutes() when a new session is created, the routes are generated properly
+	*	
+	*/
+
+	public void function onSessionStart(rc) {
+		loadAvailableControllers();
+		super.onSessionStart();
+	}
 
 	function onRequestStart(){
 		loadAvailableControllers();
@@ -151,6 +163,10 @@ component extends="one" {
 	 */
 	private array function loadAvailableControllers(){
 		
+		if(!isNull(request.alreadyLoadedControllers)){
+			return [];
+		}
+
 		if(isNull(variables.framework.routes)){
 			variables.framework.routes = [];
 		}
