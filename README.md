@@ -98,3 +98,8 @@ Zero follows the Post-Redirect-Get convention wherein the browser should be maki
 When posting to a resource and redirecting back to a resource, sometimes the results of that post need to be displayed on the subsequent get. Zero makes this possible by telling it to preserve the response of the goto.
 
 `<input type="hidden" name="preserve_response" value="{{name of the variable to call the response}}"/>`
+
+#Deployment
+There are two methods to deploy framework-zero: standalone, and multi-site.
+
+This repository is the standalone version, for the multi-site version, see [framework-zero-multi](https://github.com/roryl/framework-zero-multi)
