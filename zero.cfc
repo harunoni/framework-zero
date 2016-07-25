@@ -16,13 +16,18 @@ component extends="one" {
 				if(structKeyExists(formgroup,"submit")){
 					actionPathInfo = replaceNoCase(formgroup.action, copyCGI.SCRIPT_NAME, "");
 					copyCGI.path_info = actionPathInfo;	
-					copyCGI.request_method = formgroup.method;						
+					copyCGI.request_method = formgroup.method;
+
+					originalForm = duplicate(form);
 					structClear(form);
-					structAppend(form,formgroup.data);			
+					structAppend(form,formgroup.data);									
+					if(formgroup.preserveParentInputs){
+						structAppend(form, originalForm);	
+					} 				
 				}							
 			}
 		}
-	}
+	}	
 	
      request._fw1 = {
         cgiScriptName = replaceNoCase(copyCGI.SCRIPT_NAME,".json",""),
@@ -145,19 +150,21 @@ component extends="one" {
 	* buildResourceRoutes() when a new session is created, the routes are generated properly
 	*	
 	*/
-
 	public void function onSessionStart(rc) {
-		loadAvailableControllers();
+		loadAvailableControllers();		
 		super.onSessionStart();
 	}
 
 	function onRequestStart(){
 		loadAvailableControllers();
+		// writeDump(variables.framework.routes);
+		// abort;
 		super.onRequestStart(argumentCollection=arguments);	
 	}
 
 	/**
-	 * Createa a default RESTful route for each controller present
+	 * Createa a default RESTful route for each controller present. loadAvailableControllers() must be called within onRequestStart() because
+	 * it depends on the setting usingSubsystems which can be set by the inheriting Application.cfc
 	 * in the controllers folder 
 	 * @return {array} The routes created by this function
 	 */
@@ -176,6 +183,14 @@ component extends="one" {
 		} else {						
 			loadControllers(expandPath("controllers"));
 		}
+
+		if(!isNull(this.setupRoutes)){
+			this.setupRoutes(variables.framework.routes);
+		}		
+		request.alreadyLoadedControllers = true;
+
+		//Add as the last item a universal route for the default subsystem to route anything
+		//to it back to the subsystem		
 		return variables.framework.routes;
 	}
 
@@ -184,7 +199,7 @@ component extends="one" {
 		for(var controller in controllers){
 			file = getFileFromPath(controller);
 			name = listFirst(file, ".");
-			variables.framework.routes.append({ "$RESOURCES" = { resources = name} })
+			variables.framework.routes.prepend({ "$RESOURCES" = { resources = name} })
 		}
 		return variables.framework.routes;
 	}
@@ -193,13 +208,13 @@ component extends="one" {
 		// variables.framework.routes = [];
 		var subsystems = directoryList(path=expandPath(variables.framework.base));
 		for(var subsystem in subsystems){
-			subsystemName = listLast(subsystem, "\");
+			subsystemName = listLast(subsystem, "/");
 			var controllers = directoryList(path="#subsystem#/controllers", filter="*.cfc");
 
 			for(var controller in controllers){
 				file = getFileFromPath(controller);
 				name = listFirst(file, ".");
-				variables.framework.routes.append({ "$RESOURCES" = { resources = name, subsystem = subsystemName } })				
+				variables.framework.routes.prepend({ "$RESOURCES" = { resources = name, subsystem = subsystemName } })				
 			}
 		}
 		return variables.framework.routes;
@@ -439,7 +454,7 @@ component extends="one" {
 			argsToPass = {};
 
 			request.context.headers = request._fw1.headers;
-			
+
 			for(var arg in args){
 				
 				if(structKeyExists(request.context,arg.name)){
@@ -465,7 +480,7 @@ component extends="one" {
                 		evaluate( 'cfc.request( rc = request.context, headers = request._fw1.headers)' );
                 	}
 
-                	if(variables.zero.argumentCheckedControllers){                		
+                	if(variables.zero.argumentCheckedControllers){                    		
 	                	request._zero.controllerResult = evaluate( 'cfc.#method#( argumentCollection = getArgumentsToPass())' );                		
                 	} else {
                 		request._zero.controllerResult = evaluate( 'cfc.#method#( rc = request.context, headers = request._fw1.headers )' );	
