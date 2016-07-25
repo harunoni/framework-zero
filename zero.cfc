@@ -124,7 +124,7 @@ component extends="one" {
 	*/
 	variables.framework = {
 		reloadApplicationOnEveryRequest = true,
-		defaultItem = "list"
+		defaultItem = "list",		
 	}
 
 	variables.framework.resourceRouteTemplates = [
@@ -138,22 +138,53 @@ component extends="one" {
 	  { method = 'delete', httpMethods = [ '$POST' ], includeId = true, routeSuffix = '/delete' }
 	];
 
-	loadControllers();
+
+	function onRequestStart(){
+		loadAvailableControllers();
+		super.onRequestStart(argumentCollection=arguments);	
+	}
+
 	/**
 	 * Createa a default RESTful route for each controller present
 	 * in the controllers folder 
 	 * @return {array} The routes created by this function
 	 */
-	private array function loadControllers(){
+	private array function loadAvailableControllers(){
 		
-		variables.framework.routes = []
-		var controllers = directoryList(path=expandPath("controllers"), filter="*.cfc");
-		// writeDump(controllers);
-		// abort;
+		if(isNull(variables.framework.routes)){
+			variables.framework.routes = [];
+		}
+
+		if(variables.framework.usingSubsystems){
+			loadSubsystemControllers();
+		} else {						
+			loadControllers(expandPath("controllers"));
+		}
+		return variables.framework.routes;
+	}
+
+	private array function loadControllers(required path){
+		var controllers = directoryList(path=arguments.path, filter="*.cfc");		
 		for(var controller in controllers){
 			file = getFileFromPath(controller);
 			name = listFirst(file, ".");
 			variables.framework.routes.append({ "$RESOURCES" = { resources = name} })
+		}
+		return variables.framework.routes;
+	}
+
+	private array function loadSubsystemControllers(){
+		// variables.framework.routes = [];
+		var subsystems = directoryList(path=expandPath(variables.framework.base));
+		for(var subsystem in subsystems){
+			subsystemName = listLast(subsystem, "\");
+			var controllers = directoryList(path="#subsystem#/controllers", filter="*.cfc");
+
+			for(var controller in controllers){
+				file = getFileFromPath(controller);
+				name = listFirst(file, ".");
+				variables.framework.routes.append({ "$RESOURCES" = { resources = name, subsystem = subsystemName } })				
+			}
 		}
 		return variables.framework.routes;
 	}
