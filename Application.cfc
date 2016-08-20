@@ -42,6 +42,15 @@ component extends="zero" {
 	  { method = 'delete', httpMethods = [ '$DELETE' ], includeId = true }
 	];
 	 */
+	
+	/**
+	 * Will be given the routes from Framework zero. You can append or prepend additional routes
+	 * @param  {array} array routes        The array of routes that Zero will be parsing
+	 * @return {void}       
+	 */
+	public void function setupRoutes(array routes){		
+		
+	}
 
 
 	/**
