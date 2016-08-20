@@ -180,4 +180,63 @@ $(document).ready(function() {
 	}
 	zeroOnChange($(document));
 
+	loadTime = "";
+
+	zeroPreload = function(html){		
+		var zeroPreloads = $(html).find('[zero-preload]');
+		for(var i = 0; i < zeroPreloads.length; i++){
+			var preload = $(zeroPreloads[i]);
+			// var url = preload.attr('href');
+			
+			preload.on('mouseenter', function(){
+				var d = new Date();
+				loadTime = d.getTime();
+				var attr = $(this).attr('preloaduuid');
+
+				// For some browsers, `attr` is undefined; for others,
+				// `attr` is false.  Check for both.
+				if (typeof attr === typeof undefined || attr === false) {
+					var uuid = generateUUID();
+					console.log(uuid);					
+					$(this).attr('preloaduuid', uuid);
+					// document.cookie = "zeropreload=" + uuid;
+					document.cookie = "zeropreload=" + uuid + "; expires=Thu, 18 Dec 2100 12:00:00 UTC; path=/";
+					console.log(document.cookie);
+					$.get($(this).attr('href')).done(function(){
+						console.log(document.cookie);
+						// document.cookie = "zeropreload=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/";						
+					});					
+				} 
+
+			});
+
+			preload.on('click', function(event){
+				var d = new Date();
+				endTime = d.getTime() - loadTime;
+				console.log(endTime);
+				// event.preventDefault();
+				var attr = $(this).attr('preloaduuid');
+				
+				if (typeof attr !== typeof undefined && attr !== false) {					
+					document.cookie = "zeropreload=" + attr + "; expires=Thu, 18 Dec 2100 12:00:00 UTC; path=/";	    
+				}
+			});		
+		}
+		console.log(zeroPreloads);
+
+	}
+	// zeroPreload($(document));
 });
+
+function generateUUID(){
+    var d = new Date().getTime();
+    if(window.performance && typeof window.performance.now === "function"){
+        d += performance.now(); //use high-precision timer if available
+    }
+    var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = (d + Math.random()*16)%16 | 0;
+        d = Math.floor(d/16);
+        return (c=='x' ? r : (r&0x3|0x8)).toString(16);
+    });
+    return uuid;
+}

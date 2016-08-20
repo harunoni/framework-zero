@@ -60,8 +60,7 @@ component extends="one" {
 	variables.zero.throwOnNullControllerResult = true;
 	variables.zero.argumentCheckedControllers = true;
 
-	variables.framework.SESOmitIndex = true;
-	variables.framework.generateSES = true;
+	
 
 	/*
 		This is provided for illustration only - YOU SHOULD NOT USE THIS IN
@@ -130,7 +129,9 @@ component extends="one" {
 	variables.framework = {
 		reloadApplicationOnEveryRequest = true,
 		defaultItem = "list",
-		usingSubsystems:false	
+		usingSubsystems:false,
+		SESOmitIndex = true,
+		generateSES = true
 	}
 
 	variables.framework.resourceRouteTemplates = [
@@ -159,6 +160,34 @@ component extends="one" {
 		loadAvailableControllers();
 		// writeDump(variables.framework.routes);
 		// abort;
+		// 
+		
+		if(!application.keyExists('preloadCache')){
+			application.preloadCache = {};
+		}
+		
+		if(cookie.keyExists('zeropreload')){
+			if(application.preloadCache.keyExists(cookie.zeropreload)){
+
+				while(!application.preloadCache[cookie.zeropreload].complete){
+					sleep(10);
+				}
+				// sleep(500);
+				writeLog(file="zero", text="output from cache and aborted #cookie.zeropreload#");
+				writeOutput(application.preloadCache[cookie.zeropreload].output);
+				structDelete(application.preloadCache,cookie.zeropreload);
+				structDelete(cookie,"zeropreload");
+				structDelete(client,"zeropreload");
+				abort;
+
+			} else {
+				application.preloadCache[cookie.zeropreload] = {
+					complete:false,
+					output:""
+				}
+			}
+		}
+
 		super.onRequestStart(argumentCollection=arguments);	
 	}
 
@@ -230,7 +259,7 @@ component extends="one" {
 
 	public function buildURL(value){
 		var value = super.buildURL(value);
-		value = replaceNoCase(value,":","/");
+		value = replaceNoCase(value,":","/");		
 		return value;
 	}
 
@@ -272,7 +301,7 @@ component extends="one" {
 
 		//If the user's Application CFC has the request method, then we call it
 		if(structKeyExists(this,"result")){
-			request._zero.controllerResult = result( controllerResult );			
+			request._zero.controllerResult = result( controllerResult );
 		}
 
 		structAppend(rc, client);
@@ -355,6 +384,18 @@ component extends="one" {
 		var finalOutput = "";
 		savecontent variable="finalOutput" {
 			super.onRequest();			
+		}
+
+		if(cookie.keyExists('zeropreload')){
+			if(application.preloadCache.keyExists(cookie.zeropreload)){					
+				application.preloadCache[cookie.zeropreload].complete = true;
+				application.preloadCache[cookie.zeropreload].output = finalOutput;
+				writeLog(file="zero", text="saved output to cache and aborted #cookie.zeropreload#");
+				structDelete(cookie,"zeropreload");
+				client = {};
+				structClear(client);
+				abort;
+			}
 		}
 
 		finalOutput = response(finalOutput);
@@ -480,7 +521,7 @@ component extends="one" {
                 		evaluate( 'cfc.request( rc = request.context, headers = request._fw1.headers)' );
                 	}
 
-                	if(variables.zero.argumentCheckedControllers){                    		
+                	if(variables.zero.argumentCheckedControllers){                                		    		
 	                	request._zero.controllerResult = evaluate( 'cfc.#method#( argumentCollection = getArgumentsToPass())' );                		
                 	} else {
                 		request._zero.controllerResult = evaluate( 'cfc.#method#( rc = request.context, headers = request._fw1.headers )' );	
