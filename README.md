@@ -63,6 +63,8 @@ The important difference with Zero is it disuades the use of the global request 
 ###Controller Arguments
 In Zero, controllers only receive the request parameters (url and form) for the arguments that they are explicityly expecting. The RC scope is not passed to the controller, instead Zero looks at the arguments and only passes the parameters the controller defines. The controller can therefore define required, optional and default values and only the right values will be passed. This allows you to use the Lucee type system to enforce access to your controllers, instead of having to handle for the existence of parameters manually.
 
+Zero will also remove any underscores from snake_case FORM/URL variables when inspecting what arguments to pass to controllers. This Allows Lucee developers to easily continue to use camelCase convention in Lucee, but display snake_case in API and HTML documents, which is more conventional.
+
 ###Default Routes
 Zero is designed for a RESTful applications by default (both HTML and JSON content resources), thus it creates resource routes for every controller by default. The default routes it creates for each controller are:
 
