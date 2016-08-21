@@ -59,6 +59,7 @@ component extends="one" {
 
 	variables.zero.throwOnNullControllerResult = true;
 	variables.zero.argumentCheckedControllers = true;
+	variables.zero.equalizeSnakeAndCamelCase = true;
 
 	
 
@@ -278,6 +279,7 @@ component extends="one" {
 					"success":false,
 					"message":error.message,
 					"status_code":errorCode,
+					"details":error
 				}				
 				
 				header statuscode="#errorCode#";				
@@ -304,6 +306,26 @@ component extends="one" {
 			request._zero.controllerResult = result( controllerResult );
 		}
 
+		var recurseAndLowerCaseTheKeys = function(struct){
+			for(var key in arguments.struct){
+				// arguments.struct["#lcase(key)#"] = arguments.struct[key];				
+				
+				if(isNull(arguments.struct[key])){
+					temp = nullValue();
+				} else {
+					var temp = duplicate(arguments.struct[key]);					
+				}
+				arguments.struct.delete(key);
+				arguments.struct.insert("#lcase(camelToUnderscore(key))#", temp?:nullValue(), true);
+				
+				if(!isNull(arguments.struct[key]) AND isStruct(arguments.struct[key])){
+					recurseAndLowerCaseTheKeys(arguments.struct[key]);
+				}
+			}
+			return struct;
+		} 
+		recurseAndLowerCaseTheKeys(request._zero.controllerResult);
+		
 		structAppend(rc, client);
 
 		switch(request._zero.contentType){
@@ -496,6 +518,19 @@ component extends="one" {
 
 			request.context.headers = request._fw1.headers;
 
+			/*
+			Zero will allow controller arguments to be snake_case or camelCase. If Zero encounters
+			a snake_case argument, it will convert it to camelCase also assuming that both arguments
+			are intended to be the same value, but snake_case is used for API and HTML presentation. We
+			achieve this by simply copying the values from the snake_case to a camelCase version
+			 */			
+			for(var key in request.context){
+				var keyNoUnderscore = replaceNoCase(key,"_","","all");
+				if(!request.context.keyExists(keyNoUnderscore)){
+					request.context[keyNoUnderscore] = request.context[key];
+				}
+			}
+
 			for(var arg in args){
 				
 				if(structKeyExists(request.context,arg.name)){
@@ -641,5 +676,24 @@ component extends="one" {
 
     	throw("Did not expect to get to this point, controller method #method# does not exist. framework zero");
     }
+
+    /**
+	 * Breaks a camelCased string into separate words
+	 * 8-mar-2010 added option to capitalize parsed words Brian Meloche brianmeloche@gmail.com
+	 *
+	 * @param str      String to use (Required)
+	 * @param capitalize      Boolean to return capitalized words (Optional)
+	 * @return Returns a string
+	 * @author Richard (brianmeloche@gmail.comacdhirr@trilobiet.nl)
+	 * @version 0, March 8, 2010
+	 */
+	function camelToUnderscore(str) {
+	    var rtnStr=lcase(reReplace(arguments.str,"([A-Z])([a-z])","_\1\2","ALL"));
+	    if (arrayLen(arguments) GT 1 AND arguments[2] EQ true) {
+	        rtnStr=reReplace(arguments.str,"([a-z])([A-Z])","\1_\2","ALL");
+	        rtnStr=uCase(left(rtnStr,1)) & right(rtnStr,len(rtnStr)-1);
+	    }
+		return trim(rtnStr);
+	}
 
 }
