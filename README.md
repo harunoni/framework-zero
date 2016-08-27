@@ -99,6 +99,57 @@ When posting to a resource and redirecting back to a resource, sometimes the res
 
 `<input type="hidden" name="preserve_response" value="{{name of the variable to call the response}}"/>`
 
+####Form Submission Overload
+HTML 5 forms can submit to different endpoints by using the formaction feature `<button formaction="/someurl">`. However, sometimes when submitting to a different endpoint than the form normally submits to, you may want to pass in additional variables. For example, consider the following form which creates a customer and then redirects back to the customer list:
+
+```
+<h1>Customer Create Form</h1>
+<form method="post" action="/customers">
+	<!-- Redirect back to the customer's list -->
+	<input type="hidden" name="goto" value="/customers">
+
+	<label>Customer Name</label>
+	<input type="text" name="customer_name" />
+	<label>Company</label>
+	<select name="company_id">
+		<option value="1">Foobars LLC</option>
+		<option value="2">Bazpops Inc.</option>
+	</select>
+	<button>Create</button>
+</form>
+```
+
+Lets say that we want to add to this customer form a subform which can optionally create an account or select. The creation should post to the accounts endpoint, and then bring us back to the form to select that account to create the customer:
+
+```
+<h1>Customer CreateWith Account Form</h1>
+<!-- Form is on /customer/create -->
+<form method="post" action="/customers">
+	<!-- Redirect back to the customer's list -->
+	<input type="hidden" name="goto" value="/customers">
+	
+	<label>Customer Name</label>
+	<input type="text" name="customer_name" />
+	<button>Create</button>
+	
+	<label>Company</label>
+	<select name="company_id">
+		<option value="1">Foobars LLC</option>
+		<option value="2">Bazpops Inc.</option>
+	</select>
+	<h3>Create Account</h3>
+	<div>
+		Or Create Account:
+		<label>Account Name</label>
+		<input type="text" name="account_name"/>
+		<button formaction="/accounts" name="submit_overload" value="{goto:'customers/create'}">Create Account</button>		
+	</div>
+</form>
+```
+
+The value of the submit_overload button must be json and will be evaluated by Zero as if they were submitted form values `<button formaction="/accounts" name="submit_overload" value="{goto:'customers/create'}">Create Account</button>`, thus in this example, the account creation button overrides the goto variable of the parent form and redirects back tot he customer create form.
+
+
 #Deployment
 There are two methods to deploy framework-zero: standalone, and multi-site.
 

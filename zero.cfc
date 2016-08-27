@@ -137,7 +137,9 @@ component extends="one" {
 
 	variables.framework.resourceRouteTemplates = [
 	  { method = 'list', httpMethods = [ '$GET' ] },
-	  { method = 'new', httpMethods = [ '$GET', '$POST' ], routeSuffix = '/new' },
+	  { method = 'list', httpMethods = [ '$POST' ], routeSuffix = '/list' },
+	  { method = 'list', httpMethods = [ '$GET' ], routeSuffix = '/list' },
+	  { method = 'create', httpMethods = [ '$GET', '$POST' ], routeSuffix = '/create' },
 	  { method = 'create', httpMethods = [ '$POST' ] },
 	  { method = 'read', httpMethods = [ '$GET' ], includeId = true },	  
 	  { method = 'read', httpMethods = [ '$POST' ], includeId = true, routeSuffix = '/read' },	  
@@ -251,6 +253,17 @@ component extends="one" {
 	}
 	
 	public function before( rc ){
+		
+		if(rc.keyExists("submit_overload")){
+			if(!isJson(rc.submit_overload)){
+				throw("The data in a form submit_overload must be json");
+			}
+			var json = deserializeJson(form.submit_overload);
+			for(var key in json){
+				form[key] = json[key];
+				rc[key] = json[key];
+			}
+		}
 
 		//If the user's Application CFC has the request method, then we call it
 		if(structKeyExists(this,"request")){
