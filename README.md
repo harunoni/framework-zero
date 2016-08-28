@@ -108,7 +108,7 @@ When posting to a resource and redirecting back to a resource, sometimes the res
 ####Form Submission Overload
 HTML 5 forms can submit to different endpoints by using the formaction feature `<button formaction="/someurl">`. However, sometimes when submitting to a different endpoint than the form normally submits to, you may want to pass in additional variables. For example, consider the following form which creates a customer and then redirects back to the customer list:
 
-```
+```html
 <h1>Customer Create Form</h1>
 <form method="post" action="/customers">
 	<!-- Redirect back to the customer's list -->
@@ -127,7 +127,7 @@ HTML 5 forms can submit to different endpoints by using the formaction feature `
 
 Lets say that we want to add to this customer form a subform which can optionally create an account or select. The creation should post to the accounts endpoint, and then bring us back to the form to select that account to create the customer:
 
-```
+```html
 <h1>Customer CreateWith Account Form</h1>
 <!-- Form is on /customer/create -->
 <form method="post" action="/customers">
