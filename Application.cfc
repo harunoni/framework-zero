@@ -21,6 +21,13 @@ component extends="zero" {
 		 */
 		argumentCheckedControllers = true,
 
+		/*
+		Whether to output errors other than of the type zeroController when making Json requests. Set this to true in development environments 
+		but false in production environments, because it may be a security risk to expose Lucee
+		errors.		
+		 */
+		outputNonControllerErrors = false,
+
 	}
 
 	/*

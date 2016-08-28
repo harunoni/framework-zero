@@ -1,3 +1,4 @@
+import vendor.serializer.serializer;
 component extends="one" {	
 
 	copyCGI = duplicate(CGI);	
@@ -60,6 +61,7 @@ component extends="one" {
 	variables.zero.throwOnNullControllerResult = true;
 	variables.zero.argumentCheckedControllers = true;
 	variables.zero.equalizeSnakeAndCamelCase = true;
+	variables.zero.outputNonControllerErrors = false;
 
 	
 
@@ -139,11 +141,19 @@ component extends="one" {
 	  { method = 'list', httpMethods = [ '$GET' ] },
 	  { method = 'list', httpMethods = [ '$POST' ], routeSuffix = '/list' },
 	  { method = 'list', httpMethods = [ '$GET' ], routeSuffix = '/list' },
+
+	  { method = 'new', httpMethods = [ '$POST' ], routeSuffix = '/new' },
+	  { method = 'new', httpMethods = [ '$GET' ], routeSuffix = '/new' },
+	  
 	  { method = 'create', httpMethods = [ '$GET', '$POST' ], routeSuffix = '/create' },
 	  { method = 'create', httpMethods = [ '$POST' ] },
+	  
 	  { method = 'read', httpMethods = [ '$GET' ], includeId = true },	  
 	  { method = 'read', httpMethods = [ '$POST' ], includeId = true, routeSuffix = '/read' },	  
+	  
 	  { method = 'update', httpMethods = [ '$PUT','$PATCH', '$POST' ], includeId = true },
+	  { method = 'update', httpMethods = [ '$PUT','$PATCH', '$POST' ], routeSuffix = '/update' },
+	  
 	  { method = 'delete', httpMethods = [ '$DELETE' ], includeId = true },
 	  { method = 'delete', httpMethods = [ '$POST' ], includeId = true, routeSuffix = '/delete' }
 	];
@@ -161,9 +171,11 @@ component extends="one" {
 
 	function onRequestStart(){
 		loadAvailableControllers();
-		// writeDump(variables.framework.routes);
-		// abort;
-		// 
+		
+		variables.zero.throwOnNullControllerResult = variables.zero.throwOnNullControllerResult?: true;
+		variables.zero.argumentCheckedControllers = variables.zero.argumentCheckedControllers?: true;
+		variables.zero.equalizeSnakeAndCamelCase = variables.zero.equalizeSnakeAndCamelCase?: true;
+		variables.zero.outputNonControllerErrors = variables.zero.outputNonControllerErrors?: false;
 		
 		if(!application.keyExists('preloadCache')){
 			application.preloadCache = {};
@@ -265,6 +277,38 @@ component extends="one" {
 			}
 		}
 
+		if(rc.keyExists("redirect")){
+			if(rc.keyExists("anchor")){
+				rc.redirect = rc.redirect & "##" & rc.anchor;
+			}
+
+			if(rc.keyExists("preserve_key")){
+				if(!isArray(rc.preserve_key)){
+					rc.preserve_key = [rc.preserve_key];
+				}
+				for(var value in rc.preserve_key){
+					cookie["preserve_#value#"] = rc[value];
+				}
+			}
+
+			if(rc.keyExists("preserve_form")){								
+				for(var key in form){
+					cookie["preserve_#key#"] = serializeJson(form[key]);
+				}
+			}
+
+			structDelete(cookie,"preserve_redirect");
+			structDelete(cookie,"redirect");						
+			structDelete(cookie,"map");
+			structDelete(cookie,"preserve_map");
+			structDelete(cookie,"preserve_response");
+
+			// writeDump(cookie);
+			// abort;
+
+			location url="#rc.redirect#" addtoken="false";				
+		}
+
 		//If the user's Application CFC has the request method, then we call it
 		if(structKeyExists(this,"request")){
 			request( rc );			
@@ -281,21 +325,39 @@ component extends="one" {
 		
 		switch(request._zero.contentType){
 			case "json":				
-
 				if(!error.errorCode == "0"){
 					var errorcode = error.errorCode
 				} else {
 					var errorcode = "500";
 				}
 
-				var out = {
-					"success":false,
-					"message":error.message,
-					"status_code":errorCode,
-					"details":error
-				}				
+				if(errorCode ==""){
+					errorCode = "500";					
+				}
+
+				if(error.type contains "zeroController"){
+					var out = {
+						"success":false,
+						"message":error.message,
+						"status_code":errorCode,							
+					}		
+				} else {					
+					if(variables.zero.outputNonControllerErrors){					
+						var out = {
+							"success":false,
+							"message":error.message,
+							"status_code":errorCode,
+							"details":error
+						}		
+					} else {
+						var out = {
+							"success":false,
+							"message":"There was an error processing your request. Please try again.",							
+						}
+					}
+				}
 				
-				header statuscode="#errorCode#";				
+				header statuscode="#errorCode#";
 				writeOutput(serializeJson(out));
 				abort;
 			break;
@@ -304,7 +366,7 @@ component extends="one" {
 				super.onError(error, event);
 			break;
 		}
-	}
+	}	
 
 	public function after( rc, headers, controllerResult ){		
 
@@ -319,6 +381,11 @@ component extends="one" {
 			request._zero.controllerResult = result( controllerResult );
 		}
 
+		if(isComponentOrArrayOfComponents(request._zero.controllerResult)){			
+			request._zero.controllerResult = entityToJson(request._zero.controllerResult)
+		}
+		// writeDump(request._zero.controllerResult);
+		// abort;
 		var recurseAndLowerCaseTheKeys = function(struct){
 			for(var key in arguments.struct){
 				// arguments.struct["#lcase(key)#"] = arguments.struct[key];				
@@ -342,8 +409,7 @@ component extends="one" {
 		structAppend(rc, client);
 
 		switch(request._zero.contentType){
-			case "json":								
-
+			case "json":
 				//If we are allowing null data, then we're going to putput an empty object
 				if(isNull(request._zero.controllerResult)){
 					renderData("json", {});
@@ -355,7 +421,7 @@ component extends="one" {
 
 			default:
 
-				if(structKeyExists(rc,"goto")){
+				if(rc.keyExists("goto")){
 
 					if(structKeyExists(form,"preserve_response")){
 						// writeDump(now());
@@ -628,6 +694,56 @@ component extends="one" {
         }
     }
 
+    public function entityToJson(required any arrayOrComponent, nest={}){ 	
+    	if(isArray(arrayOrComponent)){
+    		var entityName = request.section;   		    		
+    	} else {
+    		//Try to get the name from the actual entity because we assume that it is singular
+	    	try {
+	    		var entityName = getEntityName(arrayOrComponent);    		
+	    	} catch("zeroCantInferEntityName"){
+	    		var entityName = request.section;
+	    	}    		
+    	}
+    	var out = {
+    		"#entityName#":new serializer().serializeEntity(arrayOrComponent, nest)    	
+    	}
+    	return out;
+    }
+
+    private string function getEntityName(arrayOrComponent){
+		if(isArray(arrayOrComponent)){
+			if(arrayLen(arrayOrComponent) == 0){
+				throw("Could not infer the entity name from an empty array. use the entityToJson() method manually", "zeroCantInferEntityName");
+			} else {
+				var entity = arrayOrComponent[1];								
+			}
+		} else {
+			var entity = arrayOrComponent;
+		}	
+
+		var meta = getMetaData(entity);
+		var name = meta.name;
+		return listLast(name,".");
+	}
+
+    public boolean function isComponentOrArrayOfComponents(required arrayOrComponent){
+    	if(isArray(arrayOrComponent)){
+    		if(arrayLen(arrayOrComponent) > 0){
+    			if(isObject(arrayOrComponent[1])){
+    				return true;
+    			} else {
+    				return false;
+    			}
+    		} else {
+    			return true;
+    		}
+    	} else if(isObject(arrayOrComponent)){
+    		return true;
+    	} else {
+    		return false;
+    	}
+    }
 
      private void function setupSubsystemWrapper( string subsystem ) {
         if ( !len( subsystem ) ) return;
@@ -674,6 +790,7 @@ component extends="one" {
             }
         }
     }
+
 
     private function getMetaDataFunctionArguments(required cfc, required method){
     	var cfc = arguments.cfc;

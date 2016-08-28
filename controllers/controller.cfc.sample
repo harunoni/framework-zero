@@ -19,6 +19,14 @@ component accessors="true" {
 	}
 
 	/**
+	 * A controller function to represent a new form
+	 * @return {struct} The data for the new view
+	 */
+	public struct function new() {
+		return {};
+	}	
+
+	/**
 	 * Creates an item at the current resource
 	 * @return {struct} The data for the create view
 	 */
