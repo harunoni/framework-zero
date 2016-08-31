@@ -158,218 +158,12 @@ component extends="one" {
 	  { method = 'delete', httpMethods = [ '$POST' ], includeId = true, routeSuffix = '/delete' }
 	];
 
-	/**
-	* We have to define our own onSessionStart because fw/1 builds resources rotes before initializing the session. This causes
-	* views to be lost for some reason (an issue internal to FW/1). By defining our own onSessionStart and calling
-	* buildResourceRoutes() when a new session is created, the routes are generated properly
-	*	
-	*/
-	public void function onSessionStart(rc) {
-		loadAvailableControllers();		
-		super.onSessionStart();
-	}
-
-	function onRequestStart(){
-		loadAvailableControllers();
-		
-		variables.zero.throwOnNullControllerResult = variables.zero.throwOnNullControllerResult?: true;
-		variables.zero.argumentCheckedControllers = variables.zero.argumentCheckedControllers?: true;
-		variables.zero.equalizeSnakeAndCamelCase = variables.zero.equalizeSnakeAndCamelCase?: true;
-		variables.zero.outputNonControllerErrors = variables.zero.outputNonControllerErrors?: false;
-		
-		if(!application.keyExists('preloadCache')){
-			application.preloadCache = {};
-		}
-		
-		if(cookie.keyExists('zeropreload')){
-			if(application.preloadCache.keyExists(cookie.zeropreload)){
-
-				while(!application.preloadCache[cookie.zeropreload].complete){
-					sleep(10);
-				}
-				// sleep(500);
-				writeLog(file="zero", text="output from cache and aborted #cookie.zeropreload#");
-				writeOutput(application.preloadCache[cookie.zeropreload].output);
-				structDelete(application.preloadCache,cookie.zeropreload);
-				structDelete(cookie,"zeropreload");
-				structDelete(client,"zeropreload");
-				abort;
-
-			} else {
-				application.preloadCache[cookie.zeropreload] = {
-					complete:false,
-					output:""
-				}
-			}
-		}
-
-		super.onRequestStart(argumentCollection=arguments);	
-	}
-
-	/**
-	 * Createa a default RESTful route for each controller present. loadAvailableControllers() must be called within onRequestStart() because
-	 * it depends on the setting usingSubsystems which can be set by the inheriting Application.cfc
-	 * in the controllers folder 
-	 * @return {array} The routes created by this function
-	 */
-	private array function loadAvailableControllers(){
-		
-		if(!isNull(request.alreadyLoadedControllers)){
-			return [];
-		}
-
-		if(isNull(variables.framework.routes)){
-			variables.framework.routes = [];
-		}
-
-		if(variables.framework.usingSubsystems){
-			loadSubsystemControllers();
-		} else {						
-			loadControllers(expandPath("controllers"));
-		}
-
-		if(!isNull(this.setupRoutes)){
-			this.setupRoutes(variables.framework.routes);
-		}		
-		request.alreadyLoadedControllers = true;
-
-		//Add as the last item a universal route for the default subsystem to route anything
-		//to it back to the subsystem		
-		return variables.framework.routes;
-	}
-
-	private array function loadControllers(required path){
-		var controllers = directoryList(path=arguments.path, filter="*.cfc");		
-		for(var controller in controllers){
-			file = getFileFromPath(controller);
-			name = listFirst(file, ".");
-			variables.framework.routes.prepend({ "$RESOURCES" = { resources = name} })
-		}
-		return variables.framework.routes;
-	}
-
-	private array function loadSubsystemControllers(){
-		// variables.framework.routes = [];
-		var subsystems = directoryList(path=expandPath(variables.framework.base));
-		for(var subsystem in subsystems){
-			subsystemName = listLast(subsystem, "/");
-			var controllers = directoryList(path="#subsystem#/controllers", filter="*.cfc");
-
-			for(var controller in controllers){
-				file = getFileFromPath(controller);
-				name = listFirst(file, ".");
-				variables.framework.routes.prepend({ "$RESOURCES" = { resources = name, subsystem = subsystemName } })				
-			}
-		}
-		return variables.framework.routes;
-	}
 	
-	public function before( rc ){
-		
-		if(rc.keyExists("submit_overload")){
-			if(!isJson(rc.submit_overload)){
-				throw("The data in a form submit_overload must be json");
-			}
-			var json = deserializeJson(form.submit_overload);
-			for(var key in json){
-				form[key] = json[key];
-				rc[key] = json[key];
-			}
-		}
 
-		if(rc.keyExists("redirect")){
-			if(rc.keyExists("anchor")){
-				rc.redirect = rc.redirect & "##" & rc.anchor;
-			}
-
-			if(rc.keyExists("preserve_key")){
-				if(!isArray(rc.preserve_key)){
-					rc.preserve_key = [rc.preserve_key];
-				}
-				for(var value in rc.preserve_key){
-					cookie["preserve_#value#"] = rc[value];
-				}
-			}
-
-			if(rc.keyExists("preserve_form")){								
-				for(var key in form){
-					cookie["preserve_#key#"] = serializeJson(form[key]);
-				}
-			}
-
-			structDelete(cookie,"preserve_redirect");
-			structDelete(cookie,"redirect");						
-			structDelete(cookie,"map");
-			structDelete(cookie,"preserve_map");
-			structDelete(cookie,"preserve_response");
-
-			// writeDump(cookie);
-			// abort;
-
-			location url="#rc.redirect#" addtoken="false";				
-		}
-
-		//If the user's Application CFC has the request method, then we call it
-		if(structKeyExists(this,"request")){
-			request( rc );			
-		}
-	}
-
-	public function buildURL(value){
-		var value = super.buildURL(value);
-		value = replaceNoCase(value,":","/");		
-		return value;
-	}
-
-	public function onError(error, event){
-		
-		switch(request._zero.contentType){
-			case "json":				
-				if(!error.errorCode == "0"){
-					var errorcode = error.errorCode
-				} else {
-					var errorcode = "500";
-				}
-
-				if(errorCode ==""){
-					errorCode = "500";					
-				}
-
-				if(error.type contains "zeroController"){
-					var out = {
-						"success":false,
-						"message":error.message,
-						"status_code":errorCode,							
-					}		
-				} else {					
-					if(variables.zero.outputNonControllerErrors){					
-						var out = {
-							"success":false,
-							"message":error.message,
-							"status_code":errorCode,
-							"details":error
-						}		
-					} else {
-						var out = {
-							"success":false,
-							"message":"There was an error processing your request. Please try again.",							
-						}
-					}
-				}
-				
-				header statuscode="#errorCode#";
-				writeOutput(serializeJson(out));
-				abort;
-			break;
-
-			case "html":				
-				super.onError(error, event);
-			break;
-		}
-	}	
+	
 
 	public function after( rc, headers, controllerResult ){		
-
+		
 		if(isNull(request._zero.controllerResult)){
 			if(variables.zero.throwOnNullControllerResult){
 				throw("The controller #request.action# #request.item# did not have a return value but it expected one for a json request")
@@ -434,6 +228,18 @@ component extends="one" {
 						}
 					}
 
+					if(form.keyExists("preserve_form")){
+						
+						var skip = "goto,preserve_form,submit_overload,redirect,map,preserve_response";
+						for(var key in form){								
+							if(skip.listContainsNoCase(key)){
+								continue;
+							} else {
+								cookie["preserve_#key#"] = serializeJson(form[key]);						
+							}					
+						}
+					}
+
 					var goto = rc.goto;
 					rc = {}
 					if(!isNull(request._zero.controllerResult)){
@@ -479,98 +285,109 @@ component extends="one" {
 		}	
 		return controllerResult;					
 	}	
+	
+	public function before( rc ){
+		
+		/*
+		Cookie structures are saved as individual keys, so need to use structKeyTranslate
+		to get them back into a structure
+		 */
+		cookies = duplicate(cookie);
+		structKeyTranslate(cookies, true, true);		
+		// writeDump(cookies);
+		for(var key in cookies){
+			if(listfirst(key,"_") == "preserve"){
 
-	function onRequest(){
+				var keyName = replaceNoCase(key, "preserve_", "");
+				var value = cookies[key];
+				if(isJson(value)){
+					value = deserializeJson(value);
+				}
 
-		var finalOutput = "";
-		savecontent variable="finalOutput" {
-			super.onRequest();			
-		}
+				if(isStruct(value)){
+					for(var strKey in value){
+						if(isJson(value[strKey])){
+							value[strKey] = deserializeJson(value[strKey]);							
+						}
+					}
+				}
 
-		if(cookie.keyExists('zeropreload')){
-			if(application.preloadCache.keyExists(cookie.zeropreload)){					
-				application.preloadCache[cookie.zeropreload].complete = true;
-				application.preloadCache[cookie.zeropreload].output = finalOutput;
-				writeLog(file="zero", text="saved output to cache and aborted #cookie.zeropreload#");
-				structDelete(cookie,"zeropreload");
-				client = {};
-				structClear(client);
-				abort;
+				form[keyName] = value;
+				rc[keyName] = value;
+				// writeDump(key);
+				structDelete(cookie,key);
 			}
 		}
 
-		finalOutput = response(finalOutput);
-		writeOutput(finalOutput);
+		if(rc.keyExists("submit_overload")){
+			if(!isJson(rc.submit_overload)){
+				throw("The data in a form submit_overload must be json");
+			}
+			var json = deserializeJson(form.submit_overload);
+			for(var key in json){
+				form[key] = json[key];
+				rc[key] = json[key];
+			}
+		}
 
-		//Clear out the client at the end of the request
-		client = {};
-		structClear(client);		
+		if(rc.keyExists("redirect")){
+			if(rc.keyExists("anchor")){
+				rc.redirect = rc.redirect & "##" & rc.anchor;
+			}
+
+			if(rc.keyExists("preserve_key")){
+				if(!isArray(rc.preserve_key)){
+					rc.preserve_key = [rc.preserve_key];
+				}
+				for(var value in rc.preserve_key){
+					cookie["preserve_#value#"] = rc[value];
+				}
+			}
+
+			if(rc.keyExists("preserve_form")){								
+				var skip = "preserve_redirect,redirect,preserve_map,preserve_response";
+				for(var key in form){
+						
+					if(skip.listContainsNoCase(key)){
+						continue;
+					} else {
+						cookie["preserve_#key#"] = serializeJson(form[key]);						
+					}					
+				}
+			}
+
+			location url="#rc.redirect#" addtoken="false";				
+		}
+
+		//If the user's Application CFC has the request method, then we call it
+		if(structKeyExists(this,"request")){
+			request( rc );			
+		}
 	}
 
-	/*
-	Override setupApplicationWrapper() to remove dependency injection which is not needed
+	public function buildURL(value){
+		var value = super.buildURL(value);
+		value = replaceNoCase(value,":","/");		
+		return value;
+	}
+
+	 /**
+	 * Breaks a camelCased string into separate words
+	 * 8-mar-2010 added option to capitalize parsed words Brian Meloche brianmeloche@gmail.com
+	 *
+	 * @param str      String to use (Required)
+	 * @param capitalize      Boolean to return capitalized words (Optional)
+	 * @return Returns a string
+	 * @author Richard (brianmeloche@gmail.comacdhirr@trilobiet.nl)
+	 * @version 0, March 8, 2010
 	 */
-	 private void function setupApplicationWrapper() {
-        if ( structKeyExists( request._fw1, "appWrapped" ) ) return;
-        request._fw1.appWrapped = true;
-        variables.fw1App = {
-            cache = {
-                lastReload = now(),
-                fileExists = { },
-                controllers = { },
-                routes = { regex = { }, resources = { } }
-            },
-            subsystems = { },
-            subsystemFactories = { }
-        };
-
-        /* FRAMEWORK ZERO 
-         * Comment out IOC and DI code which is not used by framework zero
-         *	 
-         */
-        // switch ( variables.framework.diEngine ) {
-        // case "aop1":
-        // case "di1":
-        //     var ioc = new "#variables.framework.diComponent#"(
-        //         variables.framework.diLocations,
-        //         variables.framework.diConfig
-        //     );
-        //     ioc.addBean( "fw", this ); // alias for controller constructor compatibility
-        //     setBeanFactory( ioc );
-        //     break;
-        // case "wirebox":
-        //     if ( isSimpleValue( variables.framework.diConfig ) ) {
-        //         // per #363 assume name of binder CFC
-        //         var wb1 = new "#variables.framework.diComponent#"(
-        //             variables.framework.diConfig, // binder path
-        //             variables.framework // properties struct
-        //         );
-        //         // we do not provide fw alias for controller constructor here!
-        //         setBeanFactory( wb1 );
-        //     } else {
-        //         // legacy configuration
-        //         var wb2 = new "#variables.framework.diComponent#"(
-        //             properties = variables.framework.diConfig
-        //         );
-        //         wb2.getBinder().scanLocations( variables.framework.diLocations );
-        //         // we do not provide fw alias for controller constructor here!
-        //         setBeanFactory( wb2 );
-        //     }
-        //     break;
-        // case "custom":
-        //     var ioc = new "#variables.framework.diComponent#"(
-        //         variables.framework.diLocations,
-        //         variables.framework.diConfig
-        //     );
-        //     setBeanFactory( ioc );
-        //     break;
-        // }
-
-        // this will recreate the main bean factory on a reload:
-        internalFrameworkTrace( 'setupApplication() called' );
-        setupApplication();
-		application[variables.framework.applicationKey] = variables.fw1App;
-
+	function camelToUnderscore(str) {
+	    var rtnStr=lcase(reReplace(arguments.str,"([A-Z])([a-z])","_\1\2","ALL"));
+	    if (arrayLen(arguments) GT 1 AND arguments[2] EQ true) {
+	        rtnStr=reReplace(arguments.str,"([a-z])([A-Z])","\1_\2","ALL");
+	        rtnStr=uCase(left(rtnStr,1)) & right(rtnStr,len(rtnStr)-1);
+	    }
+		return trim(rtnStr);
 	}
 
 	private boolean function controllerHasFunction(cfc, funcName){
@@ -711,6 +528,110 @@ component extends="one" {
     	return out;
     }
 
+    public function flattenDataStructureForCookies(required any data, prefix=""){
+    	var prefix = arguments.prefix;
+		var pile = {};
+    	var recurseData = function(data, currentPath="", pile){
+    		if(isArray(data)){
+
+    			var index = 0;
+    			for(var item in data){
+    				index++;
+					if(currentPath == ""){
+						var path = currentPath & "#index#";						
+					} else {
+						var path = currentPath & "." & "#index#";						
+					}
+
+    				if(isStruct(item) or isArray(item)){
+    					recurseData(data=item, currentPath=path, pile=pile);
+    				} else {
+    					pile.insert(path, item);
+    				}
+    			}
+
+			} else if(isStruct(data)) {
+				for(var key in data){
+
+					if(currentPath == ""){
+						var path = currentPath & key;						
+					} else {
+						var path = currentPath & "." & key;						
+					}
+
+					if(isStruct(data[key]) or isArray(data[key])){
+						recurseData(data = data[key], currentPath=path, pile=pile)
+					} else {
+						pile.insert(path, data[key]);
+					}
+				}
+
+			} else {
+				throw("json data was not an array or struct, cannot convert");
+			}
+
+    		return pile; 	
+    	}
+    	recurseData(data=arguments.data, pile=pile);
+
+    	if(prefix != ""){
+    		for(var key in pile){
+    			pile["#prefix#.#key#"] = pile[key];
+    			pile.delete(key);
+    		}
+    	}
+
+    	return pile;
+    }
+
+    public function expandFlattenedData(data){
+    	var out = duplicate(data);
+    	structKeyTranslate(out, true);
+    	var recurseStructs = function(str){
+    		// writeDump(str);
+    		if(isArray(str)){
+    			for(var item in str){
+    				recurseStructs(item);    				
+    			}
+			} else if(isStruct(str)){
+
+				for(var key in str){					
+					if(isStruct(str[key])){
+						if(structIsReallyArray(str[key])){
+							str[key] = convertStructArrayToArray(str[key]);					
+						}					
+						recurseStructs(str[key]);
+					}
+				}
+
+	    	} else {
+				//Do nothing, it is a simple value
+			}
+    	}
+    	recurseStructs(out);
+    	return out;
+    }
+
+    public boolean function structIsReallyArray(required struct str){
+    	var success = true;
+    	for(var key in str){
+    		if(!isNumeric(key)){
+    			success = false;
+    		}
+    	}
+    	return success;
+    }
+
+    public function convertStructArrayToArray(required struct str){
+    	var out = [];
+    	var keys = str.keyArray().sort("numeric");    	
+
+    	for(var key in keys){
+    		out.append(str[key]);
+    	}
+    	return out;
+    }
+
     private string function getEntityName(arrayOrComponent){
 		if(isArray(arrayOrComponent)){
 			if(arrayLen(arrayOrComponent) == 0){
@@ -727,16 +648,41 @@ component extends="one" {
 		return listLast(name,".");
 	}
 
+	private function getMetaDataFunctionArguments(required cfc, required method){
+    	var cfc = arguments.cfc;
+    	var method = arguments.method;
+    	var metaData = getMetaData(cfc);
+    	// writeDump(metaData);
+    	// abort;
+    	for(var func in metaData.functions){
+    		if(func.name == method){
+    			return func.parameters;
+    		}
+    	}
+
+    	throw("Did not expect to get to this point, controller method #method# does not exist. framework zero");
+    }   
+
     public boolean function isComponentOrArrayOfComponents(required arrayOrComponent){
-    	if(isArray(arrayOrComponent)){
+    	if(isArray(arrayOrComponent)){    	
     		if(arrayLen(arrayOrComponent) > 0){
-    			if(isObject(arrayOrComponent[1])){
-    				return true;
-    			} else {
+
+    			if(isNull(arrayOrComponent[1])){
+    				/*
+    				Handles the case where Lucee generates an ordered
+    				array for arguments that has null values. They still 
+    				evaluate to an object for some reason
+    				 */
     				return false;
+    			} else {
+	    			if(isObject(arrayOrComponent[1])){
+	    				return true;
+	    			} else {
+	    				return false;
+	    			}    				
     			}
-    		} else {
-    			return true;
+    		} else {    			
+    			return false;
     		}
     	} else if(isObject(arrayOrComponent)){
     		return true;
@@ -744,6 +690,256 @@ component extends="one" {
     		return false;
     	}
     }
+
+	/**
+	 * Createa a default RESTful route for each controller present. loadAvailableControllers() must be called within onRequestStart() because
+	 * it depends on the setting usingSubsystems which can be set by the inheriting Application.cfc
+	 * in the controllers folder 
+	 * @return {array} The routes created by this function
+	 */
+	private array function loadAvailableControllers(){
+		
+		if(!isNull(request.alreadyLoadedControllers)){
+			return [];
+		}
+
+		if(isNull(variables.framework.routes)){
+			variables.framework.routes = [];
+		}
+
+		if(variables.framework.usingSubsystems){
+			loadSubsystemControllers();
+		} else {						
+			loadControllers(expandPath("controllers"));
+		}
+
+		if(!isNull(this.setupRoutes)){
+			this.setupRoutes(variables.framework.routes);
+		}		
+		request.alreadyLoadedControllers = true;
+
+		//Add as the last item a universal route for the default subsystem to route anything
+		//to it back to the subsystem		
+		return variables.framework.routes;
+	}
+
+	private array function loadControllers(required path){
+		var controllers = directoryList(path=arguments.path, filter="*.cfc");		
+		for(var controller in controllers){
+			file = getFileFromPath(controller);
+			name = listFirst(file, ".");
+			variables.framework.routes.prepend({ "$RESOURCES" = { resources = name} })
+		}
+		return variables.framework.routes;
+	}
+
+	private array function loadSubsystemControllers(){
+		// variables.framework.routes = [];
+		var subsystems = directoryList(path=expandPath(variables.framework.base));
+		for(var subsystem in subsystems){
+			subsystemName = listLast(subsystem, "/");
+			var controllers = directoryList(path="#subsystem#/controllers", filter="*.cfc");
+
+			for(var controller in controllers){
+				file = getFileFromPath(controller);
+				name = listFirst(file, ".");
+				variables.framework.routes.prepend({ "$RESOURCES" = { resources = name, subsystem = subsystemName } })				
+			}
+		}
+		return variables.framework.routes;
+	}
+
+	public function onError(error, event){
+		
+		switch(request._zero.contentType){
+			case "json":				
+				if(!error.errorCode == "0"){
+					var errorcode = error.errorCode
+				} else {
+					var errorcode = "500";
+				}
+
+				if(errorCode ==""){
+					errorCode = "500";					
+				}
+
+				if(error.type contains "zeroController"){
+					var out = {
+						"success":false,
+						"message":error.message,
+						"status_code":errorCode,							
+					}		
+				} else {					
+					if(variables.zero.outputNonControllerErrors){					
+						var out = {
+							"success":false,
+							"message":error.message,
+							"status_code":errorCode,
+							"details":error
+						}		
+					} else {
+						var out = {
+							"success":false,
+							"message":"There was an error processing your request. Please try again.",							
+						}
+					}
+				}
+				
+				header statuscode="#errorCode#";
+				writeOutput(serializeJson(out));
+				abort;
+			break;
+
+			case "html":				
+				super.onError(error, event);
+			break;
+		}
+	}	
+
+	
+
+	function onRequest(){
+
+		var finalOutput = "";
+		savecontent variable="finalOutput" {
+			super.onRequest();			
+		}
+
+		if(cookie.keyExists('zeropreload')){
+			if(application.preloadCache.keyExists(cookie.zeropreload)){					
+				application.preloadCache[cookie.zeropreload].complete = true;
+				application.preloadCache[cookie.zeropreload].output = finalOutput;
+				writeLog(file="zero", text="saved output to cache and aborted #cookie.zeropreload#");
+				structDelete(cookie,"zeropreload");
+				client = {};
+				structClear(client);
+				abort;
+			}
+		}
+
+		finalOutput = response(finalOutput);
+		writeOutput(finalOutput);
+
+		//Clear out the client at the end of the request
+		client = {};
+		structClear(client);		
+	}
+
+	/**
+	* We have to define our own onSessionStart because fw/1 builds resources rotes before initializing the session. This causes
+	* views to be lost for some reason (an issue internal to FW/1). By defining our own onSessionStart and calling
+	* buildResourceRoutes() when a new session is created, the routes are generated properly
+	*	
+	*/
+	public void function onSessionStart(rc) {
+		loadAvailableControllers();		
+		super.onSessionStart();
+	}
+
+	function onRequestStart(){
+		loadAvailableControllers();
+		
+		variables.zero.throwOnNullControllerResult = variables.zero.throwOnNullControllerResult?: true;
+		variables.zero.argumentCheckedControllers = variables.zero.argumentCheckedControllers?: true;
+		variables.zero.equalizeSnakeAndCamelCase = variables.zero.equalizeSnakeAndCamelCase?: true;
+		variables.zero.outputNonControllerErrors = variables.zero.outputNonControllerErrors?: false;
+		
+		if(!application.keyExists('preloadCache')){
+			application.preloadCache = {};
+		}
+		
+		if(cookie.keyExists('zeropreload')){
+			if(application.preloadCache.keyExists(cookie.zeropreload)){
+
+				while(!application.preloadCache[cookie.zeropreload].complete){
+					sleep(10);
+				}
+				// sleep(500);
+				writeLog(file="zero", text="output from cache and aborted #cookie.zeropreload#");
+				writeOutput(application.preloadCache[cookie.zeropreload].output);
+				structDelete(application.preloadCache,cookie.zeropreload);
+				structDelete(cookie,"zeropreload");
+				structDelete(client,"zeropreload");
+				abort;
+
+			} else {
+				application.preloadCache[cookie.zeropreload] = {
+					complete:false,
+					output:""
+				}
+			}
+		}
+
+		super.onRequestStart(argumentCollection=arguments);	
+	}
+
+	/*
+	Override setupApplicationWrapper() to remove dependency injection which is not needed
+	 */
+	 private void function setupApplicationWrapper() {
+        if ( structKeyExists( request._fw1, "appWrapped" ) ) return;
+        request._fw1.appWrapped = true;
+        variables.fw1App = {
+            cache = {
+                lastReload = now(),
+                fileExists = { },
+                controllers = { },
+                routes = { regex = { }, resources = { } }
+            },
+            subsystems = { },
+            subsystemFactories = { }
+        };
+
+        /* FRAMEWORK ZERO 
+         * Comment out IOC and DI code which is not used by framework zero
+         *	 
+         */
+        // switch ( variables.framework.diEngine ) {
+        // case "aop1":
+        // case "di1":
+        //     var ioc = new "#variables.framework.diComponent#"(
+        //         variables.framework.diLocations,
+        //         variables.framework.diConfig
+        //     );
+        //     ioc.addBean( "fw", this ); // alias for controller constructor compatibility
+        //     setBeanFactory( ioc );
+        //     break;
+        // case "wirebox":
+        //     if ( isSimpleValue( variables.framework.diConfig ) ) {
+        //         // per #363 assume name of binder CFC
+        //         var wb1 = new "#variables.framework.diComponent#"(
+        //             variables.framework.diConfig, // binder path
+        //             variables.framework // properties struct
+        //         );
+        //         // we do not provide fw alias for controller constructor here!
+        //         setBeanFactory( wb1 );
+        //     } else {
+        //         // legacy configuration
+        //         var wb2 = new "#variables.framework.diComponent#"(
+        //             properties = variables.framework.diConfig
+        //         );
+        //         wb2.getBinder().scanLocations( variables.framework.diLocations );
+        //         // we do not provide fw alias for controller constructor here!
+        //         setBeanFactory( wb2 );
+        //     }
+        //     break;
+        // case "custom":
+        //     var ioc = new "#variables.framework.diComponent#"(
+        //         variables.framework.diLocations,
+        //         variables.framework.diConfig
+        //     );
+        //     setBeanFactory( ioc );
+        //     break;
+        // }
+
+        // this will recreate the main bean factory on a reload:
+        internalFrameworkTrace( 'setupApplication() called' );
+        setupApplication();
+		application[variables.framework.applicationKey] = variables.fw1App;
+
+	}
+
+	
 
      private void function setupSubsystemWrapper( string subsystem ) {
         if ( !len( subsystem ) ) return;
@@ -792,38 +988,6 @@ component extends="one" {
     }
 
 
-    private function getMetaDataFunctionArguments(required cfc, required method){
-    	var cfc = arguments.cfc;
-    	var method = arguments.method;
-    	var metaData = getMetaData(cfc);
-    	// writeDump(metaData);
-    	// abort;
-    	for(var func in metaData.functions){
-    		if(func.name == method){
-    			return func.parameters;
-    		}
-    	}
-
-    	throw("Did not expect to get to this point, controller method #method# does not exist. framework zero");
-    }
-
-    /**
-	 * Breaks a camelCased string into separate words
-	 * 8-mar-2010 added option to capitalize parsed words Brian Meloche brianmeloche@gmail.com
-	 *
-	 * @param str      String to use (Required)
-	 * @param capitalize      Boolean to return capitalized words (Optional)
-	 * @return Returns a string
-	 * @author Richard (brianmeloche@gmail.comacdhirr@trilobiet.nl)
-	 * @version 0, March 8, 2010
-	 */
-	function camelToUnderscore(str) {
-	    var rtnStr=lcase(reReplace(arguments.str,"([A-Z])([a-z])","_\1\2","ALL"));
-	    if (arrayLen(arguments) GT 1 AND arguments[2] EQ true) {
-	        rtnStr=reReplace(arguments.str,"([a-z])([A-Z])","\1_\2","ALL");
-	        rtnStr=uCase(left(rtnStr,1)) & right(rtnStr,len(rtnStr)-1);
-	    }
-		return trim(rtnStr);
-	}
+    
 
 }
