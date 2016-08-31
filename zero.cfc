@@ -215,29 +215,26 @@ component extends="one" {
 
 			default:
 
-				if(rc.keyExists("goto")){
+				if(rc.keyExists("goto")){					
 
 					if(structKeyExists(form,"preserve_response")){
-						// writeDump(now());
-						// abort;
-						try {
-							client[form.preserve_response] = request._zero.controllerResult;							
-						} catch(any e){
-							writeDump(now());
-							writeDump("Error saving cooking data");
+						if(isBoolean(form.preserve_response)){
+							var prefix = "preserve_response";
+						} else if(trim(form.preserve_response) == ""){
+							var prefix = "preserve_response";
+						} else {
+							var prefix = "preserve_response.#form.preserve_response#";
 						}
+						// writeDump(prefix);
+						// abort;
+						var formKeys = flattenDataStructureForCookies(data=request._zero.controllerResult, prefix=prefix, ignore="goto,preserve_form,submit_overload,redirect,map,preserve_response");
+						cookie.append(formKeys);						
 					}
 
-					if(form.keyExists("preserve_form")){
-						
-						var skip = "goto,preserve_form,submit_overload,redirect,map,preserve_response";
-						for(var key in form){								
-							if(skip.listContainsNoCase(key)){
-								continue;
-							} else {
-								cookie["preserve_#key#"] = serializeJson(form[key]);						
-							}					
-						}
+					if(form.keyExists("preserve_form")){						
+						var skip = "goto,preserve_form,submit_overload,redirect,map,preserve_response";						
+						var formKeys = flattenDataStructureForCookies(data=form, prefix="preserve_form", ignore="goto,preserve_form,submit_overload,redirect,map,preserve_response");
+						cookie.append(formKeys);						
 					}
 
 					var goto = rc.goto;
@@ -292,32 +289,44 @@ component extends="one" {
 		Cookie structures are saved as individual keys, so need to use structKeyTranslate
 		to get them back into a structure
 		 */
-		cookies = duplicate(cookie);
-		structKeyTranslate(cookies, true, true);		
-		// writeDump(cookies);
-		for(var key in cookies){
-			if(listfirst(key,"_") == "preserve"){
+		// cookies = duplicate(cookie);
+		// structKeyTranslate(cookies, true, true);		
+		cookies = expandFlattenedData(cookie);
 
-				var keyName = replaceNoCase(key, "preserve_", "");
-				var value = cookies[key];
-				if(isJson(value)){
-					value = deserializeJson(value);
-				}
-
-				if(isStruct(value)){
-					for(var strKey in value){
-						if(isJson(value[strKey])){
-							value[strKey] = deserializeJson(value[strKey]);							
-						}
-					}
-				}
-
-				form[keyName] = value;
-				rc[keyName] = value;
-				// writeDump(key);
-				structDelete(cookie,key);
-			}
+		if(cookies.keyExists("preserve_form")){
+			form.append(cookies.preserve_form);
+			rc.Append(cookies.preserve_form);
 		}
+
+		if(cookies.keyExists("preserve_response")){
+			form.append(cookies.preserve_response);
+			rc.append(cookies.preserve_response);
+		}
+
+		// writeDump(cookies);
+		// for(var key in cookies){
+		// 	if(listfirst(key,"_") == "preserve"){
+
+		// 		var keyName = replaceNoCase(key, "preserve_", "");
+		// 		var value = cookies[key];
+		// 		if(isJson(value)){
+		// 			value = deserializeJson(value);
+		// 		}
+
+		// 		if(isStruct(value)){
+		// 			for(var strKey in value){
+		// 				if(isJson(value[strKey])){
+		// 					value[strKey] = deserializeJson(value[strKey]);							
+		// 				}
+		// 			}
+		// 		}
+
+		// 		form[keyName] = value;
+		// 		rc[keyName] = value;
+		// 		// writeDump(key);
+		// 		structDelete(cookie,key);
+		// 	}
+		// }
 
 		if(rc.keyExists("submit_overload")){
 			if(!isJson(rc.submit_overload)){
@@ -346,14 +355,8 @@ component extends="one" {
 
 			if(rc.keyExists("preserve_form")){								
 				var skip = "preserve_redirect,redirect,preserve_map,preserve_response";
-				for(var key in form){
-						
-					if(skip.listContainsNoCase(key)){
-						continue;
-					} else {
-						cookie["preserve_#key#"] = serializeJson(form[key]);						
-					}					
-				}
+				var formKeys = flattenDataStructureForCookies(data=form, prefix="preserve_form", ignore="preserve_redirect,redirect,preserve_map,preserve_response,preserve_form");
+				cookie.append(formKeys);				
 			}
 
 			location url="#rc.redirect#" addtoken="false";				
@@ -528,7 +531,7 @@ component extends="one" {
     	return out;
     }
 
-    public function flattenDataStructureForCookies(required any data, prefix=""){
+    public function flattenDataStructureForCookies(required any data, prefix="", ignore=[]){
     	var prefix = arguments.prefix;
 		var pile = {};
     	var recurseData = function(data, currentPath="", pile){
@@ -551,7 +554,13 @@ component extends="one" {
     			}
 
 			} else if(isStruct(data)) {
-				for(var key in data){
+				loopStruct: for(var key in data){
+
+					for(var ignoreItem in ignore){
+						if(lcase(key) == lcase(ignoreItem)){
+							continue loopStruct;
+						}
+					}
 
 					if(currentPath == ""){
 						var path = currentPath & key;						
