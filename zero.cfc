@@ -29,7 +29,7 @@ component extends="one" {
 			}
 		}
 	}	
-	
+
      request._fw1 = {
         cgiScriptName = replaceNoCase(copyCGI.SCRIPT_NAME,".json",""),
         cgiPathInfo = replaceNoCase(copyCGI.PATH_INFO,".json",""),
@@ -227,7 +227,7 @@ component extends="one" {
 						}
 						// writeDump(prefix);
 						// abort;
-						var formKeys = flattenDataStructureForCookies(data=request._zero.controllerResult, prefix=prefix, ignore="goto,preserve_form,submit_overload,redirect,map,preserve_response");
+						var formKeys = flattenDataStructureForCookies(data=request._zero.controllerResult, prefix=prefix, ignore="goto,preserve_form,submit_overload,redirect,map,preserve_response");						
 						cookie.append(formKeys);						
 					}
 
@@ -296,11 +296,19 @@ component extends="one" {
 		if(cookies.keyExists("preserve_form")){
 			form.append(cookies.preserve_form);
 			rc.Append(cookies.preserve_form);
+			var deleteCookies = flattenDataStructureForCookies(data=cookies.preserve_form, prefix="preserve_form", ignore=[]);			
+			for(var cook in deleteCookies){
+				structDelete(cookie,cook);
+			}
 		}
 
 		if(cookies.keyExists("preserve_response")){
 			form.append(cookies.preserve_response);
 			rc.append(cookies.preserve_response);
+			var deleteCookies = flattenDataStructureForCookies(data=cookies.preserve_response, prefix="preserve_response", ignore=[]);			
+			for(var cook in deleteCookies){
+				structDelete(cookie,cook);
+			}
 		}
 
 		// writeDump(cookies);
