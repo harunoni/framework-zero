@@ -62,6 +62,8 @@ component extends="one" {
 	variables.zero.argumentCheckedControllers = true;
 	variables.zero.equalizeSnakeAndCamelCase = true;
 	variables.zero.outputNonControllerErrors = false;
+	variables.zero.argumentModelValueObjectPath = "";
+	variables.zero.argumentValidationsValueObjectPath = "validations";
 
 	
 
@@ -418,9 +420,7 @@ component extends="one" {
 
 
         getArgumentsToPass = function(){
-	    	var args = getMetaDataFunctionArguments(cfc, method);
-			// writeDump(args);
-			// abort;
+	    	var args = getMetaDataFunctionArguments(cfc, method);			
 			argsToPass = {};
 
 			request.context.headers = request._fw1.headers;
@@ -441,12 +441,54 @@ component extends="one" {
 			for(var arg in args){
 				
 				if(structKeyExists(request.context,arg.name)){
-					argsToPass[arg.name] = request.context[arg.name];
-				}    
 
-				if(structKeyExists(client,arg.name)){                			
-					argsToPass[arg.name] = client[arg.name];
-				}              			     
+					cfmltypes = [
+						"any",
+						"array",
+						"binary",
+						"boolean",
+						"component",
+						"date",
+						"guid",
+						"numeric",
+						"query",
+						"string",
+						"struct",
+						"uuid",
+						"variableName",
+						"void",						
+					];
+
+					if(cfmltypes.findNoCase(arg.type)){
+						argsToPass[arg.name] = request.context[arg.name];						
+					} else {
+
+						try {
+							getComponentMetaData("#variables.zero.argumentModelValueObjectPath#.#arg.type#");							
+							argsToPass[arg.name] = createObject("#variables.zero.argumentModelValueObjectPath#.#arg.type#").init(request.context[arg.name]);
+						} catch(any e){
+							try {
+								//Try to get one of the value objects shipped with Zero
+								// getComponentMetaData("#variables.zero.argumentValidationsValueObjectPath#.#arg.type#");							
+								// argsToPass[arg.name] = createObject("#variables.zero.argumentValidationsValueObjectPath#.#arg.type#").init(request.context[arg.name], args.name).toString();
+								
+
+								getComponentMetaData("validations.#arg.type#");							
+								// argsToPass[arg.name] = evaluate("new validations.#arg.type#(request.context[arg.name], args.name)).toString()");
+								argsToPass[arg.name] = createObject("validations.#arg.type#").init(request.context[arg.name], arg.name);
+							} catch(any e){							
+								// writeDump("#variables.zero.argumentValidationsValueObjectPath#.#arg.type#");
+								// evaluate("new #variables.zero.argumentValidationsValueObjectPath#.#arg.type#()");
+								// abort;
+								// createObject("validations.#arg.type#").init(request.context[arg.name], arg.name).toString();
+								// writeDump(new validations.notEmpty());
+								
+								throw("Could not process #arg.type# because it does not exist", 500);
+							}							
+						}
+
+					}
+				} 
 			}
 			return argsToPass;
 	    }
