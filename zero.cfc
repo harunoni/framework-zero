@@ -161,7 +161,20 @@ component extends="one" {
 	];
 
 	
+	public function collectValues(required struct args){
+		out = {};
+		for(var arg in args){
 
+			if(!isNull(args[arg])){
+				if(isInstanceOf(args[arg], "valueObject")){
+					out[arg] = args[arg].toString();				
+				} else {
+					out[arg] = args[arg];
+				}				
+			}
+		}
+		return out;
+	}
 	
 
 	public function after( rc, headers, controllerResult ){		
@@ -177,8 +190,13 @@ component extends="one" {
 			request._zero.controllerResult = result( controllerResult );
 		}
 
-		if(isComponentOrArrayOfComponents(request._zero.controllerResult)){			
-			request._zero.controllerResult = entityToJson(request._zero.controllerResult)
+		if(isComponentOrArrayOfComponents(request._zero.controllerResult)){	
+			try {
+				request._zero.controllerResult = entityToJson(request._zero.controllerResult)				
+			}catch(any e){
+				writeDump(request._zero.controllerResult);
+				abort;
+			}
 		}
 		// writeDump(request._zero.controllerResult);
 		// abort;
@@ -216,6 +234,14 @@ component extends="one" {
 			break;
 
 			default:
+
+				if(rc.keyExists("goto_fail")){
+					if(request._zero.controllerResult.keyExists("success") and request._zero.controllerResult.success == false){
+						rc.goto = rc.goto_fail;
+						form.preserve_response = true;
+						form.preserve_form = true;
+					}
+				}
 
 				if(rc.keyExists("goto")){					
 
@@ -437,7 +463,7 @@ component extends="one" {
 					request.context[keyNoUnderscore] = request.context[key];
 				}
 			}
-
+			request._zero.argumentErrors = {};
 			for(var arg in args){
 				
 				if(structKeyExists(request.context,arg.name)){
@@ -464,8 +490,12 @@ component extends="one" {
 					} else {
 
 						try {
-							getComponentMetaData("#variables.zero.argumentModelValueObjectPath#.#arg.type#");							
-							argsToPass[arg.name] = createObject("#variables.zero.argumentModelValueObjectPath#.#arg.type#").init(request.context[arg.name]);
+							getComponentMetaData("#variables.zero.argumentModelValueObjectPath#.#arg.type#");
+							try {
+								argsToPass[arg.name] = createObject("#variables.zero.argumentModelValueObjectPath#.#arg.type#").init(request.context[arg.name]);							
+							} catch(any e){
+								request._zero.argumentErrors.insert(arg.name, {message:e.message, original_value:request.context[arg.name]})
+							}							
 						} catch(any e){
 							try {
 								//Try to get one of the value objects shipped with Zero
@@ -473,20 +503,17 @@ component extends="one" {
 								// argsToPass[arg.name] = createObject("#variables.zero.argumentValidationsValueObjectPath#.#arg.type#").init(request.context[arg.name], args.name).toString();
 								
 
-								getComponentMetaData("validations.#arg.type#");							
-								// argsToPass[arg.name] = evaluate("new validations.#arg.type#(request.context[arg.name], args.name)).toString()");
-								argsToPass[arg.name] = createObject("validations.#arg.type#").init(request.context[arg.name], arg.name);
-							} catch(any e){							
-								// writeDump("#variables.zero.argumentValidationsValueObjectPath#.#arg.type#");
-								// evaluate("new #variables.zero.argumentValidationsValueObjectPath#.#arg.type#()");
-								// abort;
-								// createObject("validations.#arg.type#").init(request.context[arg.name], arg.name).toString();
-								// writeDump(new validations.notEmpty());
+								getComponentMetaData("validations.#arg.type#");				
+								try {
+									argsToPass[arg.name] = createObject("validations.#arg.type#").init(arg.name, request.context[arg.name]);									
+								}catch(any e){
+									request._zero.argumentErrors.insert(arg.name, {message:e.message, original_value:request.context[arg.name]})
+								}
 								
+							} catch(any e){															
 								throw("Could not process #arg.type# because it does not exist", 500);
-							}							
+							}
 						}
-
 					}
 				} 
 			}
@@ -505,8 +532,18 @@ component extends="one" {
                 		evaluate( 'cfc.request( rc = request.context, headers = request._fw1.headers)' );
                 	}
 
-                	if(variables.zero.argumentCheckedControllers){                                		    		
-	                	request._zero.controllerResult = evaluate( 'cfc.#method#( argumentCollection = getArgumentsToPass())' );                		
+                	if(variables.zero.argumentCheckedControllers){     
+
+                		var argsToPass = getArgumentsToPass();
+                		if(!request._zero.argumentErrors.isEmpty()){
+                			request._zero.controllerResult = {
+                				"success":false,
+                				"errors":request._zero.argumentErrors
+                			}                			
+            			} else {
+	                		request._zero.controllerResult = evaluate( 'cfc.#method#( argumentCollection = argsToPass)' );
+            			}
+
                 	} else {
                 		request._zero.controllerResult = evaluate( 'cfc.#method#( rc = request.context, headers = request._fw1.headers )' );	
                 	}
