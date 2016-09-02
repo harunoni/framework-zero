@@ -375,6 +375,9 @@ component extends="one" {
 			}
 		}
 
+		form.append(recurseConvertStructArrayToArrays(duplicate(form)));
+		rc.append(recurseConvertStructArrayToArrays(duplicate(rc)));
+
 		if(rc.keyExists("redirect")){
 			if(rc.keyExists("anchor")){
 				rc.redirect = rc.redirect & "##" & rc.anchor;
@@ -446,7 +449,7 @@ component extends="one" {
 
 
         getArgumentsToPass = function(){
-	    	var args = getMetaDataFunctionArguments(cfc, method);			
+	    	var args = getMetaDataFunctionArguments(cfc, method);	    	
 			argsToPass = {};
 
 			request.context.headers = request._fw1.headers;
@@ -683,6 +686,33 @@ component extends="one" {
     public function expandFlattenedData(data){
     	var out = duplicate(data);
     	structKeyTranslate(out, true);
+    	var recurseStructs = function(str){
+    		// writeDump(str);
+    		if(isArray(str)){
+    			for(var item in str){
+    				recurseStructs(item);    				
+    			}
+			} else if(isStruct(str)){
+
+				for(var key in str){					
+					if(isStruct(str[key])){
+						if(structIsReallyArray(str[key])){
+							str[key] = convertStructArrayToArray(str[key]);					
+						}					
+						recurseStructs(str[key]);
+					}
+				}
+
+	    	} else {
+				//Do nothing, it is a simple value
+			}
+    	}
+    	recurseStructs(out);
+    	return out;
+    }
+
+    public function recurseConvertStructArrayToArrays(data){
+    	out = data
     	var recurseStructs = function(str){
     		// writeDump(str);
     		if(isArray(str)){
@@ -1081,9 +1111,6 @@ component extends="one" {
                 setupSubsystem( subsystem );
             }
         }
-    }
-
-
-    
+    }    
 
 }

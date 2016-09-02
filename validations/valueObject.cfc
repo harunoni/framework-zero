@@ -1,6 +1,6 @@
-component {	
+component  {	
 	property name="value";
-	public function init(required value){
+	public function init(required name, required value){
 		variables.value = arguments.value;
 		return this;
 	}
