@@ -178,7 +178,7 @@ component extends="one" {
 	
 
 	public function after( rc, headers, controllerResult ){		
-		
+
 		if(isNull(request._zero.controllerResult)){
 			if(variables.zero.throwOnNullControllerResult){
 				throw("The controller #request.action# #request.item# did not have a return value but it expected one for a json request")
@@ -240,7 +240,13 @@ component extends="one" {
 						rc.goto = rc.goto_fail;
 						form.preserve_response = true;
 						form.preserve_form = true;
+						form.preserve_request = true;
 					}
+				}
+
+				//Setup an alias to goto
+				if(rc.keyExists("goto_after")){
+					rc.goto = rc.goto_after;
 				}
 
 				if(rc.keyExists("goto")){					
@@ -259,11 +265,27 @@ component extends="one" {
 						cookie.append(formKeys);						
 					}
 
-					if(form.keyExists("preserve_form")){						
-						var skip = "goto,preserve_form,submit_overload,redirect,map,preserve_response";						
+					if(form.keyExists("preserve_form")){												
 						var formKeys = flattenDataStructureForCookies(data=form, prefix="preserve_form", ignore="goto,preserve_form,submit_overload,redirect,map,preserve_response");
 						cookie.append(formKeys);						
 					}
+
+
+					if(form.keyExists("preserve_request")){						
+						var formKeys = flattenDataStructureForCookies(data=form, prefix="preserve_request.form", ignore="goto,preserve_form,submit_overload,redirect,map,preserve_response,preserve_request");
+						cookie.append(formKeys);
+
+						var formKeys = flattenDataStructureForCookies(data=url, prefix="preserve_request.url", ignore="goto,preserve_form,submit_overload,redirect,map,preserve_response,preserve_request");
+						cookie.append(formKeys);
+
+						// var requestData = {};
+						// requestData.append(form);
+						// requestData.append(url);
+						// var skip = "goto,preserve_form,submit_overload,redirect,map,preserve_response";						
+						// var formKeys = flattenDataStructureForCookies(data=requestData, prefix="preserve_request", ignore="goto,preserve_form,submit_overload,redirect,map,preserve_response,preserve_request");
+						// cookie.append(formKeys);						
+					}
+
 
 					var goto = rc.goto;
 					rc = {}
@@ -330,6 +352,27 @@ component extends="one" {
 			}
 		}
 
+		if(cookies.keyExists("preserve_request")){
+
+			if(cookies.preserve_request.keyExists("form")){
+				form.append(cookies.preserve_request.form);
+				rc.Append(cookies.preserve_request.form);
+				var deleteCookies = flattenDataStructureForCookies(data=cookies.preserve_request, prefix="preserve_request.form", ignore=[]);			
+				for(var cook in deleteCookies){
+					structDelete(cookie,cook);
+				}				
+			}
+
+			if(cookies.preserve_request.keyExists("url")){
+				url.append(cookies.preserve_request.url);
+				rc.Append(cookies.preserve_request.url);
+				var deleteCookies = flattenDataStructureForCookies(data=cookies.preserve_request, prefix="preserve_request.url", ignore=[]);			
+				for(var cook in deleteCookies){
+					structDelete(cookie,cook);
+				}				
+			}
+		}
+
 		if(cookies.keyExists("preserve_response")){
 			form.append(cookies.preserve_response);
 			rc.append(cookies.preserve_response);
@@ -337,32 +380,7 @@ component extends="one" {
 			for(var cook in deleteCookies){
 				structDelete(cookie,cook);
 			}
-		}
-
-		// writeDump(cookies);
-		// for(var key in cookies){
-		// 	if(listfirst(key,"_") == "preserve"){
-
-		// 		var keyName = replaceNoCase(key, "preserve_", "");
-		// 		var value = cookies[key];
-		// 		if(isJson(value)){
-		// 			value = deserializeJson(value);
-		// 		}
-
-		// 		if(isStruct(value)){
-		// 			for(var strKey in value){
-		// 				if(isJson(value[strKey])){
-		// 					value[strKey] = deserializeJson(value[strKey]);							
-		// 				}
-		// 			}
-		// 		}
-
-		// 		form[keyName] = value;
-		// 		rc[keyName] = value;
-		// 		// writeDump(key);
-		// 		structDelete(cookie,key);
-		// 	}
-		// }
+		}		
 
 		if(rc.keyExists("submit_overload")){
 			if(!isJson(rc.submit_overload)){
@@ -377,6 +395,11 @@ component extends="one" {
 
 		form.append(recurseConvertStructArrayToArrays(duplicate(form)));
 		rc.append(recurseConvertStructArrayToArrays(duplicate(rc)));
+
+		//Setup an alias for redirect
+		if(rc.keyExists("goto_before")){
+			rc.redirect = rc.goto_before;
+		}
 
 		if(rc.keyExists("redirect")){
 			if(rc.keyExists("anchor")){
@@ -394,7 +417,7 @@ component extends="one" {
 
 			if(rc.keyExists("preserve_form")){								
 				var skip = "preserve_redirect,redirect,preserve_map,preserve_response";
-				var formKeys = flattenDataStructureForCookies(data=form, prefix="preserve_form", ignore="preserve_redirect,redirect,preserve_map,preserve_response,preserve_form");
+				var formKeys = flattenDataStructureForCookies(data=form, prefix="preserve_form", ignore="preserve_redirect,redirect,preserve_map,preserve_response,preserve_form,goto_before");
 				cookie.append(formKeys);				
 			}
 
