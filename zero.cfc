@@ -238,8 +238,7 @@ component extends="one" {
 				if(rc.keyExists("goto_fail")){
 					if(request._zero.controllerResult.keyExists("success") and request._zero.controllerResult.success == false){
 						rc.goto = rc.goto_fail;
-						form.preserve_response = true;
-						form.preserve_form = true;
+						form.preserve_response = true;						
 						form.preserve_request = true;
 					}
 				}
@@ -334,7 +333,7 @@ component extends="one" {
 	}	
 	
 	public function before( rc ){
-		
+
 		/*
 		Cookie structures are saved as individual keys, so need to use structKeyTranslate
 		to get them back into a structure
@@ -348,39 +347,50 @@ component extends="one" {
 			rc.Append(cookies.preserve_form);
 			var deleteCookies = flattenDataStructureForCookies(data=cookies.preserve_form, prefix="preserve_form", ignore=[]);			
 			for(var cook in deleteCookies){
-				structDelete(cookie,cook);
+				header name="Set-Cookie" value="#ucase(cook)#=; path=/; Max-Age=0; Expires=Thu, 01-Jan-1970 00:00:00 GMT";
 			}
 		}
 
-		if(cookies.keyExists("preserve_request")){
 
+		// writeDump(form);
+		// abort;
+
+		if(cookies.keyExists("preserve_request")){
 			if(cookies.preserve_request.keyExists("form")){
 				form.append(cookies.preserve_request.form);
 				rc.Append(cookies.preserve_request.form);
-				var deleteCookies = flattenDataStructureForCookies(data=cookies.preserve_request, prefix="preserve_request.form", ignore=[]);			
+				var deleteCookies = flattenDataStructureForCookies(data=cookies.preserve_request.form, prefix="preserve_request.form", ignore=[]);					
 				for(var cook in deleteCookies){
+
+					header name="Set-Cookie" value="#ucase(cook)#=; path=/; Max-Age=0; Expires=Thu, 01-Jan-1970 00:00:00 GMT";					
 					structDelete(cookie,cook);
-				}				
+				}								
 			}
 
 			if(cookies.preserve_request.keyExists("url")){
 				url.append(cookies.preserve_request.url);
 				rc.Append(cookies.preserve_request.url);
-				var deleteCookies = flattenDataStructureForCookies(data=cookies.preserve_request, prefix="preserve_request.url", ignore=[]);			
+				var deleteCookies = flattenDataStructureForCookies(data=cookies.preserve_request.url, prefix="preserve_request.url", ignore=[]);							
 				for(var cook in deleteCookies){
+					header name="Set-Cookie" value="#ucase(cook)#=; path=/; Max-Age=0; Expires=Thu, 01-Jan-1970 00:00:00 GMT";
 					structDelete(cookie,cook);
 				}				
-			}
+			}			
 		}
+
 
 		if(cookies.keyExists("preserve_response")){
 			form.append(cookies.preserve_response);
 			rc.append(cookies.preserve_response);
 			var deleteCookies = flattenDataStructureForCookies(data=cookies.preserve_response, prefix="preserve_response", ignore=[]);			
 			for(var cook in deleteCookies){
+				// structDelete(cookie,cook);
+				header name="Set-Cookie" value="#ucase(cook)#=; path=/; Max-Age=0; Expires=Thu, 01-Jan-1970 00:00:00 GMT";
 				structDelete(cookie,cook);
 			}
-		}		
+		}
+
+
 
 		if(rc.keyExists("submit_overload")){
 			if(!isJson(rc.submit_overload)){
@@ -392,6 +402,8 @@ component extends="one" {
 				rc[key] = json[key];
 			}
 		}
+
+
 
 		form.append(recurseConvertStructArrayToArrays(duplicate(form)));
 		rc.append(recurseConvertStructArrayToArrays(duplicate(rc)));
@@ -428,6 +440,8 @@ component extends="one" {
 		if(structKeyExists(this,"request")){
 			request( rc );			
 		}
+
+
 	}
 
 	public function buildURL(value){
