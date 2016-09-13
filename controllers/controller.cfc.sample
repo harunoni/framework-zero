@@ -27,6 +27,14 @@ component accessors="true" {
 	}	
 
 	/**
+	 * A controller function to represent a an edit form
+	 * @return {struct} The data for the edit view
+	 */
+	public struct function edit( required id ) {
+		return {};
+	}
+
+	/**
 	 * Creates an item at the current resource
 	 * @return {struct} The data for the create view
 	 */
@@ -56,6 +64,22 @@ component accessors="true" {
 	 */
 	public struct function delete( required id ) {
 		return {}; 
+	}
+
+	/**
+	 * Links two resources together 
+	 * @return {struct} The data for the linked resource
+	 */
+	public struct function link( required id ){
+		return {};
+	}
+
+	/**
+	 * Unlinks two resources
+	 * @return {struct} The data for the linked resource
+	 */
+	public struct function unlink( required id ){
+		return {};
 	}
 
 	/**

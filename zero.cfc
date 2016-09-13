@@ -146,6 +146,9 @@ component extends="one" {
 
 	  { method = 'new', httpMethods = [ '$POST' ], routeSuffix = '/new' },
 	  { method = 'new', httpMethods = [ '$GET' ], routeSuffix = '/new' },
+
+	  { method = 'edit', httpMethods = [ '$POST' ], includeId = true, routeSuffix = '/edit' },
+	  { method = 'edit', httpMethods = [ '$GET' ], includeId = true, routeSuffix = '/edit' },
 	  
 	  { method = 'create', httpMethods = [ '$GET', '$POST' ], routeSuffix = '/create' },
 	  { method = 'create', httpMethods = [ '$POST' ] },
@@ -153,8 +156,8 @@ component extends="one" {
 	  { method = 'read', httpMethods = [ '$GET' ], includeId = true },	  
 	  { method = 'read', httpMethods = [ '$POST' ], includeId = true, routeSuffix = '/read' },	  
 	  
-	  { method = 'update', httpMethods = [ '$PUT','$PATCH', '$POST' ], includeId = true },
-	  { method = 'update', httpMethods = [ '$PUT','$PATCH', '$POST' ], routeSuffix = '/update' },
+	  { method = 'update', httpMethods = [ '$PUT','$POST' ], includeId = true },
+	  { method = 'update', httpMethods = [ '$PUT','$POST' ], routeSuffix = '/update' },
 	  
 	  { method = 'delete', httpMethods = [ '$DELETE' ], includeId = true },
 	  { method = 'delete', httpMethods = [ '$POST' ], includeId = true, routeSuffix = '/delete' }
@@ -891,6 +894,20 @@ component extends="one" {
 		for(var controller in controllers){
 			file = getFileFromPath(controller);
 			name = listFirst(file, ".");
+			
+			var meta = getComponentMetaData("controllers.#name#");
+			var nested = listToArray(meta.nested?:"");
+			for(var nest in nested){
+				//Add nesting
+				variables.framework.routes.prepend({ "$RESOURCES" = { resources = "#name#", nested="#nest#"} });
+				
+				//Add route for linking resource					
+				variables.framework.routes.prepend({'$POST/#name#/:#name#_id/#nest#/:id/link*' = '/#nest#/link/#name#_id/:#nest#_id/id/:id' });
+
+				//Add route for unlinking resource					
+				variables.framework.routes.prepend({'$POST/#name#/:#name#_id/#nest#/:id/unlink*' = '/#nest#/unlink/#name#_id/:#nest#_id/id/:id' });					
+			}				
+			
 			variables.framework.routes.prepend({ "$RESOURCES" = { resources = name} })
 		}
 		return variables.framework.routes;
@@ -907,6 +924,19 @@ component extends="one" {
 				file = getFileFromPath(controller);
 				name = listFirst(file, ".");
 				variables.framework.routes.prepend({ "$RESOURCES" = { resources = name, subsystem = subsystemName } })				
+
+				var meta = getComponentMetaData("#subsystemName#.controllers.#name#");
+				var nested = listToArray(meta.nested?:"");
+				for(var nest in nested){
+					//Add nesting
+					variables.framework.routes.prepend({ "$RESOURCES" = { resources = "#name#", nested="#nest#", subsystem = subsystemName} });
+					
+					//Add route for linking resource					
+					variables.framework.routes.prepend({'$POST/#subsystemName#/#name#/:#name#_id/#nest#/:id/link*' = '/#subsystemName#:#nest#/link/#name#_id/:#nest#_id/id/:id' });
+
+					//Add route for unlinking resource					
+					variables.framework.routes.prepend({'$POST/#subsystemName#/#name#/:#name#_id/#nest#/:id/unlink*' = '/#subsystemName#:#nest#/unlink/#name#_id/:#nest#_id/id/:id' });					
+				}
 			}
 		}
 		return variables.framework.routes;
