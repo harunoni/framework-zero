@@ -535,7 +535,7 @@ component extends="one" {
 						try {
 							getComponentMetaData("#variables.zero.argumentModelValueObjectPath#.#arg.type#");
 							try {
-								argsToPass[arg.name] = createObject("#variables.zero.argumentModelValueObjectPath#.#arg.type#").init(request.context[arg.name]);							
+								argsToPass[arg.name] = createObject("#variables.zero.argumentModelValueObjectPath#.#arg.type#").init(value=request.context[arg.name]);							
 							} catch(any e){
 								request._zero.argumentErrors.insert(arg.name, {message:e.message, original_value:request.context[arg.name]})
 							}							
@@ -548,7 +548,7 @@ component extends="one" {
 
 								getComponentMetaData("validations.#arg.type#");				
 								try {
-									argsToPass[arg.name] = createObject("validations.#arg.type#").init(arg.name, request.context[arg.name]);									
+									argsToPass[arg.name] = createObject("validations.#arg.type#").init(name=arg.name, value=request.context[arg.name]);									
 								}catch(any e){
 									request._zero.argumentErrors.insert(arg.name, {message:e.message, original_value:request.context[arg.name]})
 								}
