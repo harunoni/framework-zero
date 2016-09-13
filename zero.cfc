@@ -925,7 +925,7 @@ component extends="one" {
 				name = listFirst(file, ".");
 				variables.framework.routes.prepend({ "$RESOURCES" = { resources = name, subsystem = subsystemName } })				
 
-				var meta = getComponentMetaData("#subsystemName#.controllers.#name#");
+				var meta = getComponentMetaData("#variables.framework.base#.#subsystemName#.controllers.#name#");
 				var nested = listToArray(meta.nested?:"");
 				for(var nest in nested){
 					//Add nesting

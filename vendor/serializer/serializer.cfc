@@ -131,9 +131,11 @@ component output="false" displayname=""  {
 						try {
 							local.getValue = evaluate('entity.get#prop.name#()');							
 						} catch(any e){
-							writeDump(prop.name);
-							writeDump(e);
-							abort;
+							throw(e);
+							// // writeDump(entity);
+							// writeDump(prop.name);
+							// writeDump(e);
+							// abort;
 						}
 
 						if(isNull(local.getValue)){
@@ -144,12 +146,12 @@ component output="false" displayname=""  {
 							} else {
 								out[camelToUnderscore(prop.name)] = convertNullToEmptyString(Javacast("null",""));
 							}
+						} else if(isInstanceOf(local.getValue,"valueObject")){
+							out[camelToUnderscore(prop.name)] = local.getValue.toString();
 						}
 						else {
 							out[camelToUnderscore(prop.name)] = local.getValue;
 						}
-
-
 					}
 				}
 			});

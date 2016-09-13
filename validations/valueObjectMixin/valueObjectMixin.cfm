@@ -58,17 +58,24 @@ cfmltypes = [
 		return propsOut;
 	}
 
+	function nl(){
+		var nl = CreateObject("java", "java.lang.System").getProperty("line.separator");
+		echo(nl);
+	}
+
 	objs = ["emailAddress"];
 	closures = {}
 	for(obj in propsOut){
 
 		// uuidName = replaceNoCase(createUUID(),"-","","all");
-		uuidName = "#obj.name#_#obj.type#";
+		entityName = getMetaData(this).name;
+		entityName = listLast(entityName,".");
+		uuidName = "#entityName#_#obj.name#_#obj.type#";
 		// fileName = "foo";
 		savecontent variable="func"{
-
+			nl();
 			echo("function set#obj.name#(value){");
-
+				nl();
 				// echo("var type = '#obj.type#';");
 				// echo("var name = '#obj.name#';");
 				// echo("writeDump(arguments);")
@@ -76,36 +83,37 @@ cfmltypes = [
 				// echo("var name = #obj.name#;");
 				
 				echo("if(isInstanceof(arguments.value, '#obj.type#')){")
-
+					nl();
 					echo("variables.#obj.name# = arguments.value.toString();")
+					nl();
+				echo("} else {"); nl();
 
-				echo("} else {")
+					echo("variables.#obj.name# = new #obj.type#(value=arguments.value).toString();"); nl();
 
-					echo("variables.#obj.name# = new #obj.type#(arguments.value).toString();")
-
-				echo("}")
+				echo("}"); nl();
 
 				// echo("writeDump(isInstanceof(arguments.value, type))");
 
-			echo("}")
+			echo("}"); nl();
 
-			echo("function get#obj.name#(value){");
+			echo("function get#obj.name#(value){"); nl();
 
 				// echo("var type = '#obj.type#';");
 				// echo("var name = '#obj.name#';");
-				echo("if(isNull(variables.#obj.name#)){")				
-					echo("return nullValue()");
-				echo("} else {")
-					echo("return new #obj.type#(variables.#obj.name#?:nullValue());")
-				echo("}")
+				echo("if(isNull(variables.#obj.name#)){"); nl();
+					echo("return nullValue()"); nl();
+				echo("} else {"); nl();
+					echo("return new #obj.type#(value=variables.#obj.name#?:nullValue());"); nl();
+				echo("}"); nl();
 
-			echo("}")
+			echo("}"); nl();
 
 		}
 		// fileWrite("#uuidName#.cfm", "<cfscript>#func#</cfscript>");
+		
 		fileWrite("#uuidName#.cfm", "<cfscript>#func#</cfscript>");
 		include template="#uuidName#.cfm";
-		fileDelete("#uuidName#.cfm");
+		// fileDelete("#uuidName#.cfm");
 
 			// "set#obj.name#" = function(value){			
 			// 	writeDump(closures);
