@@ -1,6 +1,6 @@
 component  {	
 	property name="value";
-	public function init(required name, required value){
+	public valueObject function init(required name, required value){
 		variables.value = arguments.value;
 		return this;
 	}

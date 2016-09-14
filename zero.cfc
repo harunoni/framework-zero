@@ -701,7 +701,7 @@ component extends="one" {
 					if(isStruct(data[key]) or isArray(data[key])){
 						recurseData(data = data[key], currentPath=path, pile=pile)
 					} else {
-						pile.insert(path, data[key]);
+						pile.insert(path, data[key], true);
 					}
 				}
 
