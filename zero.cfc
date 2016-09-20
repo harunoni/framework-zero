@@ -65,7 +65,8 @@ component extends="one" {
 	variables.zero.argumentModelValueObjectPath = "";
 	variables.zero.argumentValidationsValueObjectPath = "validations";
 
-	
+
+	this.scriptProtect = "all";
 
 	/*
 		This is provided for illustration only - YOU SHOULD NOT USE THIS IN
@@ -200,9 +201,8 @@ component extends="one" {
 				writeDump(request._zero.controllerResult);
 				abort;
 			}
-		}
-		// writeDump(request._zero.controllerResult);
-		// abort;
+		}	
+
 		var recurseAndLowerCaseTheKeys = function(struct){
 			for(var key in arguments.struct){
 				// arguments.struct["#lcase(key)#"] = arguments.struct[key];				
@@ -212,6 +212,11 @@ component extends="one" {
 				} else {
 					var temp = duplicate(arguments.struct[key]);					
 				}
+
+				if(isComponentOrArrayOfComponents(arguments.struct)){
+					throw("Could not continue because the controller result is a component and not a simple array or struct. This could be an error in the data returned from the controller, or Zero was not able to serialize your result properly.");
+				}
+
 				arguments.struct.delete(key);
 				arguments.struct.insert("#lcase(camelToUnderscore(key))#", temp?:nullValue(), true);
 				
@@ -221,9 +226,15 @@ component extends="one" {
 			}
 			return struct;
 		} 
+
 		recurseAndLowerCaseTheKeys(request._zero.controllerResult);
 		
 		structAppend(rc, client);
+
+		/*
+		To protect against XSS attacks in HTML output, we escape all strings that are the result from the controller
+		 */
+		request._zero.controllerResult = encodeResultFor("HTML", request._zero.controllerResult);
 
 		switch(request._zero.contentType){
 			case "json":
@@ -231,7 +242,7 @@ component extends="one" {
 				if(isNull(request._zero.controllerResult)){
 					renderData("json", {});
 				} else {
-					renderData("json", request._zero.controllerResult);
+					renderData("json", request._zero.controllerResult);					
 				}
 
 			break;
@@ -278,16 +289,8 @@ component extends="one" {
 						cookie.append(formKeys);
 
 						var formKeys = flattenDataStructureForCookies(data=url, prefix="preserve_request.url", ignore="goto,preserve_form,submit_overload,redirect,map,preserve_response,preserve_request");
-						cookie.append(formKeys);
-
-						// var requestData = {};
-						// requestData.append(form);
-						// requestData.append(url);
-						// var skip = "goto,preserve_form,submit_overload,redirect,map,preserve_response";						
-						// var formKeys = flattenDataStructureForCookies(data=requestData, prefix="preserve_request", ignore="goto,preserve_form,submit_overload,redirect,map,preserve_response,preserve_request");
-						// cookie.append(formKeys);						
+						cookie.append(formKeys);									
 					}
-
 
 					var goto = rc.goto;
 					rc = {}
@@ -299,10 +302,7 @@ component extends="one" {
 
 					if(goto contains ":"){
 						writeDump(goto);
-						variable = reReplaceNoCase(goto, "(.*):([A-Zaz\.]*)", "\2");
-						// writeDump(variable);
-						// writeDump(rc);
-						// abort;
+						variable = reReplaceNoCase(goto, "(.*):([A-Zaz\.]*)", "\2");						
 						tryNull = evaluate("isNull(rc.#variable#)");
 						if(tryNull){
 							throw("Value not found");
@@ -310,12 +310,11 @@ component extends="one" {
 							value = getVariable("rc.#variable#");
 							goto = replaceNoCase(goto, ":#variable#", value);
 						}
+					}	
 
-					}					
 					if(structKeyExists(client,"goto")){
 						structDelete(client,"goto");//Remove the goto so that it is not an infinite redirect						
 					}
-
 
 					location url="#goto#" addtoken="false";
 				}				
@@ -393,8 +392,6 @@ component extends="one" {
 			}
 		}
 
-
-
 		if(rc.keyExists("submit_overload")){
 			if(!isJson(rc.submit_overload)){
 				throw("The data in a form submit_overload must be json");
@@ -407,9 +404,11 @@ component extends="one" {
 		}
 
 
-
 		form.append(recurseConvertStructArrayToArrays(duplicate(form)));
 		rc.append(recurseConvertStructArrayToArrays(duplicate(rc)));
+
+		//Append anything in the client scope to the RC scope as this is also to be used for controller arguments
+		rc.append(client);
 
 		//Setup an alias for redirect
 		if(rc.keyExists("goto_before")){
@@ -597,7 +596,7 @@ component extends="one" {
 								throw("The controller #request.action# #request.item# did not have a return value but it expected one for a json request")
 							}
 						} else {            				
-                			evaluate( 'cfc.result( request._zero.controllerResult )' );
+                			request._zero.controllerResult = evaluate( 'cfc.result( request._zero.controllerResult )' );
 						}
                 	}
 	                
@@ -642,6 +641,28 @@ component extends="one" {
         } else {
             internalFrameworkTrace( 'no #lifecycle# controller to call', tuple.subsystem, tuple.section, method );
         }
+    }
+
+    public function encodeResultFor(type="HTML", required any str){
+    	if(isArray(str)){
+    		loop array=str index="i" item="value" {
+    			if(isArray(value) or isStruct(value)){
+    				encodeResultFor(type, value);    				
+    			} else {
+    				str[i] = esapiEncode(type, value);   				    							
+    			}
+    		}
+    	} else if(isStruct(str)){
+    		for(var key in str){
+
+    			if(isArray(str[key]) or isStruct(str[key])){
+    				encodeResultFor(type, str[key]);    				
+    			} else {
+    				str[key] = esapiEncode(type, str[key]);    								    				
+    			}    			
+    		}
+    	}
+    	return str;
     }
 
     public function entityToJson(required any arrayOrComponent, nest={}){ 	
@@ -749,6 +770,14 @@ component extends="one" {
     	}
     	recurseStructs(out);
     	return out;
+    }
+
+    public boolean function hasEntityLoader(entityName){
+    	if(structKeyExists(this, "get#entityName#byId") or structKeyExists(variables, "get#entityName#byId")){
+    		return true;
+    	} else {
+    		return false;
+    	}
     }
 
     public function recurseConvertStructArrayToArrays(data){
@@ -932,10 +961,10 @@ component extends="one" {
 					variables.framework.routes.prepend({ "$RESOURCES" = { resources = "#name#", nested="#nest#", subsystem = subsystemName} });
 					
 					//Add route for linking resource					
-					variables.framework.routes.prepend({'$POST/#subsystemName#/#name#/:#name#_id/#nest#/:id/link*' = '/#subsystemName#:#nest#/link/#name#_id/:#nest#_id/id/:id' });
+					variables.framework.routes.prepend({'$POST/#subsystemName#/#name#/:#name#_id/#nest#/:id/link*' = '/#subsystemName#:#nest#/link/#name#_id/:#name#_id/id/:id' });
 
 					//Add route for unlinking resource					
-					variables.framework.routes.prepend({'$POST/#subsystemName#/#name#/:#name#_id/#nest#/:id/unlink*' = '/#subsystemName#:#nest#/unlink/#name#_id/:#nest#_id/id/:id' });					
+					variables.framework.routes.prepend({'$POST/#subsystemName#/#name#/:#name#_id/#nest#/:id/unlink*' = '/#subsystemName#:#nest#/unlink/#name#_id/:#name#_id/id/:id' });					
 				}
 			}
 		}
@@ -1178,6 +1207,15 @@ component extends="one" {
                 setupSubsystem( subsystem );
             }
         }
-    }    
+    }
+
+    public function unescapeHTML(required string){
+    	//Lucee does not have a function to unescape HTML characters, but we can use the built in 
+    	//Apache commons library
+    	//http://stackoverflow.com/questions/1646839/decode-numeric-html-entities-in-coldfusion
+    	var StrEscUtils = createObject("java", "org.apache.commons.lang.StringEscapeUtils");
+		var Character = StrEscUtils.unescapeHTML(arguments.string);
+		return Character;
+    }
 
 }
