@@ -64,7 +64,7 @@ component extends="one" {
 	variables.zero.outputNonControllerErrors = false;
 	variables.zero.argumentModelValueObjectPath = "";
 	variables.zero.argumentValidationsValueObjectPath = "validations";
-
+	variables.zero.csrfProtect = true;
 
 	this.scriptProtect = "all";
 
@@ -163,7 +163,6 @@ component extends="one" {
 	  { method = 'delete', httpMethods = [ '$DELETE' ], includeId = true },
 	  { method = 'delete', httpMethods = [ '$POST' ], includeId = true, routeSuffix = '/delete' }
 	];
-
 	
 	public function collectValues(required struct args){
 		out = {};
@@ -335,6 +334,22 @@ component extends="one" {
 	}	
 	
 	public function before( rc ){
+
+		if(CGI.request_method == "POST"){
+			if(cookie.keyExists("CSRF_TOKEN")){
+				if(!form.keyExists("CSRF_TOKEN")){
+					throw("Unauthorized", 401);
+				} else {
+					if(form.csrf_token != cookie.csrf_token){
+						throw("Unauthorized", 401);
+					} else {
+					}
+				}				
+				structDelete(cookie,"CSRF_TOKEN");
+			}			
+		} else {
+			structDelete(cookie,"CSRF_TOKEN");
+		}
 
 		/*
 		Cookie structures are saved as individual keys, so need to use structKeyTranslate
@@ -772,6 +787,14 @@ component extends="one" {
     	return out;
     }
 
+    public function getCSRFToken(){
+    	if(!request.keyExists("CSRF_TOKEN")){
+    		request.CSRF_TOKEN = createUUID();
+    		cookie.CSRF_TOKEN = request.CSRF_TOKEN;    		
+    	}
+    	return cookie.CSRF_TOKEN;
+    }
+
     public boolean function hasEntityLoader(entityName){
     	if(structKeyExists(this, "get#entityName#byId") or structKeyExists(variables, "get#entityName#byId")){
     		return true;
@@ -884,6 +907,26 @@ component extends="one" {
     	} else {
     		return false;
     	}
+    }
+
+    public function injectCSRFIntoForms(string output){
+
+    	var pos = 0;
+    	var len = 0;
+    	do {
+    		var result =  reFindNoCase("<form\b[^>]*>", output, pos + len + 1, true);
+    		// writeDump(result);
+    		pos = result.pos[1];
+    		len = result.len[1];
+
+    		if(pos > 0){
+    			var csrf = '<input type="hidden" name="csrf_token" value="#getCSRFToken()#" />';
+    			var output = insert(csrf, output, pos + len - 1);    			
+    		}
+    		
+    	} while(pos);
+
+    	return output;
     }
 
 	/**
@@ -1040,6 +1083,7 @@ component extends="one" {
 		}
 
 		finalOutput = response(finalOutput);
+		finalOutput = injectCSRFIntoForms(finalOutput);
 		writeOutput(finalOutput);
 
 		//Clear out the client at the end of the request
