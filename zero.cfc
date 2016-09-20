@@ -57,15 +57,6 @@ component extends="one" {
 	
 	this.clientManagement = true;
 	this.clientStorage = "cookie";
-
-	variables.zero.throwOnNullControllerResult = true;
-	variables.zero.argumentCheckedControllers = true;
-	variables.zero.equalizeSnakeAndCamelCase = true;
-	variables.zero.outputNonControllerErrors = false;
-	variables.zero.argumentModelValueObjectPath = "";
-	variables.zero.argumentValidationsValueObjectPath = "validations";
-	variables.zero.csrfProtect = true;
-
 	this.scriptProtect = "all";
 
 	/*
@@ -228,12 +219,7 @@ component extends="one" {
 
 		recurseAndLowerCaseTheKeys(request._zero.controllerResult);
 		
-		structAppend(rc, client);
-
-		/*
-		To protect against XSS attacks in HTML output, we escape all strings that are the result from the controller
-		 */
-		request._zero.controllerResult = encodeResultFor("HTML", request._zero.controllerResult);
+		structAppend(rc, client);		
 
 		switch(request._zero.contentType){
 			case "json":
@@ -246,7 +232,7 @@ component extends="one" {
 
 			break;
 
-			default:
+			default:				
 
 				if(rc.keyExists("goto_fail")){
 					if(request._zero.controllerResult.keyExists("success") and request._zero.controllerResult.success == false){
@@ -316,8 +302,15 @@ component extends="one" {
 					}
 
 					location url="#goto#" addtoken="false";
-				}				
-				
+				}								
+
+				/*
+				To protect against XSS attacks in HTML output, we escape all strings that are the result from the controller
+				 */
+				if(variables.zero.encodeResultForHTML ){
+					request._zero.controllerResult = encodeResultFor("HTML", request._zero.controllerResult);					
+				}
+
 				//Clear out the RC scope because only the result from the controller will be passed
 				//to the view
 				rc = {}
@@ -338,10 +331,10 @@ component extends="one" {
 		if(CGI.request_method == "POST"){
 			if(cookie.keyExists("CSRF_TOKEN")){
 				if(!form.keyExists("CSRF_TOKEN")){
-					throw("Unauthorized", 401);
+					throw("Unauthorized Request", 401);
 				} else {
 					if(form.csrf_token != cookie.csrf_token){
-						throw("Unauthorized", 401);
+						throw("Unauthorized Request", 401);
 					} else {
 					}
 				}				
@@ -367,10 +360,6 @@ component extends="one" {
 				header name="Set-Cookie" value="#ucase(cook)#=; path=/; Max-Age=0; Expires=Thu, 01-Jan-1970 00:00:00 GMT";
 			}
 		}
-
-
-		// writeDump(form);
-		// abort;
 
 		if(cookies.keyExists("preserve_request")){
 			if(cookies.preserve_request.keyExists("form")){
@@ -659,23 +648,30 @@ component extends="one" {
     }
 
     public function encodeResultFor(type="HTML", required any str){
-    	if(isArray(str)){
-    		loop array=str index="i" item="value" {
-    			if(isArray(value) or isStruct(value)){
-    				encodeResultFor(type, value);    				
-    			} else {
-    				str[i] = esapiEncode(type, value);   				    							
-    			}
-    		}
-    	} else if(isStruct(str)){
-    		for(var key in str){
 
-    			if(isArray(str[key]) or isStruct(str[key])){
-    				encodeResultFor(type, str[key]);    				
-    			} else {
-    				str[key] = esapiEncode(type, str[key]);    								    				
-    			}    			
-    		}
+    	if(!isNull(str)){
+	    	if(isArray(str)){
+	    		loop array=str index="i" item="value" {
+
+	    			if(!isNull(value)){
+		    			if(isArray(value) or isStruct(value)){
+		    				encodeResultFor(type, value);    				
+		    			} else {
+		    				str[i] = esapiEncode(type, value);   				    							
+		    			}	    				
+	    			}
+	    		}
+	    	} else if(isStruct(str)){
+	    		for(var key in str){
+	    			if(!isNull(str[key])){
+		    			if(isArray(str[key]) or isStruct(str[key])){
+		    				encodeResultFor(type, str[key]);    				
+		    			} else {
+		    				str[key] = esapiEncode(type, str[key]);    								    				
+		    			}    				    				
+	    			}
+	    		}
+	    	}    		
     	}
     	return str;
     }
@@ -1064,6 +1060,15 @@ component extends="one" {
 	
 
 	function onRequest(){
+
+		variables.zero.throwOnNullControllerResult = variables.zero.throwOnNullControllerResult?: true;
+		variables.zero.argumentCheckedControllers = variables.zero.argumentCheckedControllers?: true;
+		variables.zero.equalizeSnakeAndCamelCase = variables.zero.equalizeSnakeAndCamelCase?: true;
+		variables.zero.outputNonControllerErrors = variables.zero.outputNonControllerErrors?: false;
+		variables.zero.argumentModelValueObjectPath = variables.zero.argumentModelValueObjectPath?: "";
+		variables.zero.argumentValidationsValueObjectPath = variables.zero.argumentValidationsValueObjectPath?: "validations";
+		variables.zero.csrfProtect = variables.zero.csrfProtect?: true;
+		variables.zero.encodeResultForHTML = variables.zero.encodeResultForHTML ?: true;
 
 		var finalOutput = "";
 		savecontent variable="finalOutput" {
