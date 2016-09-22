@@ -53,7 +53,6 @@ component extends="one" {
 			request._zero.contentType = "html";
 		break;
 	}
-
 	
 	this.clientManagement = true;
 	this.clientStorage = "cookie";
@@ -132,6 +131,8 @@ component extends="one" {
 	}
 
 	variables.framework.resourceRouteTemplates = [
+	  { method = 'validate', httpMethods = [ '$POST' ], routeSuffix = '/validate' },
+
 	  { method = 'list', httpMethods = [ '$GET' ] },
 	  { method = 'list', httpMethods = [ '$POST' ], routeSuffix = '/list' },
 	  { method = 'list', httpMethods = [ '$GET' ], routeSuffix = '/list' },
@@ -152,7 +153,8 @@ component extends="one" {
 	  { method = 'update', httpMethods = [ '$PUT','$POST' ], routeSuffix = '/update' },
 	  
 	  { method = 'delete', httpMethods = [ '$DELETE' ], includeId = true },
-	  { method = 'delete', httpMethods = [ '$POST' ], includeId = true, routeSuffix = '/delete' }
+	  { method = 'delete', httpMethods = [ '$POST' ], includeId = true, routeSuffix = '/delete' },
+
 	];
 	
 	public function collectValues(required struct args){
@@ -172,6 +174,10 @@ component extends="one" {
 	
 
 	public function after( rc, headers, controllerResult ){		
+
+		// writeDump(request._zero.controllerResult);
+		// writeDump(rc);
+		// abort;
 
 		if(isNull(request._zero.controllerResult)){
 			if(variables.zero.throwOnNullControllerResult){
@@ -219,7 +225,7 @@ component extends="one" {
 
 		recurseAndLowerCaseTheKeys(request._zero.controllerResult);
 		
-		structAppend(rc, client);		
+		structAppend(rc, client);
 
 		switch(request._zero.contentType){
 			case "json":
@@ -228,17 +234,43 @@ component extends="one" {
 					renderData("json", {});
 				} else {
 					renderData("json", request._zero.controllerResult);					
-				}
-
+				}				
 			break;
 
-			default:				
+			default:
+
+
+				if(request._zero.keyExists("zeroFormState")){
+					if(request._zero.argumentErrors.isEmpty()){
+						if(CGI.request_method contains "POST"){
+							
+							request._zero.zeroFormState.setFormData(form);
+							
+							if(rc.keyExists("move_forward")){
+								request._zero.zeroFormState.moveForward();
+							} else if(rc.keyExists("move_backward")){								
+								request._zero.zeroFormState.moveBackward();								
+							} else if(rc.keyExists("current_step")){
+								request._zero.zeroFormState.completeStep(rc.current_step)
+							} else {
+								request._zero.zeroFormState.start();
+							}
+
+							if(rc.keyExists("form_state_clear_form")){								
+								request._zero.zeroFormState.clearFormData();
+							}
+						}						
+					}
+				}			
 
 				if(rc.keyExists("goto_fail")){
 					if(request._zero.controllerResult.keyExists("success") and request._zero.controllerResult.success == false){
 						rc.goto = rc.goto_fail;
 						form.preserve_response = true;						
 						form.preserve_request = true;
+						if(form.keyExists("preserve_form")){
+							structDelete(form,"preserve_form");
+						}
 					}
 				}
 
@@ -258,22 +290,33 @@ component extends="one" {
 							var prefix = "preserve_response.#form.preserve_response#";
 						}
 						// writeDump(prefix);
-						// abort;
-						var formKeys = flattenDataStructureForCookies(data=request._zero.controllerResult, prefix=prefix, ignore="goto,preserve_form,submit_overload,redirect,map,preserve_response");						
+						
+						var formKeys = flattenDataStructureForCookies(data=request._zero.controllerResult, prefix=prefix, ignore="delete_key,goto,preserve_form,submit_overload,redirect,map,preserve_response");						
 						cookie.append(formKeys);						
 					}
 
-					if(form.keyExists("preserve_form")){												
-						var formKeys = flattenDataStructureForCookies(data=form, prefix="preserve_form", ignore="goto,preserve_form,submit_overload,redirect,map,preserve_response");
-						cookie.append(formKeys);						
+					if(form.keyExists("preserve_form")){
+
+						if(trim(form.preserve_form) == ""){
+							form.preserve_form = true;
+						}
+
+						if(!isBoolean(form.preserve_form)){
+							throw("preserve_form must either be true or false");
+						}
+
+						if(form.preserve_form){
+							var formKeys = flattenDataStructureForCookies(data=form, prefix="preserve_form", ignore="delete_key,goto,preserve_form,submit_overload,redirect,map,preserve_response");
+							cookie.append(formKeys);													
+						}
 					}
 
 
 					if(form.keyExists("preserve_request")){						
-						var formKeys = flattenDataStructureForCookies(data=form, prefix="preserve_request.form", ignore="goto,preserve_form,submit_overload,redirect,map,preserve_response,preserve_request");
+						var formKeys = flattenDataStructureForCookies(data=form, prefix="preserve_request.form", ignore="delete_key,goto,preserve_form,submit_overload,redirect,map,preserve_response,preserve_request");
 						cookie.append(formKeys);
 
-						var formKeys = flattenDataStructureForCookies(data=url, prefix="preserve_request.url", ignore="goto,preserve_form,submit_overload,redirect,map,preserve_response,preserve_request");
+						var formKeys = flattenDataStructureForCookies(data=url, prefix="preserve_request.url", ignore="delete_key,goto,preserve_form,submit_overload,redirect,map,preserve_response,preserve_request");
 						cookie.append(formKeys);									
 					}
 
@@ -297,11 +340,12 @@ component extends="one" {
 						}
 					}	
 
-					if(structKeyExists(client,"goto")){
-						structDelete(client,"goto");//Remove the goto so that it is not an infinite redirect						
-					}
+					// if(structKeyExists(client,"goto")){
+					// 	structDelete(client,"goto");//Remove the goto so that it is not an infinite redirect						
+					// }
 
-					location url="#goto#" addtoken="false";
+					header name="Cache-Control" value="max-age=120";
+					location url="#goto#" addtoken="false" statuscode="303";
 				}								
 
 				/*
@@ -319,6 +363,13 @@ component extends="one" {
 						rc[key] = request._zero.controllerResult[key];
 					}					
 				}
+				rc.client = client;
+
+				if(request._zero.keyExists("zeroFormState")){
+					// rc.form_state = recurseAndLowerCaseTheKeys(request._zero.zeroFormState.getFormCache());
+					rc.form_state = this.serialize(request._zero.zeroFormState);
+				}
+
 				request.context = rc;		
 
 			break;			
@@ -327,6 +378,13 @@ component extends="one" {
 	}	
 	
 	public function before( rc ){
+
+
+
+		if(url.keyExists("clearClient")){
+			structClear(client);
+			client = {};			
+		}
 
 		if(CGI.request_method == "POST"){
 			if(cookie.keyExists("CSRF_TOKEN")){
@@ -351,23 +409,27 @@ component extends="one" {
 		// cookies = duplicate(cookie);
 		// structKeyTranslate(cookies, true, true);		
 		cookies = expandFlattenedData(cookie);
+		// writeDump(cookies);
+		// abort;
 
 		if(cookies.keyExists("preserve_form")){
 			form.append(cookies.preserve_form);
 			rc.Append(cookies.preserve_form);
-			var deleteCookies = flattenDataStructureForCookies(data=cookies.preserve_form, prefix="preserve_form", ignore=[]);			
+			var deleteCookies = flattenDataStructureForCookies(data=cookies.preserve_form, prefix="preserve_form", ignore=[]);									
 			for(var cook in deleteCookies){
 				header name="Set-Cookie" value="#ucase(cook)#=; path=/; Max-Age=0; Expires=Thu, 01-Jan-1970 00:00:00 GMT";
 			}
 		}
 
 		if(cookies.keyExists("preserve_request")){
+			// writeDump(cookie);
+			// writeDump(getHTTPRequestData());	
+			// abort;
 			if(cookies.preserve_request.keyExists("form")){
 				form.append(cookies.preserve_request.form);
 				rc.Append(cookies.preserve_request.form);
 				var deleteCookies = flattenDataStructureForCookies(data=cookies.preserve_request.form, prefix="preserve_request.form", ignore=[]);					
 				for(var cook in deleteCookies){
-
 					header name="Set-Cookie" value="#ucase(cook)#=; path=/; Max-Age=0; Expires=Thu, 01-Jan-1970 00:00:00 GMT";					
 					structDelete(cookie,cook);
 				}								
@@ -385,7 +447,7 @@ component extends="one" {
 		}
 
 
-		if(cookies.keyExists("preserve_response")){
+		if(cookies.keyExists("preserve_response")){			
 			form.append(cookies.preserve_response);
 			rc.append(cookies.preserve_response);
 			var deleteCookies = flattenDataStructureForCookies(data=cookies.preserve_response, prefix="preserve_response", ignore=[]);			
@@ -405,14 +467,45 @@ component extends="one" {
 				form[key] = json[key];
 				rc[key] = json[key];
 			}
-		}
-
+		}		
 
 		form.append(recurseConvertStructArrayToArrays(duplicate(form)));
 		rc.append(recurseConvertStructArrayToArrays(duplicate(rc)));
 
-		//Append anything in the client scope to the RC scope as this is also to be used for controller arguments
-		rc.append(client);
+		//Append anything in the client scope to the RC scope as this is also to be used for controller arguments		
+		for(key in client){
+			if(!rc.keyExists(key)){
+				if(!isNull(client[key])){
+					rc[key] = client[key];					
+				}
+			}
+		}
+		// writeDump(client);
+
+		if(rc.keyExists("form_state")){			
+			if(rc.keyExists("current_step")){
+				request._zero.zeroFormState = new zeroFormState(steps:rc.form_state, currentStep:rc.current_step);
+			} else {
+				request._zero.zeroFormState = new zeroFormState(steps:rc.form_state);
+			}
+			// header name="ETag" value="#request._zero.zeroFormState.getCurrentStep()#";			
+			header name="Cache-Control" value="max-age=120";
+		}
+
+
+		if(rc.keyExists("delete_key")){
+			if(!isArray(rc.delete_key)){
+				rc.delete_key = [rc.delete_key];
+			}
+
+			for(var key in rc.delete_key){
+				structDelete(form, key);
+				structDelete(rc, key);
+				structDelete(client, key);
+			}
+		}
+
+		// rc.append(client);
 
 		//Setup an alias for redirect
 		if(rc.keyExists("goto_before")){
@@ -435,11 +528,11 @@ component extends="one" {
 
 			if(rc.keyExists("preserve_form")){								
 				var skip = "preserve_redirect,redirect,preserve_map,preserve_response";
-				var formKeys = flattenDataStructureForCookies(data=form, prefix="preserve_form", ignore="preserve_redirect,redirect,preserve_map,preserve_response,preserve_form,goto_before");
+				var formKeys = flattenDataStructureForCookies(data=form, prefix="preserve_form", ignore="delete_key,preserve_redirect,redirect,preserve_map,preserve_response,preserve_form,goto_before");
 				cookie.append(formKeys);				
 			}
 
-			location url="#rc.redirect#" addtoken="false";				
+			location url="#rc.redirect#" addtoken="false" statuscode="303";				
 		}
 
 		//If the user's Application CFC has the request method, then we call it
@@ -532,15 +625,23 @@ component extends="one" {
 					];
 
 					if(cfmltypes.findNoCase(arg.type)){
-						argsToPass[arg.name] = request.context[arg.name];						
-					} else {
 
+						if(!isValid(arg.type, request.context[arg.name])){
+							request._zero.argumentErrors.insert(arg.name, {message:"The argument #arg.name# was not valid, it must be a #arg.type#", original_value:request.context[arg.name]});
+						} else {
+							argsToPass[arg.name] = request.context[arg.name];													
+						}
+
+					} else {
 						try {
 							getComponentMetaData("#variables.zero.argumentModelValueObjectPath#.#arg.type#");
 							try {
-								argsToPass[arg.name] = createObject("#variables.zero.argumentModelValueObjectPath#.#arg.type#").init(value=request.context[arg.name]);							
-							} catch(any e){
-								request._zero.argumentErrors.insert(arg.name, {message:e.message, original_value:request.context[arg.name]})
+								argsToPass[arg.name] = createObject("#variables.zero.argumentModelValueObjectPath#.#arg.type#").init(value=request.context[arg.name]);
+							} catch(any e){								
+								// writeDump("#variables.zero.argumentModelValueObjectPath#.#arg.type#");
+								// writeDump(e);
+								// abort;
+								request._zero.argumentErrors.insert(arg.name, {message:e.message, original_value:request.context[arg.name]})								
 							}							
 						} catch(any e){
 							try {
@@ -757,7 +858,7 @@ component extends="one" {
 
     public function expandFlattenedData(data){
     	var out = duplicate(data);
-    	structKeyTranslate(out, true);
+    	structKeyTranslate(out, true);    	
     	var recurseStructs = function(str){
     		// writeDump(str);
     		if(isArray(str)){
@@ -1092,8 +1193,8 @@ component extends="one" {
 		writeOutput(finalOutput);
 
 		//Clear out the client at the end of the request
-		client = {};
-		structClear(client);		
+		// client = {};
+		// structClear(client);		
 	}
 
 	/**
@@ -1142,12 +1243,18 @@ component extends="one" {
 		}
 
 		super.onRequestStart(argumentCollection=arguments);	
+
+	}
+
+	public function serialize(required any value, struct nest={}){
+		return new serializer().serializeEntity(value, nest);
 	}
 
 	/*
 	Override setupApplicationWrapper() to remove dependency injection which is not needed
 	 */
 	 private void function setupApplicationWrapper() {
+
         if ( structKeyExists( request._fw1, "appWrapped" ) ) return;
         request._fw1.appWrapped = true;
         variables.fw1App = {
