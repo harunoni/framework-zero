@@ -344,7 +344,10 @@ component extends="one" {
 					// 	structDelete(client,"goto");//Remove the goto so that it is not an infinite redirect						
 					// }
 
-					header name="Cache-Control" value="max-age=120";
+					// header name="Cache-Control" value="max-age=120";
+					doTrace(rc, "RC after() redirect");
+					doTrace(FORM, "FORM after() redirect");
+					doTrace(cookie, "COOKIE after() redirect");			
 					location url="#goto#" addtoken="false" statuscode="303";
 				}								
 
@@ -379,28 +382,28 @@ component extends="one" {
 	
 	public function before( rc ){
 
-
+		doTrace(rc, "RC before()");
 
 		if(url.keyExists("clearClient")){
 			structClear(client);
 			client = {};			
 		}
 
-		if(CGI.request_method == "POST"){
-			if(cookie.keyExists("CSRF_TOKEN")){
-				if(!form.keyExists("CSRF_TOKEN")){
-					throw("Unauthorized Request", 401);
-				} else {
-					if(form.csrf_token != cookie.csrf_token){
-						throw("Unauthorized Request", 401);
-					} else {
-					}
-				}				
-				structDelete(cookie,"CSRF_TOKEN");
-			}			
-		} else {
-			structDelete(cookie,"CSRF_TOKEN");
-		}
+		// if(CGI.request_method == "POST"){
+		// 	if(cookie.keyExists("CSRF_TOKEN")){
+		// 		if(!form.keyExists("CSRF_TOKEN")){
+		// 			throw("Unauthorized Request", 401);
+		// 		} else {
+		// 			if(form.csrf_token != cookie.csrf_token){
+		// 				throw("Unauthorized Request", 401);
+		// 			} else {
+		// 			}
+		// 		}				
+		// 		structDelete(cookie,"CSRF_TOKEN");
+		// 	}			
+		// } else {
+		// 	structDelete(cookie,"CSRF_TOKEN");
+		// }
 
 		/*
 		Cookie structures are saved as individual keys, so need to use structKeyTranslate
@@ -488,8 +491,6 @@ component extends="one" {
 			} else {
 				request._zero.zeroFormState = new zeroFormState(steps:rc.form_state);
 			}
-			// header name="ETag" value="#request._zero.zeroFormState.getCurrentStep()#";			
-			header name="Cache-Control" value="max-age=120";
 		}
 
 
@@ -503,6 +504,8 @@ component extends="one" {
 				structDelete(rc, key);
 				structDelete(client, key);
 			}
+			// writeDump(rc);
+			// abort;
 		}
 
 		// rc.append(client);
@@ -512,7 +515,36 @@ component extends="one" {
 			rc.redirect = rc.goto_before;
 		}
 
+		// if(cgi.request_method contains "GET"){
+		// 	writeDump(cookie);
+		// 	writeDump(form);
+		// 	writeDump(rc);
+		// 	abort;
+			
+		// }
+
 		if(rc.keyExists("redirect")){
+
+			if(request._zero.keyExists("zeroFormState")){				
+				if(CGI.request_method contains "POST"){					
+					request._zero.zeroFormState.setFormData(form);
+					
+					if(rc.keyExists("move_forward")){
+						request._zero.zeroFormState.moveForward();
+					} else if(rc.keyExists("move_backward")){								
+						request._zero.zeroFormState.moveBackward();								
+					} else if(rc.keyExists("current_step")){
+						request._zero.zeroFormState.completeStep(rc.current_step)
+					} else {
+						request._zero.zeroFormState.start();
+					}
+
+					if(rc.keyExists("form_state_clear_form")){								
+						request._zero.zeroFormState.clearFormData();
+					}
+				}										
+			}
+
 			if(rc.keyExists("anchor")){
 				rc.redirect = rc.redirect & "##" & rc.anchor;
 			}
@@ -526,12 +558,15 @@ component extends="one" {
 				}
 			}
 
-			if(rc.keyExists("preserve_form")){								
-				var skip = "preserve_redirect,redirect,preserve_map,preserve_response";
-				var formKeys = flattenDataStructureForCookies(data=form, prefix="preserve_form", ignore="delete_key,preserve_redirect,redirect,preserve_map,preserve_response,preserve_form,goto_before");
-				cookie.append(formKeys);				
+			if(rc.keyExists("preserve_form")){												
+				var formKeys = flattenDataStructureForCookies(data=form, prefix="preserve_form", ignore="delete_key,preserve_redirect,redirect,preserve_map,preserve_response,preserve_form,goto_before,goto,submit_overload");
+				cookie.append(formKeys);	
+
 			}
 
+			doTrace(rc, "RC before() redirect");
+			doTrace(FORM, "FORM before() redirect");
+			doTrace(cookie, "COOKIE before() redirect");			
 			location url="#rc.redirect#" addtoken="false" statuscode="303";				
 		}
 
@@ -1158,7 +1193,15 @@ component extends="one" {
 		}
 	}	
 
-	
+	public function doTrace(required data, label=""){
+		if(variables.zero.traceRequests){
+			var out = "";
+			savecontent variable="out"{
+				writeDump(var=data, label=label);
+			}
+			request.trace &= out;			
+		}
+	}
 
 	function onRequest(){
 
@@ -1170,10 +1213,45 @@ component extends="one" {
 		variables.zero.argumentValidationsValueObjectPath = variables.zero.argumentValidationsValueObjectPath?: "validations";
 		variables.zero.csrfProtect = variables.zero.csrfProtect?: true;
 		variables.zero.encodeResultForHTML = variables.zero.encodeResultForHTML ?: true;
+		variables.zero.traceRequests = variables.zero.traceRequests ?: false;
+
+
+		if(variables.zero.traceRequests){
+
+			if(url.keyExists("clearTrace")){
+				if(directoryExists("./trace")){
+					directoryDelete("./trace", true);					
+				}
+			}
+
+			request.trace = "";
+			if(!directoryExists("./trace")){
+				directoryCreate("./trace");
+			}
+		}
+
+		doTrace(form,"FORM in onRequest()");
 
 		var finalOutput = "";
 		savecontent variable="finalOutput" {
 			super.onRequest();			
+		}
+
+		if(variables.zero.traceRequests){
+
+			var traces = directoryList(path="./trace", listInfo="name");
+			var ids = [];
+			for(var traceid in traces){
+				ids.append(listFirst(traceid,"."));
+			}
+
+			if(arrayLen(ids) == 0){
+				nextId = 1;
+			} else {
+				nextId = arrayLen(ids) + 1				
+			}			
+
+			fileWrite("./trace/#nextId#.html", request.trace);
 		}
 
 		if(cookie.keyExists('zeropreload')){
