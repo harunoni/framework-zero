@@ -174,7 +174,7 @@ component extends="one" {
 	
 
 	public function after( rc, headers, controllerResult ){		
-
+		writeLog(file="zero_trace", text="start after()");
 		// writeDump(request._zero.controllerResult);
 		// writeDump(rc);
 		// abort;
@@ -347,7 +347,8 @@ component extends="one" {
 					// header name="Cache-Control" value="max-age=120";
 					doTrace(rc, "RC after() redirect");
 					doTrace(FORM, "FORM after() redirect");
-					doTrace(cookie, "COOKIE after() redirect");			
+					doTrace(cookie, "COOKIE after() redirect");
+					writeLog(file="zero_trace", text="do after() redirect");
 					location url="#goto#" addtoken="false" statuscode="303";
 				}								
 
@@ -377,11 +378,12 @@ component extends="one" {
 
 			break;			
 		}	
+		writeLog(file="zero_trace", text="end zero.after()");
 		return controllerResult;					
 	}	
 	
 	public function before( rc ){
-
+		writeLog(file="zero_trace", text="start before()");
 		doTrace(rc, "RC before()");
 
 		if(url.keyExists("clearClient")){
@@ -566,7 +568,8 @@ component extends="one" {
 
 			doTrace(rc, "RC before() redirect");
 			doTrace(FORM, "FORM before() redirect");
-			doTrace(cookie, "COOKIE before() redirect");			
+			doTrace(cookie, "COOKIE before() redirect");
+			writeLog(file="zero_trace", text="do before() redirect");				
 			location url="#rc.redirect#" addtoken="false" statuscode="303";				
 		}
 
@@ -617,7 +620,7 @@ component extends="one" {
 
 	private void function doController( struct tuple, string method, string lifecycle ) {
         var cfc = tuple.controller;
-
+        writeLog(file="zero_trace", text="start doController for cfc:#getMetaData(cfc).name#, method:#method#, lifecycle:#lifecycle#");
 
         getArgumentsToPass = function(){
 	    	var args = getMetaDataFunctionArguments(cfc, method);	    	
@@ -1068,7 +1071,7 @@ component extends="one" {
 	 * @return {array} The routes created by this function
 	 */
 	private array function loadAvailableControllers(){
-		
+		writeLog(file="zero_trace", text="Load controllers");
 		if(!isNull(request.alreadyLoadedControllers)){
 			return [];
 		}
@@ -1194,27 +1197,22 @@ component extends="one" {
 	}	
 
 	public function doTrace(required data, label=""){
-		if(variables.zero.traceRequests){
+		if(variables.zero.traceRequests){		
 			var out = "";
+			// writeDump(label);
 			savecontent variable="out"{
 				writeDump(var=data, label=label);
 			}
-			request.trace &= out;			
-		}
+			request.zeroTrace = request.zeroTrace & out;
+		}			
 	}
 
-	function onRequest(){
+	function onRequest(){		
+		writeLog(file="zero_trace", text="start onRequest()");		
 
-		variables.zero.throwOnNullControllerResult = variables.zero.throwOnNullControllerResult?: true;
-		variables.zero.argumentCheckedControllers = variables.zero.argumentCheckedControllers?: true;
-		variables.zero.equalizeSnakeAndCamelCase = variables.zero.equalizeSnakeAndCamelCase?: true;
-		variables.zero.outputNonControllerErrors = variables.zero.outputNonControllerErrors?: false;
-		variables.zero.argumentModelValueObjectPath = variables.zero.argumentModelValueObjectPath?: "";
-		variables.zero.argumentValidationsValueObjectPath = variables.zero.argumentValidationsValueObjectPath?: "validations";
-		variables.zero.csrfProtect = variables.zero.csrfProtect?: true;
-		variables.zero.encodeResultForHTML = variables.zero.encodeResultForHTML ?: true;
-		variables.zero.traceRequests = variables.zero.traceRequests ?: false;
-
+		if(!request.keyexists("zeroTrace")){
+			request.zeroTrace = "";				
+		}
 
 		if(variables.zero.traceRequests){
 
@@ -1224,35 +1222,17 @@ component extends="one" {
 				}
 			}
 
-			request.trace = "";
+
 			if(!directoryExists("./trace")){
 				directoryCreate("./trace");
 			}
 		}
 
 		doTrace(form,"FORM in onRequest()");
-
 		var finalOutput = "";
 		savecontent variable="finalOutput" {
 			super.onRequest();			
-		}
-
-		if(variables.zero.traceRequests){
-
-			var traces = directoryList(path="./trace", listInfo="name");
-			var ids = [];
-			for(var traceid in traces){
-				ids.append(listFirst(traceid,"."));
-			}
-
-			if(arrayLen(ids) == 0){
-				nextId = 1;
-			} else {
-				nextId = arrayLen(ids) + 1				
-			}			
-
-			fileWrite("./trace/#nextId#.html", request.trace);
-		}
+		}				
 
 		if(cookie.keyExists('zeropreload')){
 			if(application.preloadCache.keyExists(cookie.zeropreload)){					
@@ -1268,7 +1248,26 @@ component extends="one" {
 
 		finalOutput = response(finalOutput);
 		finalOutput = injectCSRFIntoForms(finalOutput);
-		writeOutput(finalOutput);
+		writeOutput(finalOutput);		
+
+		if(variables.zero.traceRequests){
+
+			var traces = directoryList(path="./trace", listInfo="name");
+			var ids = [];
+			for(var traceid in traces){
+				ids.append(listFirst(traceid,"."));
+			}
+
+			if(arrayLen(ids) == 0){
+				nextId = 1;
+			} else {
+				nextId = arrayLen(ids) + 1				
+			}			
+
+			fileWrite("./trace/#nextId#.html", request.zeroTrace);
+		}
+
+		writeLog(file="zero_trace", text="end zero.onRequest()");
 
 		//Clear out the client at the end of the request
 		// client = {};
@@ -1282,17 +1281,34 @@ component extends="one" {
 	*	
 	*/
 	public void function onSessionStart(rc) {
-		loadAvailableControllers();		
+		writeLog(file="zero_trace", text="start onSessionStart()");
+		loadAvailalableControllers();		
 		super.onSessionStart();
-	}
+	}	
 
 	function onRequestStart(){
-		loadAvailableControllers();
-		
+		writeLog(file="zero_trace", text="start onRequestStart()");
 		variables.zero.throwOnNullControllerResult = variables.zero.throwOnNullControllerResult?: true;
 		variables.zero.argumentCheckedControllers = variables.zero.argumentCheckedControllers?: true;
 		variables.zero.equalizeSnakeAndCamelCase = variables.zero.equalizeSnakeAndCamelCase?: true;
 		variables.zero.outputNonControllerErrors = variables.zero.outputNonControllerErrors?: false;
+		variables.zero.argumentModelValueObjectPath = variables.zero.argumentModelValueObjectPath?: "";
+		variables.zero.argumentValidationsValueObjectPath = variables.zero.argumentValidationsValueObjectPath?: "validations";
+		variables.zero.csrfProtect = variables.zero.csrfProtect?: true;
+		variables.zero.encodeResultForHTML = variables.zero.encodeResultForHTML ?: true;
+		variables.zero.traceRequests = variables.zero.traceRequests ?: false;
+		variables.zero.cacheControllers = variables.zero.cacheControllers ?: false;		
+		
+		if(isNull(application.zero)){application.zero = {}};
+		
+		if(application.zero.keyExists("routes")){
+			variables.framework.routes = application.zero.routes;
+		} else {
+			loadAvailableControllers();
+			application.zero.routes = variables.framework.routes;			
+		}
+		
+
 		
 		if(!application.keyExists('preloadCache')){
 			application.preloadCache = {};
@@ -1320,7 +1336,7 @@ component extends="one" {
 			}
 		}
 
-		super.onRequestStart(argumentCollection=arguments);	
+		super.onRequestStart(argumentCollection=arguments);			
 
 	}
 
