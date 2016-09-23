@@ -143,7 +143,7 @@ component extends="one" {
 	  { method = 'edit', httpMethods = [ '$POST' ], includeId = true, routeSuffix = '/edit' },
 	  { method = 'edit', httpMethods = [ '$GET' ], includeId = true, routeSuffix = '/edit' },
 	  
-	  { method = 'create', httpMethods = [ '$GET', '$POST' ], routeSuffix = '/create' },
+	  { method = 'create', httpMethods = [ '$POST' ], routeSuffix = '/create' },
 	  { method = 'create', httpMethods = [ '$POST' ] },
 	  
 	  { method = 'read', httpMethods = [ '$GET' ], includeId = true },	  
@@ -349,6 +349,9 @@ component extends="one" {
 					doTrace(FORM, "FORM after() redirect");
 					doTrace(cookie, "COOKIE after() redirect");
 					writeLog(file="zero_trace", text="do after() redirect");
+					// writeDump(now());
+					// abort;
+
 					location url="#goto#" addtoken="false" statuscode="303";
 				}								
 
@@ -1282,7 +1285,7 @@ component extends="one" {
 	*/
 	public void function onSessionStart(rc) {
 		writeLog(file="zero_trace", text="start onSessionStart()");
-		loadAvailalableControllers();		
+		loadAvailableControllers();		
 		super.onSessionStart();
 	}	
 
