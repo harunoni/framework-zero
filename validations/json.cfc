@@ -1,7 +1,7 @@
 component extends="valueObject" {
-	public valueObject function init(name, value){
+	public valueObject function init(value){
 		if(!isJson(arguments.value)){
-			throw("The value passed for #name# must valid json but was not");
+			throw("The value passed must valid json but was not");
 		}
 		return this;
 	}

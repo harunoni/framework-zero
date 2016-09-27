@@ -130,6 +130,9 @@ component extends="one" {
 		generateSES = true
 	}
 
+	variables.zero.argumentModelValueObjectPath = "model";
+	variables.zero.throwOnFirstArgumentError = variables.zero.throwOnFirstArgumentError ?: false;
+
 	variables.framework.resourceRouteTemplates = [
 	  { method = 'validate', httpMethods = [ '$POST' ], routeSuffix = '/validate' },
 
@@ -195,9 +198,18 @@ component extends="one" {
 				request._zero.controllerResult = entityToJson(request._zero.controllerResult)				
 			}catch(any e){
 				writeDump(request._zero.controllerResult);
+				writeDump(e);
 				abort;
 			}
 		}	
+
+		try {
+			request._zero.controllerResult = this.serialize(request._zero.controllerResult);			
+		}catch(any e){
+			writeDump(request._zero.controllerResult);
+			writeDump(e);
+			abort;
+		}
 
 		var recurseAndLowerCaseTheKeys = function(struct){
 			for(var key in arguments.struct){
@@ -209,9 +221,10 @@ component extends="one" {
 					var temp = duplicate(arguments.struct[key]);					
 				}
 
-				if(isComponentOrArrayOfComponents(arguments.struct)){
-					throw("Could not continue because the controller result is a component and not a simple array or struct. This could be an error in the data returned from the controller, or Zero was not able to serialize your result properly.");
-				}
+				// if(!isNull(temp) and isComponentOrArrayOfComponents(temp)){
+				// 	temp = this.serialize(temp);
+				// 	// throw("Could not continue because the controller result is a component and not a simple array or struct. This could be an error in the data returned from the controller, or Zero was not able to serialize your result properly.");
+				// }
 
 				arguments.struct.delete(key);
 				arguments.struct.insert("#lcase(camelToUnderscore(key))#", temp?:nullValue(), true);
@@ -241,12 +254,16 @@ component extends="one" {
 
 
 				if(request._zero.keyExists("zeroFormState")){
-					if(request._zero.argumentErrors.isEmpty()){
-						if(CGI.request_method contains "POST"){
+					if(CGI.request_method contains "POST"){
+						request._zero.zeroFormState.setFormData(form);
+						
+						if(request._zero.argumentErrors.isEmpty()){				
 							
-							request._zero.zeroFormState.setFormData(form);
-							
-							if(rc.keyExists("move_forward")){
+							if(rc.keyExists("start_over")){
+								request._zero.zeroFormState.start();
+							} else if(rc.keyExists("first_step")){
+								request._zero.zeroFormState.first();
+							} else if(rc.keyExists("move_forward")){
 								request._zero.zeroFormState.moveForward();
 							} else if(rc.keyExists("move_backward")){								
 								request._zero.zeroFormState.moveBackward();								
@@ -377,6 +394,10 @@ component extends="one" {
 					rc.form_state = this.serialize(request._zero.zeroFormState);
 				}
 
+				if(!request._zero.argumentErrors.isEmpty()){
+					rc.errors = request._zero.argumentErrors;
+				}
+
 				request.context = rc;		
 
 			break;			
@@ -388,6 +409,8 @@ component extends="one" {
 	public function before( rc ){
 		writeLog(file="zero_trace", text="start before()");
 		doTrace(rc, "RC before()");
+
+
 
 		if(url.keyExists("clearClient")){
 			structClear(client);
@@ -428,6 +451,7 @@ component extends="one" {
 				header name="Set-Cookie" value="#ucase(cook)#=; path=/; Max-Age=0; Expires=Thu, 01-Jan-1970 00:00:00 GMT";
 			}
 		}
+
 
 		if(cookies.keyExists("preserve_request")){
 			// writeDump(cookie);
@@ -488,7 +512,10 @@ component extends="one" {
 				}
 			}
 		}
-		// writeDump(client);
+		
+		// writeDump(request.context);
+		// abort;
+		// structClear(client);
 
 		if(rc.keyExists("form_state")){			
 			if(rc.keyExists("current_step")){
@@ -527,6 +554,8 @@ component extends="one" {
 		// 	abort;
 			
 		// }
+		// 
+		
 
 		if(rc.keyExists("redirect")){
 
@@ -534,7 +563,11 @@ component extends="one" {
 				if(CGI.request_method contains "POST"){					
 					request._zero.zeroFormState.setFormData(form);
 					
-					if(rc.keyExists("move_forward")){
+					if(rc.keyExists("start_over")){
+						request._zero.zeroFormState.start();
+					} else if(rc.keyExists("first_step")){
+							request._zero.zeroFormState.first();
+					} else if(rc.keyExists("move_forward")){
 						request._zero.zeroFormState.moveForward();
 					} else if(rc.keyExists("move_backward")){								
 						request._zero.zeroFormState.moveBackward();								
@@ -621,93 +654,330 @@ component extends="one" {
 		return false;
 	}
 
-	private void function doController( struct tuple, string method, string lifecycle ) {
-        var cfc = tuple.controller;
-        writeLog(file="zero_trace", text="start doController for cfc:#getMetaData(cfc).name#, method:#method#, lifecycle:#lifecycle#");
+	function recurseFindArguments(context, args, errors={}){
 
-        getArgumentsToPass = function(){
-	    	var args = getMetaDataFunctionArguments(cfc, method);	    	
-			argsToPass = {};
+		var out = {};
 
-			request.context.headers = request._fw1.headers;
+		cfmltypes = [
+			"any",
+			"array",
+			"binary",
+			"boolean",
+			"component",
+			"date",
+			"guid",
+			"numeric",
+			"query",
+			"string",
+			"struct",
+			"uuid",
+			"variableName",
+			"void",						
+		];
 
-			/*
-			Zero will allow controller arguments to be snake_case or camelCase. If Zero encounters
-			a snake_case argument, it will convert it to camelCase also assuming that both arguments
-			are intended to be the same value, but snake_case is used for API and HTML presentation. We
-			achieve this by simply copying the values from the snake_case to a camelCase version
-			 */			
-			for(var key in request.context){
-				var keyNoUnderscore = replaceNoCase(key,"_","","all");
-				if(!request.context.keyExists(keyNoUnderscore)){
-					request.context[keyNoUnderscore] = request.context[key];
+
+		var isArrayType = function(string type){
+			return right(type, 2) == "[]";
+		}
+
+		var getArrayType = function(string type){
+			return left(type, len(type) - 2);
+		}
+
+		var addError = function(name, value){
+			
+			if(variables.zero.throwOnFirstArgumentError){
+				writeDump("Zero encountered an error in trying to popluate the values");
+				writeDump(arguments);
+				writeDump(callStackGet());
+				abort;				
+			} else {
+				errors.insert(arguments.name, arguments.value);
+			}
+
+		}
+
+		// writeDump(args);
+		// writeDump(context);
+		outerArguments: for(var arg in args){
+			// writeDump(arg);
+			//Guard statement if the argument is required
+			if(arg.keyExists("required") and arg.required){
+				if(!context.keyExists(arg.name)){
+					addError(arg.name, {message:"The argument #arg.name# was required but was not passed in", original_value:nullValue()});
+					continue;
 				}
 			}
-			request._zero.argumentErrors = {};
-			for(var arg in args){
-				
-				if(structKeyExists(request.context,arg.name)){
 
-					cfmltypes = [
-						"any",
-						"array",
-						"binary",
-						"boolean",
-						"component",
-						"date",
-						"guid",
-						"numeric",
-						"query",
-						"string",
-						"struct",
-						"uuid",
-						"variableName",
-						"void",						
-					];
+			if(isArrayType(arg.type)){
 
-					if(cfmltypes.findNoCase(arg.type)){
-
-						if(!isValid(arg.type, request.context[arg.name])){
-							request._zero.argumentErrors.insert(arg.name, {message:"The argument #arg.name# was not valid, it must be a #arg.type#", original_value:request.context[arg.name]});
-						} else {
-							argsToPass[arg.name] = request.context[arg.name];													
-						}
-
+				if(context.keyExists(arg.name)){
+					if(!isArray(context[arg.name])){					
+						addError(arg.name, {message:"The argument #arg.name# was not valid, it must be an array of #getArrayType(arg.type)#", original_value:context[arg.name]});
 					} else {
-						try {
-							getComponentMetaData("#variables.zero.argumentModelValueObjectPath#.#arg.type#");
-							try {
-								argsToPass[arg.name] = createObject("#variables.zero.argumentModelValueObjectPath#.#arg.type#").init(value=request.context[arg.name]);
-							} catch(any e){								
-								// writeDump("#variables.zero.argumentModelValueObjectPath#.#arg.type#");
-								// writeDump(e);
-								// abort;
-								request._zero.argumentErrors.insert(arg.name, {message:e.message, original_value:request.context[arg.name]})								
-							}							
-						} catch(any e){
-							try {
-								//Try to get one of the value objects shipped with Zero
-								// getComponentMetaData("#variables.zero.argumentValidationsValueObjectPath#.#arg.type#");							
-								// argsToPass[arg.name] = createObject("#variables.zero.argumentValidationsValueObjectPath#.#arg.type#").init(request.context[arg.name], args.name).toString();
-								
 
-								getComponentMetaData("validations.#arg.type#");				
-								try {
-									argsToPass[arg.name] = createObject("validations.#arg.type#").init(name=arg.name, value=request.context[arg.name]);									
-								}catch(any e){
-									request._zero.argumentErrors.insert(arg.name, {message:e.message, original_value:request.context[arg.name]})
+						var arrayOut = [];
+						var type = getArrayType(arg.type);
+						for(var item in context[arg.name]){
+
+							if(cfmlTypes.findNoCase(type)){
+
+								if(!isValid(type, item)){
+									addError(arg.name, {message:"One of the values in the #arg.name# array was not of the correct type #type#", original_value:item});
+									continue outerArguments;
+								} else {
+									arrayOut.append(item);															
 								}
+
+							} else {
 								
-							} catch(any e){															
-								throw("Could not process #arg.type# because it does not exist", 500);
+								var newContext = {"#arg.name#":item};
+								var newArgs = [{
+									type:type,
+									required:true,
+									name:arg.name,
+								}];
+								arrayOut.append(recurseFindArguments(context=newContext, args=newArgs, errors=errors));							
 							}
 						}
+
+						out.insert(arg.name, arrayOut);
+
+					}					
+				}
+
+			} else {
+				if(context.keyExists(arg.name)){
+					if(cfmlTypes.findNoCase(arg.type)){
+
+						if(!isValid(arg.type, context[arg.name])){
+							addError(arg.name, {message:"The argument #arg.name# was not valid, it must be a #arg.type#", original_value:context[arg.name]});
+						} else {						
+							out.insert(arg.name, context[arg.name], false)						
+						}
+					} else {					
+
+						var filePaths = [
+							{
+								file:expandPath("/#variables.zero.argumentModelValueObjectPath#/#arg.type#.cfc"),
+								com:"#variables.zero.argumentModelValueObjectPath#.#arg.type#"
+							},
+							{
+								file:expandPath("/validations/#arg.type#.cfc"),
+								com:"validations.#arg.type#"
+							},
+							
+						];					
+
+						var componentPath = nullValue();
+						for(var path in filePaths){
+							if(fileExists(path.file)){	
+								componentPath = path.com;
+								break;
+							}
+						}
+
+						if(isNull(componentPath)){
+							throw("Could not load the type #arg.type#, it could not be found");
+						} else {
+							// writeDump(componentPath);
+							// abort;
+							var meta = getComponentMetaData(componentPath);
+							var cfc = createObject(componentPath);
+
+							try {
+								var initMeta = getMetaDataFunctionArguments(cfc,"init");													
+							} catch(any e){
+								throw("The object #arg.type# did not have a default init constructor. This is necessary to populate from the request");
+							}
+
+							if(isInstanceOf(cfc,"valueObject")){
+
+								if(arrayLen(initMeta) > 1){
+									throw("Error when trying to populate #meta.name# A component of type valueObject can only have one argument");
+								}
+
+								try {
+									out.insert(arg.name, cfc.init(context[arg.name]));								
+								}catch(any e){
+									addError(arg.name, {message:e.message, original_value:context[arg.name]});
+								}
+								// writeDump(cfc);							
+								// writeDump(context[arg.name]);
+							} else {
+
+								if(isSimpleValue(context[arg.name])){
+
+									try {
+										var temp = cfc.init(context[arg.name]);								
+										out.insert(arg.name, cfc);															
+									} catch(any e){
+										addError(arg.name, {message:e.message, original_value:context[arg.name]});
+									}
+								} else {
+
+									if(isStruct(context[arg.name])){
+
+										if(arrayLen(initMeta) == 1){
+											try {
+												var temp = cfc.init(context[arg.name]);								
+												out.insert(arg.name, cfc);															
+											} catch(any e){
+												addError(arg.name, {message:e.message, original_value:context[arg.name]});
+											}
+
+										} else {
+											var argCollection = recurseFindArguments(context[arg.name], initMeta, errors);
+
+											// writeDump(context[arg.name]);
+											// writeDump(argCollection);
+											try {
+												var temp = cfc.init(argumentCollection=argCollection);								
+												out.insert(arg.name, cfc);															
+											} catch(any e){
+												addError(arg.name, {message:e.message, original_value:context[arg.name]});
+											}																		
+										}
+
+									} else if(isArray(context[arg.name])) {
+										
+										if(arrayLen(initMeta) == 1){
+
+											if(isArrayType(initMeta[1].type)){
+
+												//- 9/27/2016 Not fully implemented, need to think about this further
+
+												out.insert(arg.name, recurseFindArguments(context={"#arg.name#":context[arg.name]}, args=initMeta, errors=errors));
+
+												// var arrayOut = [];
+												
+												// for(var item in context[arg.name]){
+
+												// 	var newArgs = [{
+												// 		type:getArrayType(initMeta[1].type),
+												// 		required:true,
+												// 		name:arg.name,
+												// 	}];
+												// 	var newContext = {"#arg.name#":item};
+												// 	arrayOut.append(recurseFindArguments(context=newContext, args=newArgs, errors=errors));
+												// }
+
+												// out.insert(arg.name, arrayOut);
+
+											} else {
+												try {
+													var temp = cfc.init(context[arg.name]);								
+													out.insert(arg.name, cfc);															
+												} catch(any e){
+													addError(arg.name, {message:e.message, original_value:context[arg.name]});
+												}
+											}
+										}										
+									}
+																	
+								}
+
+							}
+						}
+						
 					}
 				} 
 			}
-			return argsToPass;
-	    }
 
+			
+		}	
+
+		return out;
+	}
+
+	function getArgumentsToPass(cfc, method){
+    	var args = getMetaDataFunctionArguments(cfc, method);	    	
+		argsToPass = {};
+
+		request.context.headers = request._fw1.headers;
+
+		/*
+		Zero will allow controller arguments to be snake_case or camelCase. If Zero encounters
+		a snake_case argument, it will convert it to camelCase also assuming that both arguments
+		are intended to be the same value, but snake_case is used for API and HTML presentation. We
+		achieve this by simply copying the values from the snake_case to a camelCase version
+		 */			
+		for(var key in request.context){
+			var keyNoUnderscore = replaceNoCase(key,"_","","all");
+			if(!request.context.keyExists(keyNoUnderscore)){
+				request.context[keyNoUnderscore] = request.context[key];
+			}
+		}
+
+		request._zero.argumentErrors = {};
+		argsToPass = recurseFindArguments(context=request.context, args=args, errors=request._zero.argumentErrors);
+		// for(var arg in args){
+		// 	writeLog(file="zero_trace", text="Check arg: #arg.name#");
+		// 	if(structKeyExists(request.context,arg.name)){
+
+		// 		cfmltypes = [
+		// 			"any",
+		// 			"array",
+		// 			"binary",
+		// 			"boolean",
+		// 			"component",
+		// 			"date",
+		// 			"guid",
+		// 			"numeric",
+		// 			"query",
+		// 			"string",
+		// 			"struct",
+		// 			"uuid",
+		// 			"variableName",
+		// 			"void",						
+		// 		];
+
+		// 		if(cfmltypes.findNoCase(arg.type)){
+
+		// 			if(!isValid(arg.type, request.context[arg.name])){
+		// 				request._zero.argumentErrors.insert(arg.name, {message:"The argument #arg.name# was not valid, it must be a #arg.type#", original_value:request.context[arg.name]});
+		// 			} else {
+		// 				argsToPass[arg.name] = request.context[arg.name];													
+		// 			}
+
+		// 		} else {
+		// 			try {
+		// 				getComponentMetaData("#variables.zero.argumentModelValueObjectPath#.#arg.type#");
+		// 				try {
+		// 					argsToPass[arg.name] = createObject("#variables.zero.argumentModelValueObjectPath#.#arg.type#").init(value=request.context[arg.name]);
+		// 				} catch(any e){								
+		// 					// writeDump("#variables.zero.argumentModelValueObjectPath#.#arg.type#");
+		// 					// writeDump(e);
+		// 					// abort;
+		// 					request._zero.argumentErrors.insert(arg.name, {message:e.message, original_value:request.context[arg.name]})								
+		// 				}							
+		// 			} catch(any e){
+		// 				try {
+		// 					//Try to get one of the value objects shipped with Zero
+		// 					// getComponentMetaData("#variables.zero.argumentValidationsValueObjectPath#.#arg.type#");							
+		// 					// argsToPass[arg.name] = createObject("#variables.zero.argumentValidationsValueObjectPath#.#arg.type#").init(request.context[arg.name], args.name).toString();
+							
+
+		// 					getComponentMetaData("validations.#arg.type#");				
+		// 					try {
+		// 						argsToPass[arg.name] = createObject("validations.#arg.type#").init(name=arg.name, value=request.context[arg.name]);									
+		// 					}catch(any e){
+		// 						request._zero.argumentErrors.insert(arg.name, {message:e.message, original_value:request.context[arg.name]})
+		// 					}
+							
+		// 				} catch(any e){															
+		// 					throw("Could not process #arg.type# because it does not exist", 500);
+		// 				}
+		// 			}
+		// 		}
+		// 	} 
+		// }
+		return argsToPass;
+    }
+
+	private void function doController( struct tuple, string method, string lifecycle ) {
+        var cfc = tuple.controller;
+        writeLog(file="zero_trace", text="start doController for cfc:#getMetaData(cfc).name#, method:#method#, lifecycle:#lifecycle#");
 
         if ( structKeyExists( cfc, method ) ) {
             try {
@@ -722,7 +992,7 @@ component extends="one" {
 
                 	if(variables.zero.argumentCheckedControllers){     
 
-                		var argsToPass = getArgumentsToPass();
+                		var argsToPass = getArgumentsToPass(cfc, method);                		
                 		if(!request._zero.argumentErrors.isEmpty()){
                 			request._zero.controllerResult = {
                 				"success":false,
@@ -1020,6 +1290,10 @@ component extends="one" {
     }   
 
     public boolean function isComponentOrArrayOfComponents(required arrayOrComponent){
+    	if(isStruct(arrayOrComponent) and !isObject(arrayOrComponent)){
+    		return false;
+    	}
+
     	if(isArray(arrayOrComponent)){    	
     		if(arrayLen(arrayOrComponent) > 0){
 
@@ -1295,12 +1569,13 @@ component extends="one" {
 		variables.zero.argumentCheckedControllers = variables.zero.argumentCheckedControllers?: true;
 		variables.zero.equalizeSnakeAndCamelCase = variables.zero.equalizeSnakeAndCamelCase?: true;
 		variables.zero.outputNonControllerErrors = variables.zero.outputNonControllerErrors?: false;
-		variables.zero.argumentModelValueObjectPath = variables.zero.argumentModelValueObjectPath?: "";
+		variables.zero.argumentModelValueObjectPath = variables.zero.argumentModelValueObjectPath?: "model";
 		variables.zero.argumentValidationsValueObjectPath = variables.zero.argumentValidationsValueObjectPath?: "validations";
 		variables.zero.csrfProtect = variables.zero.csrfProtect?: true;
 		variables.zero.encodeResultForHTML = variables.zero.encodeResultForHTML ?: true;
 		variables.zero.traceRequests = variables.zero.traceRequests ?: false;
-		variables.zero.cacheControllers = variables.zero.cacheControllers ?: false;		
+		variables.zero.cacheControllers = variables.zero.cacheControllers ?: false;	
+		variables.zero.throwOnFirstArgumentError = variables.zero.throwOnFirstArgumentError ?: false;
 		
 		if(isNull(application.zero)){application.zero = {}};
 		

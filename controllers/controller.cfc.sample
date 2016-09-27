@@ -19,6 +19,14 @@ component accessors="true" {
 	}
 
 	/**
+	 * A controller function to validate a new entity
+	 * @return {struct} The data for the new entity
+	 */
+	public struct function validate() {
+		return {};
+	}	
+
+	/**
 	 * A controller function to represent a new form
 	 * @return {struct} The data for the new view
 	 */

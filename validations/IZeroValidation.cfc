@@ -1,6 +1,6 @@
 interface {
 
-	public component function init(any name, any value){
+	public component function init(any value){
 
 	}
 

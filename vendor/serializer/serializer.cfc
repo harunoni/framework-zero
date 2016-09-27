@@ -36,25 +36,65 @@ component output="false" displayname=""  {
 			// writeDump(includes);
 		}
 
+		if(isSimpleValue(arguments.entity)){
+			return arguments.entity;
+		}
+
+		if(isNull(arguments.entity)){
+			return convertNullToEmptyString(arguments.entity);
+		}
+
 		if(isArray(arguments.entity)){
 
-			local.out = [];
-			for(ent IN entity){
-				out.append(serializeEntity(ent, includes));
-			};
-		}
-		else if(isStruct(arguments.entity) AND NOT isObject(arguments.entity)){
-			local.out = {};
-			//writeDump(entity);abort;
-			if(!structIsEmpty(entity)){
+			if(isStruct(arguments.entity)){
+				local.out = {};
+				//writeDump(entity);abort;
+				if(!structIsEmpty(entity)){
 					for(key IN entity){
-					//writeDump(entity[key]);abort;
-					out[camelToUnderscore(key)] = serializeEntity(entity[key], includes);
-				};
+						//writeDump(entity[key]);abort;
+						if(isNull(entity[key])){
+							out[camelToUnderscore(key)] = convertNullToEmptyString(entity[key]);
+						}
+						else {
+							out[camelToUnderscore(key)] = serializeEntity(entity[key], includes);					
+						}					
+	
+					};
+				}				
+			} else {
+				local.out = [];
+				for(ent IN entity){
+					if(isNull(ent)){
+						out.append(convertNullToEmptyString(ent?:nullValue()));
+					} else {
+						out.append(serializeEntity(ent, includes));							
+					}
+				};				
 			}
 
 		}
+		else if(isStruct(arguments.entity) AND NOT isObject(arguments.entity)){
+			local.out = {};
+			// writeDump(entity);
+			if(!structIsEmpty(entity)){
+				for(key IN entity){
+					if(isNull(entity[key])){				
+						out[camelToUnderscore(key)] = convertNullToEmptyString(entity[key]?:nullValue());
+						// out[camelToUnderscore(key)] = "";
+					} else if(isEmpty(entity[key])){
+						out[camelToUnderscore(key)] = {};
+					}
+					else {
+						out[camelToUnderscore(key)] = serializeEntity(entity[key], includes);						
+					}
+				};
+			}			
+		}
 		else{
+
+			if(isInstanceOf(arguments.entity, "valueObject")){
+				return arguments.entity.toString();
+			}
 
 			if(isInstanceOf(arguments.entity, "Optional")){
 				if(arguments.entity.exists()){
@@ -65,6 +105,7 @@ component output="false" displayname=""  {
 			} else {
 				local.entity = arguments.entity;
 			}
+
 
 			local.prop = getAllProperties(local.entity);
 			local.out = {};
@@ -135,7 +176,7 @@ component output="false" displayname=""  {
 							// // writeDump(entity);
 							// writeDump(prop.name);
 							// writeDump(e);
-							// abort;
+							abort;
 						}
 
 						if(isNull(local.getValue)){
@@ -148,6 +189,11 @@ component output="false" displayname=""  {
 							}
 						} else if(isInstanceOf(local.getValue,"valueObject")){
 							out[camelToUnderscore(prop.name)] = local.getValue.toString();
+						}
+						else if(isInstanceOf(local.getValue, "component")){							
+							if(includes.keyExists(prop.name)){
+								out[camelToUnderscore(prop.name)] = new serializer().serializeEntity(local.getValue, includes[prop.name]);
+							}
 						}
 						else {
 							out[camelToUnderscore(prop.name)] = local.getValue;

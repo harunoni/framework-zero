@@ -1,7 +1,7 @@
 component extends="valueObject" {
-	public valueObject function init(string name, any value){
+	public valueObject function init(any value){
 		if(isNumeric(value) and value <= 0){
-			throw("The value passed for #name# must be a positive number");
+			throw("The value must be a positive number");
 		} else {
 			variables.value = arguments.value;
 		}

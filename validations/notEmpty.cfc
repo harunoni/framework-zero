@@ -1,8 +1,8 @@
 component extends="valueObject" {
 
-	public valueObject function init(required name, required value){		
+	public valueObject function init(required value){		
 		if(trim(arguments.value == "")){
-			throw("The value for #name# cannot be empty");
+			throw("The value cannot be empty");
 		} else {
 			variables.value = arguments.value;
 		}

@@ -6,6 +6,7 @@ component accessors="true" {
 	property name="state";
 	property name="stepsOrder";
 	property name="formData";
+	property name="complete";
 
 	public function init(	required steps,							
 							string currentStep
@@ -19,11 +20,20 @@ component accessors="true" {
 		// ];		
 		
 		variables.steps = listToArray(arguments.steps);
-		variables.name = hash(toString(arguments.steps));		
+		variables.name = hash(toString(arguments.steps));
+		variables.complete = false;	
 		client.form_state = arguments.steps;
 
 		reloadFromCache();
 		return this;
+	}
+
+	public function serialize(){
+		return "foo";
+	}
+
+	public function toString(){
+		return "foo";
 	}
 
 	/*
@@ -35,24 +45,25 @@ component accessors="true" {
 
 	public function setFormData(required struct formData){
 		if(!hasFormCache()){
-			clearFormCache();
+			resetFormCache();
 		}
 		client.form_cache[variables.name].form_data.append(formData);
 	}
 
-	public function clearFormCache(){
+	public function resetFormCache(){
 		client.form_cache[variables.name] = {
 			steps:variables.steps,
 			name:variables.name,
 			current_step:variables.currentStep?:variables.steps[1],
 			state:variables.state?:{},
-			form_data:{}
+			form_data:{},
+			complete:false,
 		};
 	}
 
 	public function reloadFromCache(){
 		if(!hasFormCache()){
-			clearFormCache();			
+			resetFormCache();			
 		} 		
 		var cache = getFormCache();
 		variables.steps = cache.steps;
@@ -60,6 +71,7 @@ component accessors="true" {
 		variables.currentStep = cache.current_step;
 		variables.state = cache.state;
 		variables.formData = cache.form_data;
+		variables.complete = cache.complete?:false;
 	}
 
 	public function deleteFormCache(){
@@ -81,12 +93,13 @@ component accessors="true" {
 		saveStateKeyValue("steps", variables.steps);
 		saveStateKeyValue("name", variables.name);
 		saveStateKeyValue("current_step", variables.currentStep);
-		saveStateKeyValue("state", variables.state);		
+		saveStateKeyValue("state", variables.state);
+		saveStateKeyValue("complete", variables.complete);		
 	}
 
 	public function saveStateKeyValue(key, value){
 		if(!hasFormCache()){
-			clearFormCache();
+			resetFormCache();
 		}
 
 		var formCache = getFormCache();
@@ -129,6 +142,13 @@ component accessors="true" {
 		var order = getStepsOrder();
 		var max = order[step];
 
+		if(isLast(step)){
+			variables.complete = true;
+			setState(step:step, show:true, complete:true);
+			saveCurrentState();
+			return;
+		}
+
 		setState(step:steps[max+1], show:true, complete:false);
 
 		for(var i = 1; i <= max; i++){
@@ -149,9 +169,34 @@ component accessors="true" {
 		saveCurrentState();
 	}
 
-	function start(){
-		clearFormCache();
-		completeStep(steps[1]);
+	function start(clearCache=true){
+		variables.currentStep = steps[1];
+		if(clearCache){
+			resetFormCache();
+		}
+		
+		var order = getStepsOrder();
+		var steps = variables.steps;
+		
+		setState(step:steps[1], show:true, complete:false);
+
+		for(var i = 2; i <= arrayLen(steps); i++){
+			setState(step:"#steps[i]#", show:false, complete:false);
+		}		
+
+		variables.complete = false;		
+
+		saveCurrentState();
+	}
+
+	function first(){		
+		start(false);
+	}
+
+	function last(){
+		var lastStep = variables.steps[arrayLen(variables.steps)];
+		var stepBeforeLast = previousStep(lastStep);
+		completeStep(stepBeforeLast);
 	}
 
 	function isAtFirst(){
@@ -181,9 +226,8 @@ component accessors="true" {
 	function moveBackward(){		
 
 		if(isFirst(variables.currentStep) OR isFirst(previousStep(variables.currentStep))){
-			start();
+			start(false);
 		} else {
-
 			var twoStepsBack = previousStep(previousStep(variables.currentStep));
 			completeStep(twoStepsBack);
 		}
