@@ -9,7 +9,8 @@ component accessors="true" {
 	property name="complete";
 
 	public function init(	required steps,							
-							string currentStep
+							string currentStep,
+							struct clientStorage=new zeroClient().getValues()
 							){
 
 		// variables.steps = [
@@ -21,10 +22,13 @@ component accessors="true" {
 		
 		variables.steps = listToArray(arguments.steps);
 		variables.name = hash(toString(arguments.steps));
-		variables.complete = false;	
-		client.form_state = arguments.steps;
+		variables.complete = false;		
+		variables.clientStorage = arguments.clientStorage;
+		
+		clientStorage.form_state = arguments.steps;
+		// clientStorage.put("form_state", arguments.steps);
 
-		reloadFromCache();
+		reloadFromCache();		
 		return this;
 	}
 
@@ -40,18 +44,24 @@ component accessors="true" {
 	CACHE FUNCTIONS
 	 */
 	public function clearFormData(){
-		client.form_cache[variables.name].form_data = {};
+		clientStorage.form_cache[variables.name].form_data = {};		
+		// clientStorage.getValues().form_cache[variables.name].form_data = {};
 	}
 
 	public function setFormData(required struct formData){
 		if(!hasFormCache()){
 			resetFormCache();
 		}
-		client.form_cache[variables.name].form_data.append(formData);
+
+		if(!structKeyExists(clientStorage.form_cache[variables.name], "form_data")){
+			clientStorage.form_cache[variables.name].form_data = {};
+		}
+
+		clientStorage.form_cache[variables.name].form_data.append(formData);
 	}
 
 	public function resetFormCache(){
-		client.form_cache[variables.name] = {
+		clientStorage.form_cache[variables.name] = {
 			steps:variables.steps,
 			name:variables.name,
 			current_step:variables.currentStep?:variables.steps[1],
@@ -65,28 +75,28 @@ component accessors="true" {
 		if(!hasFormCache()){
 			resetFormCache();			
 		} 		
-		var cache = getFormCache();
+		var cache = getFormCache();		
 		variables.steps = cache.steps;
 		variables.name = cache.name;
 		variables.currentStep = cache.current_step;
 		variables.state = cache.state;
-		variables.formData = cache.form_data;
+		variables.formData = cache.form_data?:{};
 		variables.complete = cache.complete?:false;
 	}
 
 	public function deleteFormCache(){
-		structDelete(client.form_cache, variables.name);
+		structDelete(clientStorage.form_cache, variables.name);
 	}
 
 	public function getFormCache(){
-		return client.form_cache[variables.name];
+		return clientStorage.form_cache[variables.name];
 	}
 
 	public boolean function hasFormCache(){
-		if(!client.keyExists("form_cache")){
-			client.form_cache = {};
+		if(!clientStorage.keyExists("form_cache")){
+			clientStorage.form_cache = {};
 		}
-		return client.form_cache.keyExists(variables.name);
+		return clientStorage.form_cache.keyExists(variables.name);
 	}	
 
 	public function saveCurrentState(){
@@ -185,8 +195,12 @@ component accessors="true" {
 		}		
 
 		variables.complete = false;		
-
 		saveCurrentState();
+		// writeDump(this);
+		// writeDump(clientStorage);
+		// writeDump(request._zero.zeroClient.getNewValues());
+
+		// abort;
 	}
 
 	function first(){		

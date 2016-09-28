@@ -268,7 +268,7 @@ component extends="one" {
 							} else if(rc.keyExists("move_backward")){								
 								request._zero.zeroFormState.moveBackward();								
 							} else if(rc.keyExists("current_step")){
-								request._zero.zeroFormState.completeStep(rc.current_step)
+								request._zero.zeroFormState.completeStep(rc.current_step);								
 							} else {
 								request._zero.zeroFormState.start();
 							}
@@ -368,7 +368,7 @@ component extends="one" {
 					writeLog(file="zero_trace", text="do after() redirect");
 					// writeDump(now());
 					// abort;
-
+					request._zero.zeroClient.persist();
 					location url="#goto#" addtoken="false" statuscode="303";
 				}								
 
@@ -398,8 +398,9 @@ component extends="one" {
 					rc.errors = request._zero.argumentErrors;
 				}
 
-				request.context = rc;		
+				request.context = rc;
 
+				request._zero.zeroClient.persist();				
 			break;			
 		}	
 		writeLog(file="zero_trace", text="end zero.after()");
@@ -511,17 +512,27 @@ component extends="one" {
 					rc[key] = client[key];					
 				}
 			}
-		}
+		}		
 		
-		// writeDump(request.context);
-		// abort;
-		// structClear(client);
+		request._zero.zeroClient = new zeroClient();
+		if(url.keyExists("clearClient")){
+			request._zero.zeroClient.getValues().clear();			
+		}
+
+		var clientValues = duplicate(request._zero.zeroClient.getValues());
+		for(var key in clientValues){
+			if(!rc.keyExists(key)){
+				if(!isNull(clientValues[key])){
+					rc[key] = clientValues[key];					
+				}
+			}
+		}				
 
 		if(rc.keyExists("form_state")){			
 			if(rc.keyExists("current_step")){
-				request._zero.zeroFormState = new zeroFormState(steps:rc.form_state, currentStep:rc.current_step);
+				request._zero.zeroFormState = new zeroFormState(steps:rc.form_state, currentStep:rc.current_step, clientStorage:request._zero.zeroClient.getValues());				
 			} else {
-				request._zero.zeroFormState = new zeroFormState(steps:rc.form_state);
+				request._zero.zeroFormState = new zeroFormState(steps:rc.form_state, clientStorage:request._zero.zeroClient.getValues());				
 			}
 		}
 
@@ -605,7 +616,8 @@ component extends="one" {
 			doTrace(rc, "RC before() redirect");
 			doTrace(FORM, "FORM before() redirect");
 			doTrace(cookie, "COOKIE before() redirect");
-			writeLog(file="zero_trace", text="do before() redirect");				
+			writeLog(file="zero_trace", text="do before() redirect");
+			request._zero.zeroClient.persist();				
 			location url="#rc.redirect#" addtoken="false" statuscode="303";				
 		}
 
