@@ -57,7 +57,17 @@ component accessors="true" {
 			clientStorage.form_cache[variables.name].form_data = {};
 		}
 
-		clientStorage.form_cache[variables.name].form_data.append(formData);
+		var reservedWords = new zeroReservedWords();
+		var fieldsToSave = {};
+
+		for(var key in formData){
+			if(!reservedWords.has(key)){				
+				fieldsToSave.insert(key, formData[key], true);				
+			}			
+		}
+		variables.formData = fieldsToSave;
+		saveCurrentState();
+		reloadFromCache();
 	}
 
 	public function resetFormCache(){
@@ -105,6 +115,7 @@ component accessors="true" {
 		saveStateKeyValue("current_step", variables.currentStep);
 		saveStateKeyValue("state", variables.state);
 		saveStateKeyValue("complete", variables.complete);		
+		saveStateKeyValue("form_data", variables.formData);
 	}
 
 	public function saveStateKeyValue(key, value){
@@ -119,13 +130,17 @@ component accessors="true" {
 	/*
 	FORM FUNCTIONS
 	 */
-	public function setState(required string step, required boolean show, required boolean complete){
+	public function setState(required string step, required boolean show, required boolean complete, struct formData){
 		// writeDump(arguments);
 		if(!variables.state.keyExists(step)){
 			variables.state[step] = {}
 		}
 
-		variables.state[step].append({show:show, complete:complete})
+		variables.state[step].append({show:show, complete:complete});
+
+		if(arguments.keyExists("formData")){
+			variables.state[step].form_data = duplicate(arguments.formData);
+		}
 	}
 
 	function isValidStep(step){
@@ -147,6 +162,24 @@ component accessors="true" {
 		return variables.stepsOrder;
 	}
 
+	function restoreStep(step){
+		var order = getStepsOrder();
+		var max = order[step];
+
+		variables.currentStep = step;
+		variables.formData = variables.state[step].form_data;
+		//Set the form data for this step
+		setState(step:step, show:true, complete:false, formData:variables.formData);
+
+		//Set all later steps to not show and now completed, and clear their form data
+		var end = arrayLen(steps);
+		for(var i = max + 1; i <= end; i++){
+			setState(step:"#steps[i]#", show:false, complete:false, formData:{});				
+		}	
+			
+		saveCurrentState();		
+	}
+
 	function completeStep(step){
 
 		var order = getStepsOrder();
@@ -154,21 +187,26 @@ component accessors="true" {
 
 		if(isLast(step)){
 			variables.complete = true;
-			setState(step:step, show:true, complete:true);
+			setState(step:step, show:true, complete:true, formData:variables.formData);
 			saveCurrentState();
 			return;
 		}
-
-		setState(step:steps[max+1], show:true, complete:false);
 
 		for(var i = 1; i <= max; i++){
 			setState(step:"#steps[i]#", show:true, complete:true);
 		}
 
+		//Set the form data for this step
+		setState(step:steps[max], show:true, complete:true, formData:variables.formData);
+
+		//Set the step after this one to show
+		setState(step:steps[max+1], show:true, complete:false, formData:{});
+
+
 		var end = arrayLen(steps);
 
 		for(var i = max + 2; i <= end; i++){
-			setState(step:"#steps[i]#", show:false, complete:false);				
+			setState(step:"#steps[i]#", show:false, complete:false, formData:{});				
 		}		
 
 		if(isLast(step)){
@@ -180,7 +218,7 @@ component accessors="true" {
 	}
 
 	function start(clearCache=true){
-		variables.currentStep = steps[1];
+		variables.currentStep = steps[1];			
 		if(clearCache){
 			resetFormCache();
 		}
@@ -188,10 +226,10 @@ component accessors="true" {
 		var order = getStepsOrder();
 		var steps = variables.steps;
 		
-		setState(step:steps[1], show:true, complete:false);
+		setState(step:steps[1], show:true, complete:false, formData:{});
 
 		for(var i = 2; i <= arrayLen(steps); i++){
-			setState(step:"#steps[i]#", show:false, complete:false);
+			setState(step:"#steps[i]#", show:false, complete:false, formData:{});
 		}		
 
 		variables.complete = false;		
@@ -204,7 +242,7 @@ component accessors="true" {
 	}
 
 	function first(){		
-		start(false);
+		restoreStep(steps[1]);
 	}
 
 	function last(){
@@ -239,11 +277,12 @@ component accessors="true" {
 
 	function moveBackward(){		
 
-		if(isFirst(variables.currentStep) OR isFirst(previousStep(variables.currentStep))){
-			start(false);
+		if(isFirst(variables.currentStep)){
+			start(true);
 		} else {
-			var twoStepsBack = previousStep(previousStep(variables.currentStep));
-			completeStep(twoStepsBack);
+			// var twoStepsBack = previousStep(previousStep(variables.currentStep));
+			// writeDump(variables.currentStep);			
+			restoreStep(previousStep(variables.currentStep));
 		}
 	}
 

@@ -1,4 +1,4 @@
-import vendor.serializer.serializer;
+import serializer;
 component extends="one" {	
 
 	copyCGI = duplicate(CGI);	
@@ -418,6 +418,10 @@ component extends="one" {
 			client = {};			
 		}
 
+		if(rc.keyExists("form_state") and rc.keyExists("preserve_form")){
+			throw("Do not use form_state and preserve_form together.")
+		}
+
 		// if(CGI.request_method == "POST"){
 		// 	if(cookie.keyExists("CSRF_TOKEN")){
 		// 		if(!form.keyExists("CSRF_TOKEN")){
@@ -516,7 +520,10 @@ component extends="one" {
 		
 		request._zero.zeroClient = new zeroClient();
 		if(url.keyExists("clearClient")){
-			request._zero.zeroClient.getValues().clear();			
+			// writeDump(request._zero.zeroClient.getValues());
+			request._zero.zeroClient.getValues().clear();
+			request._zero.zeroClient.persist();
+			// abort;
 		}
 
 		var clientValues = duplicate(request._zero.zeroClient.getValues());
@@ -536,6 +543,13 @@ component extends="one" {
 			}
 		}
 
+		if(request._zero.keyExists("zeroFormState") and cgi.request_method == "GET"){
+			var formData = request._zero.zeroFormState.getFormData();			
+			for(var key in formData){
+				rc[key] = formData[key];
+				form[key] = formData[key];					
+			}
+		}
 
 		if(rc.keyExists("delete_key")){
 			if(!isArray(rc.delete_key)){

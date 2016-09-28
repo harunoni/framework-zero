@@ -110,7 +110,8 @@ component {
 
 	public function expandFlattenedData(data){
     	var out = duplicate(data);
-    	structKeyTranslate(out, true);      	
+    	structKeyTranslate(out, true);   
+    	// writeDump(out);   	
     	var recurseStructs = function(str){
     		// writeDump(str);
     		if(isArray(str)){
@@ -125,12 +126,14 @@ component {
 						}					
 						recurseStructs(str[key]);
 					} else {
-						if(isBoolean(str[key])){
+						if(lcase(str[key]) == "true" or lcase(str[key]) == "false"){
 			    			if(str[key]){str[key] = true;} else {str[key] = false}
 			    		} else if(str[key] == "{}"){
 			    			str[key] = {};
 			    		} else if(str[key] == "[]"){
 			    			str[key] = [];
+			    		} else {
+			    			str[key] = str[key];
 			    		}
 					}
 				}
@@ -139,10 +142,11 @@ component {
 	    		// writeDump(str);
 	    		if(isBoolean(str)){
 	    			if(str){str = true;} else {str = false}
-	    		}
+	    		}	    		
 				//Do nothing, it is a simple value
 			}
     	}
+    	// writeDump(out);
     	recurseStructs(out);
     	return out;
     }
