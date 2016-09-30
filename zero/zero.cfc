@@ -271,14 +271,25 @@ component extends="one" {
 								} else {
 									request._zero.zeroFormState.moveBackward();																										
 								}
-							} else if(rc.keyExists("current_step")){
-								request._zero.zeroFormState.completeStep(rc.current_step);								
-							} else {
-								request._zero.zeroFormState.start();
+							} else if(rc.keyExists("clear_step_data")){
+								request._zero.zeroFormState.clearStepData();
+							}else {
+								request._zero.zeroFormState.start();								
+								// writeDump(request._zero.zeroFormState);
+								// writeDump(now());abort;
 							}
 
 							if(rc.keyExists("form_state_clear_form")){								
 								request._zero.zeroFormState.clearFormData();
+							}
+						} else {
+
+							if(rc.keyExists("on_failure")){
+								if(rc.on_failure contains "clear_step_data"){									
+									request._zero.zeroFormState.clearStepData();
+									// writeDump(request._zero.zeroFormState);
+									// abort;
+								}
 							}
 						}						
 					}
@@ -287,8 +298,12 @@ component extends="one" {
 				if(rc.keyExists("goto_fail")){
 					if(request._zero.controllerResult.keyExists("success") and request._zero.controllerResult.success == false){
 						rc.goto = rc.goto_fail;
-						form.preserve_response = true;						
-						form.preserve_request = true;
+						form.preserve_response = true;
+
+						if(!request._zero.keyExists("zeroFormState")){
+							form.preserve_request = true;
+						}
+											
 						if(form.keyExists("preserve_form")){
 							structDelete(form,"preserve_form");
 						}
@@ -604,8 +619,8 @@ component extends="one" {
 						} else {
 							request._zero.zeroFormState.moveBackward();																										
 						}
-					} else if(rc.keyExists("current_step")){
-						request._zero.zeroFormState.completeStep(rc.current_step);								
+					} else if(rc.keyExists("clear_step_data")){
+						request._zero.zeroFormState.clearStepData();
 					} else {
 						request._zero.zeroFormState.start();
 					}
@@ -688,7 +703,7 @@ component extends="one" {
 		return false;
 	}
 
-	function recurseFindCFCArguments(any data, component cfc, method="init", errors={}){
+	function recurseFindCFCArguments(any data, component cfc, method="init", errors={}, forceArgumentCollection=false){
 		
 		var out = {}
 		var args = getMetaDataFunctionArguments(cfc, method);
@@ -795,17 +810,19 @@ component extends="one" {
 			var out = {};
 			if(isCFMLType(type)){
 				if(!isValid(type, data)){
-					addError(name, {message:"One of the values in the #name# array was not of the correct type #type#", original_value:data});				
+					addError(name, {message:"One of the values in the #name# array was not of the correct type #type#", original_value:data});
+					return out;				
 				} else {
 					out.insert(name, data);
 					return out;
 				}
 			
 			} else if(isArrayType(type)){
+				// writeDump(local);abort;	
 
 				if(!isArray(data)){
 					addError(name, {message:"The type was an arrayTyped of #type#, thus expected the data to be an array", original_value:data});
-					return;
+					return out;
 				} 
 
 				var arrayType = getArrayType(type);
@@ -814,7 +831,7 @@ component extends="one" {
 					for(var item in data){
 						if(!isValid(arrayType, item)){
 							addError(name, {message:"One of the values in the array was not of the correct type #arrayType#", original_value:data});		
-							return;
+							return out;
 						} 
 					}
 					out.insert(name, data);
@@ -822,6 +839,7 @@ component extends="one" {
 				
 				} else {
 
+					
 					var arrayOut = [];
 					for(var item in data){
 
@@ -833,6 +851,7 @@ component extends="one" {
 						}
 						
 					}
+					
 					out.insert(name, arrayOut);					
 					return out;
 				}
@@ -849,7 +868,7 @@ component extends="one" {
 
 		}		
 
-		if(arrayLen(args) == 1){
+		if(arrayLen(args) == 1 and !forceArgumentCollection){
 
 			var name = args[1].name;
 			var type = args[1].type;
@@ -862,9 +881,32 @@ component extends="one" {
 			if(isStruct(data)){
 				for(var arg in args){
 
-					if(data.keyExists(arg.name)){
+					if(arg.type == "zeroFormState"){
+
+						if(arg.keyExists("required") and arg.required){
+							if(!request._zero.keyExists("zeroFormState")){
+								throw("Could not load the form state but it was marked as required. Ensure that a form state is created before calling this controller function");
+							}
+							out.insert(arg.name, request._zero.zeroFormState);
+							continue;
+						} else {
+							if(request._zero.keyExists("zeroFormState")){
+								out.insert(arg.name, request._zero.zeroFormState);
+							}
+						}
+					}
+
+
+					if(data.keyExists(arg.name)){						
 						var populatedArg = getArgumentValues(name=arg.name, type=arg.type, isRequired=true, data=data[arg.name]);
-						out.append(populatedArg);
+						try {
+							out.append(populatedArg);							
+						}catch(any e){
+							writeDump(data);
+							writeDump(arg);
+							writeDump(local);
+							abort;
+						}
 					} else {
 						if(arg.keyExists("required") AND arg.required){
 							addError(arg.name,{message:"The argument #arg.name# was required but was not passed in", original_value:data});
@@ -903,7 +945,7 @@ component extends="one" {
 		}
 
 		request._zero.argumentErrors = {};		
-		argsToPass = recurseFindCFCArguments(data=request.context, cfc=cfc, method=method, errors=request._zero.argumentErrors);		
+		argsToPass = recurseFindCFCArguments(data=request.context, cfc=cfc, method=method, errors=request._zero.argumentErrors, forceArgumentCollection=true);		
 		return argsToPass;
     }
 

@@ -80,7 +80,7 @@ component {
 			if(structKeyExists(originalKeys, currentKey)){
 				if(currentKeys[currentKey] != originalKeys[currentKey]){
 					out.insert(currentKey, currentKeys[currentKey]);
-				}
+				} 
 			}
 		}
 		return out;
@@ -157,7 +157,7 @@ component {
     	var recurseData = function(data, currentPath="", pile){
     		if(isArray(data)){
 
-    			var index = 0;
+    			var index = -1;
     			for(var item in data){
     				index++;
 					if(currentPath == ""){
@@ -219,7 +219,7 @@ component {
     	return pile;
     }
 
-    public boolean function structIsReallyArray(required struct str){
+    public boolean function structIsReallyArray(required struct str){    	
     	var success = true;
     	for(var key in str){
     		if(!isNumeric(key)){
@@ -233,15 +233,24 @@ component {
     	var out = [];
     	var keys = str.keyArray().sort("numeric");    	
 
+    	try{
     	for(var key in keys){
 
-    		if(isBoolean(str[key])){
-    			if(str[key]){out.append(true);} else {out.append(false)}
-    		} else if(str[key] == "[]"){
-    			out.append([]);
+    		if(isSimpleValue(str[key])){
+	    		if(isBoolean(str[key])){
+	    			if(str[key]){out.append(true);} else {out.append(false)}
+	    		} else if(str[key] == "[]"){
+	    			out.append([]);
+	    		} else {
+	    			out.append(str[key]);    			
+	    		}    			
     		} else {
-    			out.append(str[key]);    			
+    			out.append(str[key]);
     		}
+    	}    		
+    	}catch(any e){
+    		writeDump(str);
+    		abort;
     	}
     	return out;
     }

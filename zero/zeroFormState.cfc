@@ -27,8 +27,8 @@ component accessors="true" {
 		
 		clientStorage.form_state = arguments.steps;
 		// clientStorage.put("form_state", arguments.steps);
-
 		reloadFromCache();		
+		// writeDump(this);abort;
 		return this;
 	}
 
@@ -48,6 +48,17 @@ component accessors="true" {
 		variables.state[variables.currentStep].form_data = {};
 		saveCurrentState();
 		// clientStorage.getValues().form_cache[variables.name].form_data = {};
+	}
+
+	public function clearStepData(){
+		if(isFirst(variables.currentStep)){
+			clearFormData();
+		} else {
+			variables.state[variables.currentStep].form_data = {};
+			variables.formData = variables.state[previousStep(variables.currentStep)].form_data;			
+		}
+		saveCurrentState();
+		reloadFromCache();
 	}
 
 	public function setFormData(required struct formData){
@@ -88,10 +99,10 @@ component accessors="true" {
 			resetFormCache();			
 		} 		
 		var cache = getFormCache();		
-		variables.steps = cache.steps;
-		variables.name = cache.name;
-		variables.currentStep = cache.current_step;
-		variables.state = cache.state;
+		variables.steps = cache.steps?:variables.steps;
+		variables.name = cache.name?:variables.name;
+		variables.currentStep = cache.current_step?:variables.currentStep?:variables.steps[1];
+		variables.state = cache.state?:variables.state?:{};
 		variables.formData = cache.form_data?:{};
 		variables.complete = cache.complete?:false;
 	}
@@ -217,31 +228,7 @@ component accessors="true" {
 			variables.currentStep = steps[max+1];
 		}
 		saveCurrentState();
-	}
-
-	function start(clearCache=true){
-		variables.currentStep = steps[1];			
-		if(clearCache){
-			resetFormCache();
-		}
-		
-		var order = getStepsOrder();
-		var steps = variables.steps;
-		
-		setState(step:steps[1], show:true, complete:false, formData:{});
-
-		for(var i = 2; i <= arrayLen(steps); i++){
-			setState(step:"#steps[i]#", show:false, complete:false, formData:{});
-		}		
-
-		variables.complete = false;		
-		saveCurrentState();
-		// writeDump(this);
-		// writeDump(clientStorage);
-		// writeDump(request._zero.zeroClient.getNewValues());
-
-		// abort;
-	}
+	}	
 
 	function first(){		
 		restoreStep(steps[1]);
@@ -317,19 +304,42 @@ component accessors="true" {
 		if(isFirst(variables.currentStep)){
 			start(true);
 		} else {			
+			restoreStep(previousStep(variables.currentStep));
 			if(clearStepData){
+				this.clearStepData();
+				// if(isFirst(previousStep(variables.currentStep))){
+				// 	start(true);
+				// } else {
+				// 	restoreStep(previousStep(previousStep(variables.currentStep)));
+				// 	completeStep();					
+				// }
 
-				if(isFirst(previousStep(variables.currentStep))){
-					start(true);
-				} else {
-					restoreStep(previousStep(previousStep(variables.currentStep)));
-					completeStep();					
-				}
-
-			} else {
-				restoreStep(previousStep(variables.currentStep));
-			}			
+			} 			
 		}
+	}
+
+	function start(clearCache=true){
+		variables.currentStep = steps[1];			
+		if(clearCache){
+			resetFormCache();
+		}
+		
+		var order = getStepsOrder();
+		var steps = variables.steps;
+		
+		setState(step:steps[1], show:true, complete:false, formData:{});
+
+		for(var i = 2; i <= arrayLen(steps); i++){
+			setState(step:"#steps[i]#", show:false, complete:false, formData:{});
+		}		
+
+		variables.complete = false;		
+		saveCurrentState();
+		// writeDump(this);
+		// writeDump(clientStorage);
+		// writeDump(request._zero.zeroClient.getNewValues());
+
+		// abort;
 	}
 
 	// if(arguments.keyExists("back")){			
