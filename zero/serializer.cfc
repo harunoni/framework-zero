@@ -26,7 +26,7 @@ component output="false" displayname=""  {
 	}
 
 	public function serializeEntity(required entity, includes=""){
-
+		
 		if(isSimpleValue(arguments.includes)){
 			var includesArray = listToArray(arguments.includes);
 			var includes = {};
@@ -81,10 +81,7 @@ component output="false" displayname=""  {
 					if(isNull(entity[key])){				
 						out[camelToUnderscore(key)] = convertNullToEmptyString(entity[key]?:nullValue());
 						// out[camelToUnderscore(key)] = "";
-					} else if(isEmpty(entity[key])){
-						out[camelToUnderscore(key)] = {};
-					}
-					else {
+					} else {
 						out[camelToUnderscore(key)] = serializeEntity(entity[key], includes);						
 					}
 				};

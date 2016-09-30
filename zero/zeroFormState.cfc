@@ -44,7 +44,9 @@ component accessors="true" {
 	CACHE FUNCTIONS
 	 */
 	public function clearFormData(){
-		clientStorage.form_cache[variables.name].form_data = {};		
+		variables.formData = {};	
+		variables.state[variables.currentStep].form_data = {};
+		saveCurrentState();
 		// clientStorage.getValues().form_cache[variables.name].form_data = {};
 	}
 
@@ -180,7 +182,7 @@ component accessors="true" {
 		saveCurrentState();		
 	}
 
-	function completeStep(step){
+	function completeStep(step=variables.currentStep){
 
 		var order = getStepsOrder();
 		var max = order[step];
@@ -251,15 +253,50 @@ component accessors="true" {
 		completeStep(stepBeforeLast);
 	}
 
-	function isAtFirst(){
+	boolean function isAfter(step){
+		var currentId = getStepsOrder()[variables.currentStep];
+		var expectedId = getStepsOrder()[step];
+
+		if(currentId > expectedId){
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	boolean function isAtFirst(){
 		return isFirst(variables.currentStep);
 	}
 
-	function isFirst(step){
+	boolean function isAtLeast(step){
+
+		var currentId = getStepsOrder()[variables.currentStep];
+		var expectedId = getStepsOrder()[step];
+
+		if(currentId >= expectedId){
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	boolean function isBefore(step){
+
+		var currentId = getStepsOrder()[variables.currentStep];
+		var expectedId = getStepsOrder()[step];
+
+		if(currentId < expectedId){
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	boolean function isFirst(step){
 		return getStepsOrder()[step] == 1;			
 	}
 
-	function isLast(step){
+	boolean function isLast(step){
 		return getStepsOrder()[step] == arrayLen(variables.steps);	
 	}
 
@@ -275,14 +312,23 @@ component accessors="true" {
 		completeStep(variables.currentStep);		
 	}
 
-	function moveBackward(){		
+	function moveBackward(clearStepData=false){		
 
 		if(isFirst(variables.currentStep)){
 			start(true);
-		} else {
-			// var twoStepsBack = previousStep(previousStep(variables.currentStep));
-			// writeDump(variables.currentStep);			
-			restoreStep(previousStep(variables.currentStep));
+		} else {			
+			if(clearStepData){
+
+				if(isFirst(previousStep(variables.currentStep))){
+					start(true);
+				} else {
+					restoreStep(previousStep(previousStep(variables.currentStep)));
+					completeStep();					
+				}
+
+			} else {
+				restoreStep(previousStep(variables.currentStep));
+			}			
 		}
 	}
 
