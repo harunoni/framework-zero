@@ -126,6 +126,15 @@ component accessors="true" {
 		saveStateKeyValue("steps", variables.steps);
 		saveStateKeyValue("name", variables.name);
 		saveStateKeyValue("current_step", variables.currentStep);
+
+		for(var step in variables.state){
+			if(step == variables.currentStep){
+				variables.state[step].is_current_step = true;
+			} else {
+				variables.state[step].is_current_step = false;
+			}
+		}	
+
 		saveStateKeyValue("state", variables.state);
 		saveStateKeyValue("complete", variables.complete);		
 		saveStateKeyValue("form_data", variables.formData);

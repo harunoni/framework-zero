@@ -14,7 +14,6 @@ component {
 			variables.values = {};
 		}
 
-
 		return this;
 	}
 
@@ -46,8 +45,8 @@ component {
 
 	public function getNewValues(){
 
-		var originalKeys = flattenDataStructureForCookies(data=variables.originalClient, prefix="client", ignore=[]);
-		var currentKeys = flattenDataStructureForCookies(data=variables.values, prefix="client", ignore=[]);
+		var originalKeys = flattenDataStructureForCookies(data=duplicate(variables.originalClient), prefix="client", ignore=[]);
+		var currentKeys = flattenDataStructureForCookies(data=duplicate(variables.values), prefix="client", ignore=[]);
 		var out = {};
 
 		for(var currentKey in currentKeys){
@@ -59,8 +58,8 @@ component {
 	}
 
 	public function getRemovedValues(){
-		var originalKeys = flattenDataStructureForCookies(data=variables.originalClient, prefix="client", ignore=[]);
-		var currentKeys = flattenDataStructureForCookies(data=variables.values, prefix="client", ignore=[]);
+		var originalKeys = flattenDataStructureForCookies(data=duplicate(variables.originalClient), prefix="client", ignore=[]);
+		var currentKeys = flattenDataStructureForCookies(data=duplicate(variables.values), prefix="client", ignore=[]);
 		var out = {};
 
 		for(var originalKey in originalKeys){
@@ -72,8 +71,8 @@ component {
 	}
 
 	public function getChangedValues(){
-		var originalKeys = flattenDataStructureForCookies(data=variables.originalClient, prefix="client", ignore=[]);
-		var currentKeys = flattenDataStructureForCookies(data=variables.values, prefix="client", ignore=[]);
+		var originalKeys = flattenDataStructureForCookies(data=duplicate(variables.originalClient), prefix="client", ignore=[]);
+		var currentKeys = flattenDataStructureForCookies(data=duplicate(variables.values), prefix="client", ignore=[]);
 		var out = {}
 
 		for(var currentKey in currentKeys){
@@ -132,6 +131,9 @@ component {
 			    			str[key] = {};
 			    		} else if(str[key] == "[]"){
 			    			str[key] = [];
+			    		} else if(str[key] == '""') {
+			    			str[key] = "";
+			    			// writeDump(str);
 			    		} else {
 			    			str[key] = str[key];
 			    		}
@@ -154,6 +156,7 @@ component {
 	public function flattenDataStructureForCookies(required any data, prefix="", ignore=[]){
     	var prefix = arguments.prefix;
 		var pile = {};
+
     	var recurseData = function(data, currentPath="", pile){
     		if(isArray(data)){
 
@@ -179,7 +182,8 @@ component {
 					pile.insert(currentPath, "{}");
 				} else {
 					loopStruct: for(var key in data){
-
+						// writeDump(key);
+						// writeDump(data);
 						for(var ignoreItem in ignore){
 							if(lcase(key) == lcase(ignoreItem)){
 								continue loopStruct;
@@ -195,6 +199,12 @@ component {
 						if(isStruct(data[key]) or isArray(data[key])){
 							recurseData(data = data[key], currentPath=path, pile=pile)
 						} else {
+
+							/*Lucee will not return cookies with zero length strings. As such we need to encode an empty string*/
+							if(len(trim(data[key])) == 0 or data[key] == ""){																								
+								data[key] = '""';
+							}
+
 							pile.insert(path, data[key], true);
 						}
 					}					
@@ -241,6 +251,10 @@ component {
 	    			if(str[key]){out.append(true);} else {out.append(false)}
 	    		} else if(str[key] == "[]"){
 	    			out.append([]);
+	    		} else if(str[key] == "{}"){
+	    			out.append({});
+	    		} else if(str[key] == '""') {
+	    			out.append("");
 	    		} else {
 	    			out.append(str[key]);    			
 	    		}    			
