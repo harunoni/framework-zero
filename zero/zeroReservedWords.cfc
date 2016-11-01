@@ -19,6 +19,7 @@ component {
 			"preserve_response",
 			"preserve_form",
 			"redirect",
+			"resume",
 			"start_over",
 			"submit_overload",
 		];

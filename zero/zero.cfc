@@ -273,10 +273,10 @@ component extends="one" {
 								}
 							} else if(rc.keyExists("clear_step_data")){
 								request._zero.zeroFormState.clearStepData();
-							}else {
-								request._zero.zeroFormState.start();								
-								// writeDump(request._zero.zeroFormState);
-								// writeDump(now());abort;
+							} else if(rc.keyExists("start")){
+								request._zero.zeroFormState.start();														
+							} else if(rc.keyExists("resume")){
+								request._zero.zeroFormState.resume();														
 							}
 
 							if(rc.keyExists("form_state_clear_form")){								
@@ -554,13 +554,36 @@ component extends="one" {
 			}
 		}				
 
-		if(rc.keyExists("form_state")){			
-			if(rc.keyExists("current_step")){
-				request._zero.zeroFormState = new zeroFormState(steps:rc.form_state, currentStep:rc.current_step, clientStorage:request._zero.zeroClient.getValues());				
-			} else {
-				request._zero.zeroFormState = new zeroFormState(steps:rc.form_state, clientStorage:request._zero.zeroClient.getValues());				
+		if(cgi.request_method == "GET"){
+
+			if(rc.keyExists("form_state")){					
+				var args = {
+					steps:rc.form_state,
+					clientStorage:request._zero.zeroClient.getValues(),
+				}			
+
+				if(rc.keyExists("form_state_name")){
+					args.name = rc.form_state_name;
+				}
+				request._zero.zeroFormState = new zeroFormState(argumentCollection=args);														
 			}
 		}
+
+		if(cgi.request_method == "POST"){
+			if(form.keyExists("form_state")){				
+				var args = {
+					steps:form.form_state,
+					clientStorage:request._zero.zeroClient.getValues(),
+				}			
+
+				if(form.keyExists("form_state_name")){
+					args.name = form.form_state_name;
+				}			
+			
+				request._zero.zeroFormState = new zeroFormState(argumentCollection=args);														
+			}
+		}	
+
 
 		if(request._zero.keyExists("zeroFormState") and cgi.request_method == "GET"){
 			var formData = request._zero.zeroFormState.getFormData();			
@@ -621,8 +644,11 @@ component extends="one" {
 						}
 					} else if(rc.keyExists("clear_step_data")){
 						request._zero.zeroFormState.clearStepData();
-					} else {
-						request._zero.zeroFormState.start();
+					} else if(rc.keyExists("start")){
+						request._zero.zeroFormState.start();														
+					} else if(rc.keyExists("resume")){
+						request._zero.zeroFormState.resume();	
+						// abort;													
 					}
 
 					if(rc.keyExists("form_state_clear_form")){								
@@ -701,6 +727,11 @@ component extends="one" {
 		}
 
 		return false;
+	}
+
+	public function createFormState(required string steps, name, clientStorage={}){
+		request._zero.zeroFormState = new zeroFormState(argumentCollection=arguments);
+		return request._zero.zeroFormState;
 	}
 
 	function recurseFindCFCArguments(any data, component cfc, method="init", errors={}, forceArgumentCollection=false){
@@ -923,6 +954,11 @@ component extends="one" {
 			}
 		}	
 
+	}
+
+	public function getMigration(){
+		var migration = new migrator.model.migration(expandPath("/releases"), db.db);
+		return migration;
 	}
 
 	function getArgumentsToPass(cfc, method){
@@ -1357,6 +1393,7 @@ component extends="one" {
 	}
 
 	private array function loadControllers(required path){
+
 		var controllers = directoryList(path=arguments.path, filter="*.cfc");		
 		for(var controller in controllers){
 			file = getFileFromPath(controller);
@@ -1562,7 +1599,7 @@ component extends="one" {
 		
 		if(isNull(application.zero)){application.zero = {}};
 		
-		if(application.zero.keyExists("routes")){
+		if(application.zero.keyExists("routes") and variables.zero.cacheControllers){
 			variables.framework.routes = application.zero.routes;
 		} else {
 			loadAvailableControllers();
