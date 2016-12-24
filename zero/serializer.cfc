@@ -90,7 +90,12 @@ component output="false" displayname=""  {
 		else{
 
 			if(isInstanceOf(arguments.entity, "valueObject")){
-				return arguments.entity.toString();
+				try{
+					return arguments.entity.toString();										
+				}catch(any e){
+					writeDump(arguments.entity);
+					abort;
+				}
 			}
 
 			if(isInstanceOf(arguments.entity, "Optional")){

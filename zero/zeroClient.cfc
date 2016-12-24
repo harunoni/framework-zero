@@ -17,6 +17,10 @@ component {
 		return this;
 	}
 
+	public function clear(){
+		structClear(variables.values);
+	}
+
 	public function getValues(){
 		return variables.values;
 	}

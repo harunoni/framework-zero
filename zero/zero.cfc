@@ -28,7 +28,7 @@ component extends="one" {
 				}							
 			}
 		}
-	}	
+	}
 
      request._fw1 = {
         cgiScriptName = replaceNoCase(copyCGI.SCRIPT_NAME,".json",""),
@@ -159,7 +159,7 @@ component extends="one" {
 	  { method = 'delete', httpMethods = [ '$POST' ], includeId = true, routeSuffix = '/delete' },
 
 	];
-	
+
 	public function collectValues(required struct args){
 		out = {};
 		for(var arg in args){
@@ -179,8 +179,7 @@ component extends="one" {
 	public function after( rc, headers, controllerResult ){		
 		writeLog(file="zero_trace", text="start after()");
 		// writeDump(request._zero.controllerResult);
-		// writeDump(rc);
-		// abort;
+		
 
 		if(isNull(request._zero.controllerResult)){
 			if(variables.zero.throwOnNullControllerResult){
@@ -236,12 +235,12 @@ component extends="one" {
 			return struct;
 		} 
 
-		recurseAndLowerCaseTheKeys(request._zero.controllerResult);
+		recurseAndLowerCaseTheKeys(request._zero.controllerResult);		
 		
 		structAppend(rc, client);
 
 		switch(request._zero.contentType){
-			case "json":
+			case "json":				
 				//If we are allowing null data, then we're going to putput an empty object
 				if(isNull(request._zero.controllerResult)){
 					renderData("json", {});
@@ -317,12 +316,42 @@ component extends="one" {
 
 				if(rc.keyExists("goto")){					
 
+					if(structKeyExists(form,"map_response")){
+						var maps = deserializeJson(form.map_response);
+						for(var map in maps){
+							for(var key in map){
+								var result = evaluate("request._zero.controllerResult.#key#");
+								var value = map[key];
+								request._zero.controllerResult[value] = result;					
+							}
+						}
+					}
+
 					if(structKeyExists(form,"preserve_response")){
 						if(isBoolean(form.preserve_response)){
 							var prefix = "preserve_response";
 						} else if(trim(form.preserve_response) == ""){
 							var prefix = "preserve_response";
-						} else {
+						} else if(isJson(form.preserve_response)){
+
+							var actions = deserializeJson(form.preserve_response);
+							for(var action in actions){
+								if(action == "map"){
+									var newResult = {}
+									var maps = actions[action];
+									for(var map in maps){
+										for(var key in map){
+											var result = evaluate("request._zero.controllerResult.#key#");
+											var value = map[key];
+											newResult[value] = result;					
+										}
+									}
+									request._zero.controllerResult = newResult;
+									var prefix = "preserve_response";
+								}
+							}
+						}
+						else {
 							var prefix = "preserve_response.#form.preserve_response#";
 						}
 						// writeDump(prefix);
@@ -330,6 +359,7 @@ component extends="one" {
 						var formKeys = flattenDataStructureForCookies(data=request._zero.controllerResult, prefix=prefix, ignore="delete_key,goto,preserve_form,submit_overload,redirect,map,preserve_response");						
 						cookie.append(formKeys);						
 					}
+
 
 					if(form.keyExists("preserve_form")){
 
@@ -388,6 +418,7 @@ component extends="one" {
 					// writeDump(now());
 					// abort;
 					request._zero.zeroClient.persist();
+					
 					location url="#goto#" addtoken="false" statuscode="303";
 				}								
 
@@ -417,6 +448,8 @@ component extends="one" {
 					rc.errors = request._zero.argumentErrors;
 				}
 
+				rc = recurseAndLowerCaseTheKeys(rc); 
+				
 				request.context = rc;
 
 				request._zero.zeroClient.persist();				
@@ -430,7 +463,7 @@ component extends="one" {
 		writeLog(file="zero_trace", text="start before()");
 		doTrace(rc, "RC before()");
 
-
+		request._zero.argumentErrors = {};		
 
 		if(url.keyExists("clearClient")){
 			structClear(client);
@@ -537,10 +570,10 @@ component extends="one" {
 			}
 		}		
 		
-		request._zero.zeroClient = new zeroClient();
+		request._zero.zeroClient = new zeroClient();		
 		if(url.keyExists("clearClient")){
 			// writeDump(request._zero.zeroClient.getValues());
-			request._zero.zeroClient.getValues().clear();
+			request._zero.zeroClient.clear();
 			request._zero.zeroClient.persist();
 			// abort;
 		}
@@ -734,6 +767,10 @@ component extends="one" {
 		return request._zero.zeroFormState;
 	}
 
+	public function deserializeObject(){
+
+	}
+
 	function recurseFindCFCArguments(any data, component cfc, method="init", errors={}, forceArgumentCollection=false){
 		
 		var out = {}
@@ -825,6 +862,10 @@ component extends="one" {
 					}
 
 				} catch(any e){
+					// writeDump(e);
+					// writeDump(newArgs);
+					// writeDump(newCfc);
+					// abort;
 					addError(arguments.name, {message:e.message, original_value:arguments.data});	
 					return ;
 				}
@@ -927,6 +968,21 @@ component extends="one" {
 						}
 					}
 
+					if(arg.type == "zeroClient"){
+
+						if(arg.keyExists("required") and arg.required){
+							if(!request._zero.keyExists("zeroClient")){
+								throw("Could not load the form state but it was marked as required. Ensure that a form state is created before calling this controller function");
+							}
+							out.insert(arg.name, request._zero.zeroClient);
+							continue;
+						} else {
+							if(request._zero.keyExists("zeroClient")){
+								out.insert(arg.name, request._zero.zeroClient);
+							}
+						}
+					}
+
 
 					if(data.keyExists(arg.name)){						
 						var populatedArg = getArgumentValues(name=arg.name, type=arg.type, isRequired=true, data=data[arg.name]);
@@ -979,9 +1035,8 @@ component extends="one" {
 				request.context[keyNoUnderscore] = request.context[key];
 			}
 		}
-
-		request._zero.argumentErrors = {};		
-		argsToPass = recurseFindCFCArguments(data=request.context, cfc=cfc, method=method, errors=request._zero.argumentErrors, forceArgumentCollection=true);		
+		
+		argsToPass = recurseFindCFCArguments(data=request.context, cfc=cfc, method=method, errors=request._zero.argumentErrors, forceArgumentCollection=true);	
 		return argsToPass;
     }
 
@@ -1504,7 +1559,8 @@ component extends="one" {
 		}			
 	}
 
-	function onRequest(){		
+	function onRequest(){	
+
 		writeLog(file="zero_trace", text="start onRequest()");		
 
 		if(!request.keyexists("zeroTrace")){
@@ -1544,7 +1600,9 @@ component extends="one" {
 		}
 
 		finalOutput = response(finalOutput);
-		finalOutput = injectCSRFIntoForms(finalOutput);
+		if(variables.zero.csrfPRotect){
+			finalOutput = injectCSRFIntoForms(finalOutput);			
+		}
 		writeOutput(finalOutput);		
 
 		if(variables.zero.traceRequests){
@@ -1583,8 +1641,36 @@ component extends="one" {
 		super.onSessionStart();
 	}	
 
-	function onRequestStart(){
-		writeLog(file="zero_trace", text="start onRequestStart()");
+	function onRequestStart(){	
+		/*
+		Global framework rewrite of the request scope. Allows mimicing HTML 5 
+		nested form feature, which is not currently supported by Internet Explorer.
+		Will introspect the form data and override the copied CGI information
+		with the route in the form so what fw/1 routes pick the intended controller
+		 */	
+		if(structKeyExists(form,"zero_form")){
+			zeroForms = listToArray(form.zero_form);
+			for(zeroFormName in zeroForms){			
+				if(structKeyExists(form,zeroFormName)){
+					formgroup = duplicate(form[zeroFormName]);			
+					if(structKeyExists(formgroup,"submit")){
+						actionPathInfo = replaceNoCase(formgroup.action, copyCGI.SCRIPT_NAME, "");
+						copyCGI.path_info = actionPathInfo;	
+						copyCGI.request_method = formgroup.method;
+
+						originalForm = duplicate(form);
+						structClear(form);
+						structAppend(form,formgroup.data);									
+						if(formgroup.preserveParentInputs){
+							structAppend(form, originalForm);	
+						} 				
+					}							
+				}
+			}
+		}	
+
+		
+		writeLog(file="zero_trace", text="start onRequestStart()");		
 		variables.zero.throwOnNullControllerResult = variables.zero.throwOnNullControllerResult?: true;
 		variables.zero.argumentCheckedControllers = variables.zero.argumentCheckedControllers?: true;
 		variables.zero.equalizeSnakeAndCamelCase = variables.zero.equalizeSnakeAndCamelCase?: true;

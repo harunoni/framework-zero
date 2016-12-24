@@ -2,35 +2,35 @@ $(document).ready(function() {
 
 	var lastButtonClickedValue = {};
 
-	var allFormButtons = $('form').find('button');
-	allFormButtons.each(function(index, element){
-		var element = $(element);
-		$(element).on('click', function(){
+	// var allFormButtons = $('form').find('button');
+	// allFormButtons.each(function(index, element){
+	// 	var element = $(element);
+	// 	$(element).on('click', function(){
 
-			var attr = element.attr('zero-submit-text');
-			// For some browsers, `attr` is undefined; for others, `attr` is false. Check for both.
-			if (typeof attr !== typeof undefined && attr !== false) {
-			  	element.html(attr);
-			}
+	// 		var attr = element.attr('zero-submit-text');
+	// 		// For some browsers, `attr` is undefined; for others, `attr` is false. Check for both.
+	// 		if (typeof attr !== typeof undefined && attr !== false) {
+	// 		  	element.html(attr);
+	// 		}
 			
-			element.prepend('<i class="fa fa-circle-o-notch fa-spin"></i> ');
-			element.addClass('disabled');
+	// 		element.prepend('<i class="fa fa-circle-o-notch fa-spin"></i> ');
+	// 		element.addClass('disabled');
 
-			// console.log(icon.hasClass('fa'));
+	// 		// console.log(icon.hasClass('fa'));
 
-			// var oldClass = icon.attr('class');
+	// 		// var oldClass = icon.attr('class');
 
-			// if(icon.hasClass('fa-refresh')){
-			// 	icon.addClass('fa-spin');						
-			// } else {
-			// 	icon.removeClass();
-			// 	icon.addClass('fa fa-circle-o-notch fa-spin');
-			// }
+	// 		// if(icon.hasClass('fa-refresh')){
+	// 		// 	icon.addClass('fa-spin');						
+	// 		// } else {
+	// 		// 	icon.removeClass();
+	// 		// 	icon.addClass('fa fa-circle-o-notch fa-spin');
+	// 		// }
 
-		});
+	// 	});
 
-	});
-	console.log(allFormButtons);
+	// });
+	// console.log(allFormButtons);
 
 	var zeroAjax = function(html){
 		var zeroForms = $(html).find('form[zero-target]');
