@@ -1,4 +1,4 @@
-component extends="valueObject" {
+component extends="valueObject" implements="zero.lib.printable" {
 
 	public valueObject function init(required value){		
 		if(trim(arguments.value == "")){

@@ -825,8 +825,12 @@ component extends="one" {
 		}
 
 		var tryComplexObject = function(name, type, data){
-
+			
 			var filePaths = [
+				{
+					file:expandPath("/zero/validations/#arguments.type#.cfc"),
+					com:"zero.validations.#arguments.type#"
+				},
 				{
 					file:expandPath("/#variables.zero.argumentModelValueObjectPath#/#arguments.type#.cfc"),
 					com:"#variables.zero.argumentModelValueObjectPath#.#arguments.type#"
@@ -1639,7 +1643,14 @@ component extends="one" {
 		writeLog(file="zero_trace", text="start onSessionStart()");
 		loadAvailableControllers();		
 		super.onSessionStart();
-	}	
+	}
+
+	/**
+	 * Wraps the print object and outputs the result	 * 
+	 */
+	public function print(required any value=""){
+		return new lib.print(arguments.value).toString();		
+	}
 
 	function onRequestStart(){	
 		/*
