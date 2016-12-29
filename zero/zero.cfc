@@ -1,6 +1,8 @@
 import serializer;
 component extends="one" {	
 
+	installCustomFunctions();
+
 	copyCGI = duplicate(CGI);	
 	
 	/*
@@ -1289,6 +1291,33 @@ component extends="one" {
     	}
     }
 
+    private function installCustomFunctions(){
+
+    	var webInfPath = expandPath("{lucee-web}");
+    	var paths = [
+    		{
+    			source:expandPath("/zero/lib/print.cfc"),
+    			destination:webInfPath&"/library/function/print.cfc"
+    		},
+    		{
+    			source:expandPath("/zero/lib/print.cfm"),
+    			destination:webInfPath&"/library/function/print.cfm"
+    		},
+    	];
+
+    	var didCopy = false;
+    	for(var path in paths){
+    		if(!fileExists(path.destination)){
+    			fileCopy(path.source, path.destination);
+    			didCopy = true;
+    		}
+    	}
+
+    	if(didCopy){
+    		throw("Zero installed custom functions to Lucee, please restart Lucee to continue");
+    	}
+    }
+
     public function recurseConvertStructArrayToArrays(data){
     	out = data
     	var recurseStructs = function(str){
@@ -1649,7 +1678,7 @@ component extends="one" {
 	 * Wraps the print object and outputs the result	 * 
 	 */
 	public function print(required any value=""){
-		return new lib.print(arguments.value).toString();		
+		return new lib.print(arguments.value);		
 	}
 
 	function onRequestStart(){	
