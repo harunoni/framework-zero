@@ -64,6 +64,8 @@ $(document).ready(function() {
 					} else {
 						icon.removeClass();
 						icon.addClass('fa fa-circle-o-notch fa-spin');
+						console.log('buttons');
+						// alert();
 					}
 
 					formButton.attr('disabled', true);
@@ -110,15 +112,24 @@ $(document).ready(function() {
 		                    } else {
 		                    	// console.log(result);
 		                		var response = $('<html />').html(result);
-		                		// console.log(response);
-		                    	var targetHTML = $(response).find(target);
-		                    	// console.log(targetHTML);
-		                    	targetPut = $(target);
-		                    	if(!targetPut.length){
-		                    		throw "Could not find the target " + target + " check your references and ensure it exists";
+		                		
+		                		/*
+		                		The target can be a comma separated list of targets. This is useful for updating a number
+		                		of sections on the page based on the response
+		                		 */
+		                    	var targetArray = target.split(',');
+		                    	
+		                    	for(var i=0; i < targetArray.length; i++){
+		                    		
+			                    	var targetHTML = $(response).find(targetArray[i]);
+			                    	// console.log(targetHTML);
+			                    	targetPut = $(targetArray[i]);
+			                    	if(!targetPut.length){
+			                    		throw "Could not find the target " + targetArray[i] + " check your references and ensure it exists";
+			                    	}
+			                    	// console.log(targetPut);		                    
+			                    	targetPut.html(targetHTML.html());
 		                    	}
-		                    	// console.log(targetPut);		                    
-		                    	targetPut.html(targetHTML.html());
 		                    	
 		                    	formButton.removeAttr('disabled');                    	
 		                    }

@@ -1,7 +1,7 @@
 import serializer;
 component extends="one" {	
 
-	installCustomFunctions();
+	// installCustomFunctions();
 
 	copyCGI = duplicate(CGI);	
 	
@@ -134,6 +134,7 @@ component extends="one" {
 
 	variables.zero.argumentModelValueObjectPath = "model";
 	variables.zero.throwOnFirstArgumentError = variables.zero.throwOnFirstArgumentError ?: false;
+	variables.zero.validationPaths = variables.zero.validationPaths ?: [];
 
 	variables.framework.resourceRouteTemplates = [
 	  { method = 'validate', httpMethods = [ '$POST' ], routeSuffix = '/validate' },
@@ -841,8 +842,17 @@ component extends="one" {
 					file:expandPath("/validations/#arguments.type#.cfc"),
 					com:"validations.#arguments.type#"
 				},			
-			];	
+			];
 
+			if(variables.zero.keyExists("validationPaths")){
+				for(var path in variables.zero.validationPaths){
+					path.file = path.file.replaceNoCase("*", arguments.type);
+					path.com = path.com.replaceNoCase("*", arguments.type);
+					filePaths.append(path)
+				}
+			}
+
+			//Search all of the provided paths for the component
 			var componentPath = nullValue();
 			for(var path in filePaths){
 				if(fileExists(path.file)){	
@@ -1294,13 +1304,14 @@ component extends="one" {
     private function installCustomFunctions(){
 
     	var webInfPath = expandPath("{lucee-web}");
+    	var sourcePath = getDirectoryFromPath(getCurrentTemplatePath());    	
     	var paths = [
     		{
-    			source:expandPath("/zero/lib/print.cfc"),
+    			source:sourcePath&"/lib/print.cfc",
     			destination:webInfPath&"/library/function/print.cfc"
     		},
     		{
-    			source:expandPath("/zero/lib/print.cfm"),
+    			source:sourcePath&"/lib/print.cfm",
     			destination:webInfPath&"/library/function/print.cfm"
     		},
     	];
@@ -1722,6 +1733,7 @@ component extends="one" {
 		variables.zero.traceRequests = variables.zero.traceRequests ?: false;
 		variables.zero.cacheControllers = variables.zero.cacheControllers ?: false;	
 		variables.zero.throwOnFirstArgumentError = variables.zero.throwOnFirstArgumentError ?: false;
+		variables.zero.validationPaths = variables.zero.validationPAths ?: [];
 		
 		if(isNull(application.zero)){application.zero = {}};
 		
