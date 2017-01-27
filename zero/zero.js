@@ -32,7 +32,7 @@ $(document).ready(function() {
 	// });
 	// console.log(allFormButtons);
 
-	var zeroAjax = function(html){
+	zeroAjax = function(html){
 		var zeroForms = $(html).find('form[zero-target]');
 		$(zeroForms).off('submit');
 
@@ -48,10 +48,14 @@ $(document).ready(function() {
 			
 			if(gotoAndCurrentPathAreTheSame){
 				$(zeroForms[i]).on('submit',function(event){
+
+					var event = event;
 					event.preventDefault();
 					// console.log(event);
 
 					var form = $(event.target);
+					console.log(form);
+					console.log(form[0].action);
 					var target = form.attr('zero-target');
 					var formButton = $(form).find('button');					
 					var icon = $(formButton).find('i');
@@ -74,7 +78,7 @@ $(document).ready(function() {
 					// console.log(data);
 
 					// Use Ajax to submit form data. Add the button value to the submit					
-					formData = form.serializeArray();					
+					var formData = form.serializeArray();					
 					formData.push(lastButtonClickedValue);
 
 					/*
@@ -82,8 +86,11 @@ $(document).ready(function() {
 					feature to send forms to a different URL. If so, this needs to override the
 					form's action. There is no way in Javascript cross browser, to get the
 					button's formaction from the onSubmit event.
-					 */
 					
+					We need to know what button the user last clicked to determine if we are to
+					load the form action from the button, or to load it from
+					the form's action.
+					 */					
 					if(typeof lastButtonClickedElement != 'undefined' && lastButtonClickedElement){
 						var buttonHasFormAction = $(lastButtonClickedElement).attr('formaction');
 						if(typeof buttonHasFormAction != 'undefined' && buttonHasFormAction){
@@ -94,6 +101,8 @@ $(document).ready(function() {
 					} else {
 						var formAction = form.attr('action');
 					}
+
+					console.log(formAction);
 
 		            $.ajax({
 		                url: formAction,
@@ -106,8 +115,11 @@ $(document).ready(function() {
 		                    
 		                    // http://stackoverflow.com/questions/14423257/find-body-tag-in-an-ajax-html-response
 		                    if(target == 'body'){
-		                    	var targetHTML = result.substring(result.indexOf("<body>")+6,result.indexOf("</body>"));
-								targetPut = $('body');		                    
+		                    	var targetHTML = result.substring(result.indexOf("<body>")+6,result.indexOf("</body>"));                    	
+								
+								
+
+								var targetPut = $('body');		                    
 		                    	targetPut.html(targetHTML);
 		                    } else {
 		                    	// console.log(result);
@@ -123,7 +135,7 @@ $(document).ready(function() {
 		                    		
 			                    	var targetHTML = $(response).find(targetArray[i]);
 			                    	// console.log(targetHTML);
-			                    	targetPut = $(targetArray[i]);
+			                    	var targetPut = $(targetArray[i]);
 			                    	if(!targetPut.length){
 			                    		throw "Could not find the target " + targetArray[i] + " check your references and ensure it exists";
 			                    	}
@@ -133,6 +145,10 @@ $(document).ready(function() {
 		                    	
 		                    	formButton.removeAttr('disabled');                    	
 		                    }
+
+		                    /* Undo the last button clicked because we do not want this to interfere with subsequent zero-autos
+		                    */		                    
+		                    delete lastButtonClickedElement;
 
 		                    icon.removeClass();
 		                    icon.addClass(oldClass);
@@ -190,6 +206,8 @@ $(document).ready(function() {
 			// console.log(auto);
 			var timeout = $(auto).attr('zero-auto');
 			setTimeout(function(){
+				console.log(auto);
+				// throw "";
 				$(auto).trigger("submit");
 			}, timeout * 1000)
 		}

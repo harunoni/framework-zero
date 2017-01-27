@@ -134,7 +134,6 @@ component extends="one" {
 
 	variables.zero.argumentModelValueObjectPath = "model";
 	variables.zero.throwOnFirstArgumentError = variables.zero.throwOnFirstArgumentError ?: false;
-	variables.zero.validationPaths = variables.zero.validationPaths ?: [];
 
 	variables.framework.resourceRouteTemplates = [
 	  { method = 'validate', httpMethods = [ '$POST' ], routeSuffix = '/validate' },
@@ -852,7 +851,6 @@ component extends="one" {
 				}
 			}
 
-			//Search all of the provided paths for the component
 			var componentPath = nullValue();
 			for(var path in filePaths){
 				if(fileExists(path.file)){	
@@ -1733,7 +1731,6 @@ component extends="one" {
 		variables.zero.traceRequests = variables.zero.traceRequests ?: false;
 		variables.zero.cacheControllers = variables.zero.cacheControllers ?: false;	
 		variables.zero.throwOnFirstArgumentError = variables.zero.throwOnFirstArgumentError ?: false;
-		variables.zero.validationPaths = variables.zero.validationPAths ?: [];
 		
 		if(isNull(application.zero)){application.zero = {}};
 		
