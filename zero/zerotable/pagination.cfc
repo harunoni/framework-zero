@@ -52,9 +52,15 @@ component accessors="true" {
 			if(i == 1){
 				var start = 1;
 				var end = max;
+				if(end > getTotalItems()){
+					end = getTotalItems();
+				}
 			} else {
 				var start = ((i-1) * variables.max) + 1;
 				var end = start + max - 1;
+				if(end > getTotalItems()){
+					end = getTotalItems();
+				}
 			}		
 
 			out.append(new page(i, "", start, end));

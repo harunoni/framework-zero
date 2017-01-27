@@ -106,8 +106,8 @@ component output="false" displayname=""  {
 				}
 			} else {
 				local.entity = arguments.entity;
+				// writeDump(local.entity);				
 			}
-
 
 			local.prop = getAllProperties(local.entity);
 			local.out = {};
@@ -168,11 +168,12 @@ component output="false" displayname=""  {
 
 						}
 					}
-				} else {					
+				} else {
+
 					if(!structKeyExists(prop,"serializeJson") OR (structKeyExists(prop,"serializeJson") AND prop.serializeJson IS NOT false)){	
 
 						try {
-							local.getValue = evaluate('entity.get#prop.name#()');							
+							local.getValue = evaluate('entity.get#prop.name#()');				
 						} catch(any e){
 							throw(e);
 							// // writeDump(entity);
@@ -196,8 +197,19 @@ component output="false" displayname=""  {
 							if(includes.keyExists(prop.name)){
 								out[camelToUnderscore(prop.name)] = new serializer().serializeEntity(local.getValue, includes[prop.name]);
 							}
+						} else if(isArray(local.getValue)){
+
+							if(includes.keyExists(prop.name)){
+								out[camelToUnderscore(prop.name)] = [];
+								for(var item in local.getValue){
+									writeDump(item);
+									abort;
+									out[camelToUnderscore(prop.name)].append(new serializer().serializeEntity(item, includes[prop.name]));
+								}								
+							}
+
 						}
-						else {
+						else {							
 							out[camelToUnderscore(prop.name)] = local.getValue;
 						}
 					}
