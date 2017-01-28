@@ -6,15 +6,15 @@ component implements="data"{
 		return this;
 	}
 
-	public function sort(required string column, required string direction){
-		throw("not implemented");
+	public function sort(required string column, required string direction){		
+		return variables.data;
 	}
 
 	public int function count(){
 		return arrayLen(variables.data);
 	}
 
-	public array function list(){
+	public array function list(required string max, required string offset){
 		return variables.data;
 	}
 

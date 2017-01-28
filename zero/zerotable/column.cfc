@@ -7,15 +7,17 @@ component accessors="true"{
 	property name="isSorted" type="boolean";
 	property name="isSortedDesc" type="boolean";
 	property name="isSortedAsc" type="boolean";
-	property name="sortAscLink" type="boolean";
+	property name="sortAscLink";
 	property name="sortDescLink";
 	property name="edit" type="boolean";
 	property name="editable" type="boolean";
 	property name="columnType" type="struct" setter="false";
+	property name="isPrimary" type="boolean" setter="false";
 
 	public function init(required string columnName, 
-						 boolean editable, 
-						 struct columnType){
+						 boolean editable=false, 
+						 struct columnType,
+						 boolean isPrimary=false){
 		variables.columnName = arguments.columnName;
 
 		if(arguments.keyExists("columnType")){
@@ -24,6 +26,11 @@ component accessors="true"{
 			variables.columnType = {"text":true}	
 		}
 
+		variables.isPrimary = arguments.isPrimary;
+		variables.editable = arguments.editable;
+		variables.isSorted = false;
+		variables.isSortedDesc = false;
+		variables.isSortedAsc = false;
 		return this;
 	}
 
@@ -33,5 +40,15 @@ component accessors="true"{
 		} else {
 			return false;
 		}
+	}
+
+	public function setIsSortedAsc(){
+		variables.isSortedAsc = true;
+		variables.isSortedDesc = false;
+	}
+
+	public function setIsSortedDesc(){
+		variables.isSortedAsc = false;
+		variables.isSortedDesc = true;
 	}
 }

@@ -32,6 +32,12 @@ component accessors="true" {
 		return getPages()[1];
 	}
 
+	public function getHasLastPage(){return hasLastPage();}
+	public function getHasNextPage(){return hasNextPage();}
+	public function getHasPreviousPage(){return hasPreviousPage();}
+	public function getIsLastPage(){return isLastPage();}
+	public function getIsFirstPage(){return isFirstPage();}
+
 	public page function getLastPage(){
 		return getPages()[getTotalPages()];
 	}
