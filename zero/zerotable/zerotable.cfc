@@ -13,10 +13,10 @@ component accessors="true" {
 	property name="offset";
 
 
-	public function init(required Rows Rows){
+	public function init(required Rows Rows, required numeric max=10, required numeric offset=1){
 		variables.Rows = arguments.Rows;
-		variables.max = 10;
-		variables.offset = 1;
+		variables.max = arguments.max;
+		variables.offset = arguments.offset;
 		variables.columns = [];
 		variables.qs = new queryString(cgi.query_string);
 	}
@@ -79,7 +79,7 @@ component accessors="true" {
 	}
 
 	public pagination function getPagination(){
-		return new pagination(variables.Rows);
+		return new pagination(data=variables.Rows, max=variables.max);
 	}
 
 	public optional function getPrimaryColumn(){

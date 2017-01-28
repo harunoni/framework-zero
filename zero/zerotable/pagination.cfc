@@ -21,9 +21,9 @@ component accessors="true" {
 	property name="totalItems" setter="false"; //
 	property name="totalPages" setter="false"; //
 
-	public function init(required data data){
+	public function init(required data data, required numeric max=10){
 		variables.data = arguments.data;
-		variables.max = 10;		
+		variables.max = arguments.max;		
 		setCurrentPage(getFirstPage());
 		return this;
 	}
