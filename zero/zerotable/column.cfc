@@ -36,7 +36,9 @@ component accessors="true"{
 
 	public function equals(required column){
 		if(arguments.column.getColumnName() == variables.columnName){
-		return true
+			// writeDump(variables.columnName);
+			// writeDump(arguments.column.getColumnName());
+			return true
 		} else {
 			return false;
 		}

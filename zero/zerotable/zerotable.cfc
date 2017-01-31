@@ -11,13 +11,18 @@ component accessors="true" {
 	property name="pagination" setter="false";
 	property name="max";
 	property name="offset";
+	property name="sort";
+	property name="direction";
+	property name="currentPageId";
 
 
-	public function init(required Rows Rows, required numeric max=10, required numeric offset=1){
+	public function init(required Rows Rows, required numeric max=10, required numeric offset=1, showMaxPages=10){
 		variables.Rows = arguments.Rows;
 		variables.max = arguments.max;
 		variables.offset = arguments.offset;
 		variables.columns = [];
+		variables.showMaxPages = arguments.showMaxPages;
+		variables.currentPageId = 1;
 		variables.qs = new queryString(cgi.query_string);
 	}
 
@@ -79,7 +84,7 @@ component accessors="true" {
 	}
 
 	public pagination function getPagination(){
-		return new pagination(data=variables.Rows, max=variables.max);
+		return new pagination(data=variables.Rows, max=variables.max, queryString=variables.qs, currentPageId=variables.currentPageId, showMaxPages=variables.showMaxPages);
 	}
 
 	public optional function getPrimaryColumn(){
@@ -96,10 +101,17 @@ component accessors="true" {
 		return variables.serializedRows;
 	}
 
+	public void function pageTo(required numeric id){
+		variables.currentPageId = arguments.id;
+	}
 
 	public function sort(required string column, required string direction){
 		variables.Rows.sort(argumentCollection=arguments);
 		var column = findColumnByName(arguments.column).elseThrow("The column name #arguments.column# was not a valid name");
+
+		variables.sort = column.getColumnName();
+		variables.direction = arguments.direction;
+		variables.qs.setValues({"sort":column.getColumnName(), dir:arguments.direction});
 		column.setIsSorted(true);		
 		if(direction == "asc"){
 			column.setIsSortedAsc(true);

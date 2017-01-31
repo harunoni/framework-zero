@@ -21,9 +21,12 @@ component accessors="true" {
 	property name="totalItems" setter="false"; //
 	property name="totalPages" setter="false"; //
 
-	public function init(required data data, required numeric max=10){
+	public function init(required data data, required numeric max=10, required queryString queryString, required numeric currentPageId, required numeric showMaxPages){
 		variables.data = arguments.data;
-		variables.max = arguments.max;		
+		variables.max = arguments.max;
+		variables.queryString = arguments.queryString;
+		variables.showMaxPages = arguments.showMaxPages;
+		variables.currentPageId = arguments.currentPageId;
 		setCurrentPage(getFirstPage());
 		return this;
 	}
@@ -39,7 +42,7 @@ component accessors="true" {
 	public function getIsFirstPage(){return isFirstPage();}
 
 	public page function getLastPage(){
-		return getPages()[getTotalPages()];
+		return getPages().last();
 	}
 
 	public optional function getNextPage(){
@@ -67,10 +70,21 @@ component accessors="true" {
 				if(end > getTotalItems()){
 					end = getTotalItems();
 				}
-			}		
-
-			out.append(new page(i, "", start, end));
+			}
+			out.append(new page(i, variables.queryString.setValues({"page":i}).get(), start, end));
 		}
+
+		if(variables.showMaxPages > 0){
+			var half = variables.showMaxPages;
+			var min = variables.currentPageId - half;
+			if(min < 0){min = 1}
+			var max = min + variables.showMaxPages;
+			if(max > getTotalPages()){
+				max = getTotalPages();
+			}
+			var out = out.slice(min, max);			
+		}
+
 		return out;
 	}
 
