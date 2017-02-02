@@ -3,6 +3,7 @@
 */
 import _vendor.cborm.models.BaseORMService;
 component implements="data" {
+
 	public function init(){
 
 		//BUILD QUERY/SORTING CRITERIA
@@ -23,19 +24,20 @@ component implements="data" {
 		return variables.Criteria;
 	}
 
-	public int function count(){
+	public numeric function count(){
 		return variables.CountCriteria.count();
 	}
 
-	public function sort(required string column, required string direction){
-		variables.Criteria.order(arguments.column, arguments.direction);	
+	public function sort(required string column, required string direction){		
+		variables.Criteria.order(arguments.column, arguments.direction);		
 	};
 	
 	public array function list(required string max=10, required string offset=1){
 		return variables.Criteria.list(max=arguments.max, offset=arguments.offset);
 	};
 
-	public void function search(required string term){
+	public void function search(required string searchString){
+
 
 		variables.Criteria.OR(
 				//At beginning of string
@@ -44,15 +46,15 @@ component implements="data" {
 				// Criteria.restrictions.like("price","#search#%"),
 
 				
-				Criteria.restrictions.like("category","#arguments.search#"),
-				Criteria.restrictions.like("name","#arguments.search#"),					
-				Criteria.restrictions.like("price","#arguments.search#")
+				Criteria.restrictions.ilike("name","%#arguments.searchString#%"),					
+				Criteria.restrictions.ilike("category","%#arguments.searchString#%"),
+				Criteria.restrictions.ilike("price","%#arguments.searchString#%")
 
 				
 				// Criteria.restrictions.like("category","%#search#"),
 				// Criteria.restrictions.like("name","%#search#"),					
 				// Criteria.restrictions.like("price","%#search#")
-			)
+			)		
 
 	}
 

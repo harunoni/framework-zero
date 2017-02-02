@@ -6,11 +6,8 @@ component implements="data"{
 		return this;
 	}
 
-	public function sort(required string column, required string direction){		
-		return variables.data;
-	}
 
-	public int function count(){
+	public numeric function count(){
 		return arrayLen(variables.data);
 	}
 
@@ -18,4 +15,11 @@ component implements="data"{
 		return variables.data;
 	}
 
+	public void function search(required string searchString){
+		// throw("not implemented");
+	}
+
+	public function sort(required string column, required string direction){		
+		return variables.data;
+	}
 }

@@ -13,17 +13,27 @@ component accessors="true"{
 	property name="editable" type="boolean";
 	property name="columnType" type="struct" setter="false";
 	property name="isPrimary" type="boolean" setter="false";
+	property name="filter" type="array" setter="false";
+	property name="filterable" type="boolean" setter="false"; 
 
 	public function init(required string columnName, 
 						 boolean editable=false, 
 						 struct columnType,
-						 boolean isPrimary=false){
+						 boolean isPrimary=false,
+						 array filter){
 		variables.columnName = arguments.columnName;
 
 		if(arguments.keyExists("columnType")){
 			variables.columnType = arguments.columnType;
 		} else {
 			variables.columnType = {"text":true}	
+		}
+
+		if(arguments.keyExists("filter")){
+			variables.filter = arguments.filter;
+			variables.filterable = true;
+		} else {
+			variables.filterable = false;			
 		}
 
 		variables.isPrimary = arguments.isPrimary;

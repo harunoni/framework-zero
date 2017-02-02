@@ -73,16 +73,21 @@ component output="false" displayname=""  {
 			}
 
 		}
-		else if(isStruct(arguments.entity) AND NOT isObject(arguments.entity)){
-			local.out = {};
-			// writeDump(entity);
+		else if(isStruct(arguments.entity) AND NOT isInstanceOf(arguments.entity, "component")){
+			local.out = {};			
 			if(!structIsEmpty(entity)){
 				for(key IN entity){
 					if(isNull(entity[key])){				
 						out[camelToUnderscore(key)] = convertNullToEmptyString(entity[key]?:nullValue());
 						// out[camelToUnderscore(key)] = "";
-					} else {
-						out[camelToUnderscore(key)] = serializeEntity(entity[key], includes);						
+					} else {	
+						try {
+							out[camelToUnderscore(key)] = serializeEntity(entity[key], includes);													
+						}catch(any e){
+							writeDump(arguments.entity);
+							writeDump(e);
+							abort;
+						}
 					}
 				};
 			}			
@@ -101,8 +106,9 @@ component output="false" displayname=""  {
 			if(isInstanceOf(arguments.entity, "Optional")){
 				if(arguments.entity.exists()){
 					local.entity = arguments.entity.get();
+					return new serializer().serializeEntity(local.entity, includes);
 				} else {
-					throw "The entity via an Optional object did not exist so we cannot use it";
+					return "";
 				}
 			} else {
 				local.entity = arguments.entity;

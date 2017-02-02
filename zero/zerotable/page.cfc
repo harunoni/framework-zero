@@ -7,12 +7,14 @@ component accessors="true" {
 	property name="link" setter="false";
 	property name="startIndex" setter="false";
 	property name="endIndex" setter="false";
+	property name="isCurrentPage" setter="false";
 
-	public function init(required numeric id, required string link, required int startIndex, required int endIndex){
+	public function init(required numeric id, required string link, required numeric startIndex, required numeric endIndex, required boolean isCurrentPage){
 		variables.id = arguments.id;
 		variables.link = arguments.link;
 		variables.startIndex = arguments.startIndex;
 		variables.endIndex = arguments.endIndex;
+		variables.isCurrentPage = arguments.isCurrentPage;
 		return this;
 	}
 
