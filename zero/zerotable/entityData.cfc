@@ -25,10 +25,17 @@ component implements="data" {
 	}
 
 	public numeric function count(){
-		return variables.CountCriteria.count();
+
+		if(!isNull(variables.countCache)){
+			return variables.countCache;
+		} else {
+			variables.countCache = variables.CountCriteria.count();						
+			return variables.countCache;
+		}						
 	}
 
 	public function sort(required string column, required string direction){		
+		// structDelete(variables,"countCache");
 		variables.Criteria.order(arguments.column, arguments.direction);		
 	};
 	
@@ -36,9 +43,8 @@ component implements="data" {
 		return variables.Criteria.list(max=arguments.max, offset=arguments.offset);
 	};
 
-	public void function search(required string searchString){
-
-
+	public void function search(required string searchString){		
+		// structDelete(variables,"countCache");
 		variables.Criteria.OR(
 				//At beginning of string
 				// Criteria.restrictions.like("category","#search#%"),

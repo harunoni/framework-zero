@@ -32,10 +32,10 @@ component accessors="true" {
 		variables.isSortedById = false;
 		// variables.searchString = "";
 		variables.qs = new queryString(cgi.query_string);
-		variables.qs.setValues({
-			"max":variables.max,
-			"offset":variables.offset
-		});
+		// variables.qs.setValues({
+		// 	"max":variables.max,
+		// 	"offset":variables.offset
+		// });
 	}
 
 	
