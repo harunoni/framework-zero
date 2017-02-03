@@ -200,4 +200,27 @@ component accessors="true" {
 
 	};
 
+	public struct function toStructure(){
+		var zeroTableOut = new serializer().serializeEntity(this, {
+			rows:{
+
+			},
+			columns:{
+				filter:{}
+			},
+			primaryColumn:{},
+			pagination:{
+				firstPage:{},
+				lastPage:{},
+				currentPage:{},
+				nextPage:{},
+				previousPage:{},
+				summaryPages:{}
+
+			},
+			currentParams:{}
+		});
+		return zeroTableOut;
+	}
+
 }

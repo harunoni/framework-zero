@@ -1486,6 +1486,8 @@ component extends="one" {
 
 		//Add as the last item a universal route for the default subsystem to route anything
 		//to it back to the subsystem		
+		// writeDump(variables.framework.routes);
+		// abort;
 		return variables.framework.routes;
 	}
 
@@ -1517,28 +1519,63 @@ component extends="one" {
 	private array function loadSubsystemControllers(){
 		// variables.framework.routes = [];
 		var subsystems = directoryList(path=expandPath(variables.framework.base));
+
 		for(var subsystem in subsystems){
-			subsystemName = listLast(subsystem, "/");
-			var controllers = directoryList(path="#subsystem#/controllers", filter="*.cfc");
+			
+			subsystemName = listLast(subsystem, server.separator.file);
+			
+			/**
+			 * Routes for the default subsystem must be defined without the 
+			 * subsystem in the route in order for them work. This is  
+			 */
+			if(variables.framework.defaultSubsystem == subsystemName){
+				var controllers = directoryList(path="#subsystem#/controllers", filter="*.cfc");
 
-			for(var controller in controllers){
-				file = getFileFromPath(controller);
-				name = listFirst(file, ".");
-				variables.framework.routes.prepend({ "$RESOURCES" = { resources = name, subsystem = subsystemName } })				
+				for(var controller in controllers){
+					file = getFileFromPath(controller);
+					name = listFirst(file, ".");
+					variables.framework.routes.prepend({ "$RESOURCES" = { resources = name } })				
+					//Runscrit Routes
 
-				var meta = getComponentMetaData("#variables.framework.base#.#subsystemName#.controllers.#name#");
-				var nested = listToArray(meta.nested?:"");
-				for(var nest in nested){
-					//Add nesting
-					variables.framework.routes.prepend({ "$RESOURCES" = { resources = "#name#", nested="#nest#", subsystem = subsystemName} });
-					
-					//Add route for linking resource					
-					variables.framework.routes.prepend({'$POST/#subsystemName#/#name#/:#name#_id/#nest#/:id/link*' = '/#subsystemName#:#nest#/link/#name#_id/:#name#_id/id/:id' });
+					var meta = getComponentMetaData("#variables.framework.base#.#subsystemName#.controllers.#name#");
+					var nested = listToArray(meta.nested?:"");
+					for(var nest in nested){
+						//Add nesting
+						variables.framework.routes.prepend({ "$RESOURCES" = { resources = "#name#", nested="#nest#"} });
+						
+						//Add route for linking resource					
+						variables.framework.routes.prepend({'$POST/#name#/:#name#_id/#nest#/:id/link*' = '/#nest#/link/#name#_id/:#name#_id/id/:id' });
 
-					//Add route for unlinking resource					
-					variables.framework.routes.prepend({'$POST/#subsystemName#/#name#/:#name#_id/#nest#/:id/unlink*' = '/#subsystemName#:#nest#/unlink/#name#_id/:#name#_id/id/:id' });					
+						//Add route for unlinking resource					
+						variables.framework.routes.prepend({'$POST/#name#/:#name#_id/#nest#/:id/unlink*' = '/#nest#/unlink/#name#_id/:#name#_id/id/:id' });					
+					}
 				}
-			}
+
+			} else {
+
+				var controllers = directoryList(path="#subsystem#/controllers", filter="*.cfc");
+
+				for(var controller in controllers){
+					file = getFileFromPath(controller);
+					name = listFirst(file, ".");
+					variables.framework.routes.prepend({ "$RESOURCES" = { resources = name, subsystem = subsystemName } })				
+					//Runscrit Routes
+
+					var meta = getComponentMetaData("#variables.framework.base#.#subsystemName#.controllers.#name#");
+					var nested = listToArray(meta.nested?:"");
+					for(var nest in nested){
+						//Add nesting
+						variables.framework.routes.prepend({ "$RESOURCES" = { resources = "#name#", nested="#nest#", subsystem = subsystemName} });
+						
+						//Add route for linking resource					
+						variables.framework.routes.prepend({'$POST/#subsystemName#/#name#/:#name#_id/#nest#/:id/link*' = '/#subsystemName#:#nest#/link/#name#_id/:#name#_id/id/:id' });
+
+						//Add route for unlinking resource					
+						variables.framework.routes.prepend({'$POST/#subsystemName#/#name#/:#name#_id/#nest#/:id/unlink*' = '/#subsystemName#:#nest#/unlink/#name#_id/:#name#_id/id/:id' });					
+					}
+				}
+
+			}			
 		}
 		return variables.framework.routes;
 	}
