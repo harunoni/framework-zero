@@ -1,1 +1,0 @@
-<!--- You usually will not display data on link but will instead redirect back to a list or read --->
