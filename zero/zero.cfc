@@ -2,7 +2,7 @@ import serializer;
 component extends="one" {	
 
 	// installCustomFunctions();
-
+	
 	copyCGI = duplicate(CGI);	
 	
 	/*
@@ -1558,6 +1558,7 @@ component extends="one" {
 				for(var controller in controllers){
 					file = getFileFromPath(controller);
 					name = listFirst(file, ".");
+
 					variables.framework.routes.prepend({ "$RESOURCES" = { resources = name, subsystem = subsystemName } })				
 					//Runscrit Routes
 
@@ -1573,6 +1574,9 @@ component extends="one" {
 						//Add route for unlinking resource					
 						variables.framework.routes.prepend({'$POST/#subsystemName#/#name#/:#name#_id/#nest#/:id/unlink*' = '/#subsystemName#:#nest#/unlink/#name#_id/:#name#_id/id/:id' });					
 					}
+
+					//Create a universal route for the subsystem to the subsystem name for SES urls
+					variables.framework.routes.append({'/#subsystemName#*' = '/#subsystemName#:\1'});
 				}
 
 			}			

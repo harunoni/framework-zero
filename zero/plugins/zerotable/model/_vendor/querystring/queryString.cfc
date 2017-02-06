@@ -12,6 +12,7 @@ component accessors="true" output="true"
 	property name="defaultDelete" default="" hint="sets the default items to delete from every URL. Overwrites the defaults set in init";
 	property name="domain" type="string" hint="If set, this will be included in the URL out";
 	property name="protocol" default="" type="string" hint="sets the protocol to use in the URL (http, https)" ;
+	property name="basePath" hint="A url base path with which to append the querystring to";
 	property name="dump" default="false";
 	property name="logid" default="";
 	property name="enablelogging" default="false";
@@ -20,7 +21,7 @@ component accessors="true" output="true"
 
 	public function init(string queryString="", struct populate)
 	{	
-
+		
 		if(structKeyExists(arguments,"querystring"))
 		{
 			
@@ -606,6 +607,10 @@ component accessors="true" output="true"
 			if(arraylen(variables.queryStringStruct) GT 0)
 			{
 				local.urlOut = local.urlOut & "?" & serializeQueryStringStruct();
+			}
+
+			if(structKeyExists(variables,"basePath") AND len(variables.basePath) GT 0){
+				local.urlOut = variables.basePath & local.UrlOut;
 			}
 			
 			//Prepend the domain name if exists 
