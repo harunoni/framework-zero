@@ -15,14 +15,18 @@ component accessors="true" {
 	property name="direction";
 	property name="currentPageId";
 	property name="search" setter="false";
+	property name="showMoreLink" setter="false";
+	property name="more" setter="false";
+	property name="nextMore" setter="false";
 	property name="currentLink" setter="false";
 	property name="currentParams" setter="false";
 	property name="currentParamsAsString" setter="false";
 	property name="clearSearchLink" setter="false";
 	property name="clearEditLink" setter="false";
 	property name="basePath" setter="false";
+	property name="useZeroAjax" setter="false";
 
-	public function init(required data Rows, required numeric max=10, required numeric offset=1, showMaxPages=5, string basePath){
+	public function init(required data Rows, required numeric max=10, required numeric offset=1, showMaxPages=5, string basePath="", numeric more=0, useZeroAjax=true){
 		variables.Rows = arguments.Rows;
 		variables.max = arguments.max;
 		variables.offset = arguments.offset;
@@ -32,15 +36,34 @@ component accessors="true" {
 		variables.isSortedById = false;
 		variables.basePath = arguments.basePath;
 		variables.convertCamelCaseToUnderscore = false;
+		variables.useZeroAjax = arguments.useZeroAjax;
 		// variables.searchString = "";
+		variables.customColumns = [];
+		variables.more = arguments.more;
+		variables.nextMore = variables.more + variables.max;
+		
 		variables.qs = new queryString(cgi.query_string);
-		variables.qs.setBasePath(arguments.basePath & "/list");
-		// variables.qs.setValues({
-		// 	"max":variables.max,
-		// 	"offset":variables.offset
-		// });
-	}
+		variables.qs.delete("search")
+					.delete("sort")
+					.delete("submit")
+					.delete("max")
+					.delete("offset")
+					.delete("more")
+					//Not sure why jquery ajax is submitting an undefined variable, but delete it anyway
+					.delete("undefined");
 
+		variables.qs.setValues({
+			"max":variables.max,
+			"offset":variables.offset,
+			"more":variables.more
+		});
+
+		variables.qs.setBasePath(arguments.basePath & "/list");
+		
+		if(variables.useZeroAjax){
+			requiredAjaxFiles();
+		}
+	}
 	
 	public function addColumn(required column column){
 		var column = arguments.column;
@@ -62,9 +85,10 @@ component accessors="true" {
 				variables.primaryColumn = new optional(Column);
 			}
 
+			column.setQueryString(variables.qs.getNew());
 			variables.columns.append(column);
-			column.setSortAscLink(variables.qs.getNew().setValues({"sort":column.getColumnName(), "direction":"asc"}).get());
-			column.setSortDescLink(variables.qs.getNew().setValues({"sort":column.getColumnName(), "direction":"desc"}).get());
+			// column.setSortAscLink(variables.qs.getNew().setValues({"sort":column.getColumnName(), "direction":"asc"}).get());
+			// column.setSortDescLink(variables.qs.getNew().setValues({"sort":column.getColumnName(), "direction":"desc"}).get());
 
 		} else {
 			throw("column already exists");
@@ -88,6 +112,28 @@ component accessors="true" {
 	        rtnStr=uCase(left(rtnStr,1)) & right(rtnStr,len(rtnStr)-1);
 	    }
 		return trim(rtnStr);
+	}
+
+	private void function decorateRowsWithCustomColumns(required array rows){
+		var columns = getCustomColumns();
+		var rows = arguments.rows;
+		for(var column in columns){
+			var name = column.getColumnName();
+			for(var row in rows){
+				row[name] = column.getCustomOutput(row);				
+			}
+		}
+	}
+
+	private void function decorateRowsWithWrapColumns(required array rows){
+		var columns = getWrapColumns();
+		var rows = arguments.rows;
+		for(var column in columns){
+			var name = column.getColumnName();
+			for(var row in rows){
+				row["wrap"][name] = column.getWrapOutput(row[name]);				
+			}
+		}
 	}
 
 	public function edit(required string columnName, required string rowId, string errorMessage){
@@ -145,13 +191,39 @@ component accessors="true" {
 	}
 
 	public string function getCurrentLink(){
-		return variables.qs.getNew().setBasePath("/zerotable/main/list").get();
+		return variables.qs.getNew().setBasePath("#variables.basePath#/list").get();
+	}
+
+	public column[] function getCustomColumns(){
+		var out = [];
+		for(var column in variables.columns){
+			if(column.getColumnType().keyExists("custom")){
+				out.append(column);
+			}
+		}
+		return out;
+	}
+
+	public string function getShowMoreLink(){
+
+		return variables.qs.getNew().setValues({"offset":variables.offset, "max": max+max}).get();
+
+	}
+
+	public column[] function getWrapColumns(){
+		var out = [];
+		for(var column in variables.columns){
+			if(column.getHasWrap()){
+				out.append(column);
+			}
+		}
+		return out;
 	}
 
 	public pagination function getPagination(){
 
 		return new pagination(data=variables.Rows, 
-							  max=variables.max, 
+							  max=variables.max + variables.more, 
 							  offset=variables.offset, 
 							  queryString=variables.qs,							 
 							  showMaxPages=variables.showMaxPages);
@@ -164,6 +236,12 @@ component accessors="true" {
 		for(var param in params){
 
 			var value = evaluate("this.get#param#()");
+
+			if(isNull(value)){
+				writeDump(param);
+				abort;
+			}
+
 			if(isInstanceOf(value,"optional")){
 				if(!value.exists()){
 					continue;
@@ -196,7 +274,7 @@ component accessors="true" {
 		}
 
 		if(isNull(variables.serializedRows)){
-			var rows = variables.Rows.list(max=variables.max, offset=variables.offset);
+			var rows = variables.Rows.list(max=variables.max + variables.more, offset=variables.offset);
 			var rows = new serializer().serializeEntity(rows);
 			variables.serializedRows = rows;			
 		} 
@@ -211,6 +289,10 @@ component accessors="true" {
 		}
 	}
 
+	private function requiredAjaxFiles(){		
+		include template="/zero/plugins/zerotable/model/require_js.cfm";
+	}
+
 	public void function pageTo(required numeric id){
 		variables.currentPageId = arguments.id;
 	}
@@ -219,6 +301,11 @@ component accessors="true" {
 		variables.searchString = arguments.search;
 		variables.qs.setValues({"search":variables.searchString});
 		variables.Rows.search(arguments.search);
+		
+		if(variables.rows.count() <= variables.offset){
+			// variables.offset = variables.offset - variables.max;
+			variables.offset = 1;			
+		}
 	}
 
 	public void function sort(required string column, required string direction){
@@ -235,7 +322,11 @@ component accessors="true" {
 		variables.direction = arguments.direction;
 		
 		
-		variables.qs.setValues({"sort":column.getColumnName(), direction:arguments.direction});
+		variables.qs.setValues({"sort":column.getColumnName(), "direction":arguments.direction});
+		for(var updateColumn in variables.columns){
+			updateColumn.setQueryString(variables.qs.getNew());
+		}
+
 		column.setIsSorted(true);		
 		if(direction == "asc"){
 			column.setIsSortedAsc(true);
@@ -260,11 +351,16 @@ component accessors="true" {
 				currentPage:{},
 				nextPage:{},
 				previousPage:{},
-				summaryPages:{}
+				summaryPages:{},
+				pages:{}
 
 			},
 			currentParams:{}
 		});
+
+		decorateRowsWithCustomColumns(zeroTableOut.rows);
+		decorateRowsWithWrapColumns(zeroTableOut.rows);
+
 		return zeroTableOut;
 	}
 

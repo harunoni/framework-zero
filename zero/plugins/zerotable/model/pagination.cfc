@@ -39,6 +39,15 @@ component accessors="true" {
 		return this;
 	}
 
+	public optional function findPageById(required numeric id){
+		var pages = this.getPages();
+		if(arguments.id > pages.len()){
+			return new Optional();
+		} else {
+			return new optional(pages[arguments.id]);
+		}
+	}
+
 	public page function getFirstPage(){
 		return getPages()[1];
 	}
@@ -104,6 +113,14 @@ component accessors="true" {
 			} else {
 				var isCurrentPage = false;
 			}
+
+			if(variables.offset >= getTotalItems()){
+				if(i == 1){
+					isCurrentPage = true;
+				} else {
+					isCurrentPage = false;
+				}
+			}
 			// writeDump(isCurrentPage);		
 
 
@@ -134,29 +151,39 @@ component accessors="true" {
 			// abort;
 			var diff = 1;
 			if(min <= 0){
-				var diff = abs(min) + 2;
-				min = 1;
+				diff = abs(half - min) - 1;
+				min = 1;												
 			}
 
+			// writeDump(min);
 			var max = getCurrentPage().getId() + half + diff;
-			if(max >= getTotalPages()){
-				var diff = abs(max - getTotalPages());
-				max = getTotalPages();
+			// writeDump(max);
+			if(max > pages.len()){
+				var diff = abs(max - pages.len());
+				max = pages.len();
 
-				min = min - diff;
+
+				min = min - half;
 				if(min <= 0){
 					min = 1;
 				}
 			}			
 
-
 			try {
-				var out = pages.slice(min, max-min);							
+
+				var out = [];
+				for(var i=min; i LTE max; i++){
+					if(out.len() == variables.showMaxPages){
+						break;
+					}
+					out.append(pages[i]);
+				}
+
 			}catch(any e){
 				
 				writeDump(min);
 				writeDump(max);
-				writeDump(getTotalPages());
+				writeDump(pages.len());
 				writeDump(pages);
 				writeDump(e);
 				abort;

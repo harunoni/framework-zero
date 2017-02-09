@@ -3,10 +3,12 @@
 */
 component accessors="true"{
 
-	property name="columnName" setter="false";
+	property name="columnName" setter="false";	
 	property name="dataName" setter="false";
 	property name="errorMessage";
 	property name="friendlyName" setter="false";
+	property name="hidden" setter="false";
+	property name="hasWrap" setter="false";
 	property name="isSorted" type="boolean";
 	property name="isSortedDesc" type="boolean";
 	property name="isSortedAsc" type="boolean";
@@ -24,7 +26,9 @@ component accessors="true"{
 						 boolean editable=false, 
 						 struct columnType,
 						 boolean isPrimary=false,
-						 array filter){
+						 array filter,
+						 hidden = false
+						 ){
 		variables.columnName = arguments.columnName;
 
 		if(arguments.keyExists("columnType")){
@@ -52,11 +56,23 @@ component accessors="true"{
 			variables.filterable = false;			
 		}
 
+		if(arguments.keyExists("Wrap")){
+			variables.Wrap = arguments.Wrap;
+			variables.hasWrap = true;
+		} else {
+			variables.hasWrap = false;
+			variables.Wrap = "{{value}}";
+		}
+
+		variables.customOutput = "";
+
 		variables.isPrimary = arguments.isPrimary;
 		variables.editable = arguments.editable;
 		variables.isSorted = false;
 		variables.isSortedDesc = false;
 		variables.isSortedAsc = false;
+		variables.hidden = arguments.hidden;
+		// variables.queryString = arguments.queryString;
 		return this;
 	}
 
@@ -70,6 +86,49 @@ component accessors="true"{
 		}
 	}
 
+	public function getColumnType(){
+
+		if(variables.columnType.keyExists("custom")){			
+			var out = duplicate(variables.columnType);
+			if(isClosure(out.output)){
+				out.output = "function call";
+			}			
+			return out;
+		}
+
+		return variables.columnType;
+
+	}
+
+	public function getCustomOutput(required struct row){
+
+		var out = "";
+		if(variables.columnType.keyExists("custom") and variables.columnType.custom){
+			if(isSimpleValue(variables.columnType.output)){
+				out = variables.columnType.output;
+			} else if(isClosure(variables.columnType.output)){
+				out = evaluate("variables.columnType.output(arguments.row)");
+			}
+			else {
+				out = variables.customOutput;
+			}
+		}		
+		return out;
+	}
+
+	public function getWrapOutput(required string value){
+		var out = replaceNoCase(variables.Wrap, "{{value}}", arguments.value, "all");
+		return out;
+	}
+
+	public function getSortAscLink(){
+		return variables.queryString.getNew().delete("DIRECTION").setValues({"sort":getColumnName(), "direction":"asc"}).get();
+	}
+
+	public function getSortDescLink(){
+		return variables.queryString.getNew().delete("DIRECTION").setValues({"sort":getColumnName(), "direction":"desc"}).get();
+	}
+
 	public function setIsSortedAsc(){
 		variables.isSortedAsc = true;
 		variables.isSortedDesc = false;
@@ -78,6 +137,10 @@ component accessors="true"{
 	public function setIsSortedDesc(){
 		variables.isSortedAsc = false;
 		variables.isSortedDesc = true;
+	}
+
+	public function setQueryString(required queryString queryString){
+		variables.queryString = arguments.queryString;
 	}
 
 	/**

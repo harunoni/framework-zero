@@ -24,10 +24,12 @@ component accessors="true" {
 	 */
 	public struct function list(				
 								max=10,
+								more=0,
 								page=1,
 								offset="1",
 								sort="name",
-								direction="asc",
+								direction="asc",								
+								goto_page,
 								search,
 								edit_col="",
 								edit_id="",
@@ -45,6 +47,7 @@ component accessors="true" {
 		// var edit_col = replaceNoCase(arguments.sort,"_", "", "all");
 		
 		
+
 		
 		getCaseSensitivePropertyName = function(name){
 
@@ -62,19 +65,31 @@ component accessors="true" {
 
 		//Create a zero table
 		zeroTable = new zeroTable(rows=entityData, 
-								  max=arguments.max, 
+								  max=arguments.max,
+								  more=arguments.more, 
 								  offset=arguments.offset, 
-								  basePath="/zerotable/main");		
+								  basePath="/zerotable/main",
+								  useZeroAjax=true);		
 
-		//Define which columns from the entityData we want managed by zerotable
-		zeroTable.addColumn(new column(columnName="id", isPrimary=true));
-		zeroTable.addColumn(new column(columnName="name", editable=true));
-		zeroTable.addColumn(new column(columnName="rack_rate", friendlyName="rack rate", dataName="rackRate", editable=true));
+		
+		
+		zeroTable.addColumn(new column(columnName="id", isPrimary=true, wrap='<a href="/zerotable/main/{{value}}">{{value}}</a>'));			
+
+		zeroTable.addColumn(new column(	columnName="name", 
+										editable=true));
+
+		zeroTable.addColumn(new column(	columnName="rack_rate", 
+										friendlyName="rack rate", 
+										dataName="rackRate", 
+										editable=true));
+
+
 		zeroTable.addColumn(new column(columnName="category",
+									   wrap='<span style="color:red;">{{value}}</span>',
 									   editable=true, 
-									   columnType={
-									   	select:true,
-											options:[
+									   columnType= {
+									   		select:true,
+									   		options:[
 												{id:"Shoes",name:"Shoes"},
 												{id:"Gloves",name:"Gloves"},
 												{id:"Accessories",name:"Accessories"},
@@ -87,13 +102,38 @@ component accessors="true" {
 										]
 							)
 		);
-		zeroTable.addColumn(new column(columnName="price", editable=true));
-		zeroTable.addColumn(new column(columnName="isActive", editable=true, columnType={
-			checkbox:true
-		}));
+
+		zeroTable.addColumn(new column(	columnName="price", 
+										editable=true));
+
+		zeroTable.addColumn(new column(	columnName="isActive", 
+										editable=true, 
+										columnType={
+											checkbox:true
+										}
+		));
+
+		zeroTable.addColumn(new column(columnName="actions:", 
+									   columnType = {
+									        "custom":true,
+									        "output":function(row){
+									        	var out = '
+													<form action="/zerotable/main/#row.id#/delete" method="post" style="display:inline;">
+							  							<input type="hidden" name="goto" value="/zerotable/main" />
+							  							<button class="btn btn-primary btn-xs">delete</button>
+							  						</form>
+							  						<form action="/zerotable/main/#row.id#/hide" method="post" style="display:inline;">
+							  							<input type="hidden" name="goto" value="/zerotable/main" />
+							  							<button class="btn btn-primary btn-xs">hide</button>
+							  						</form>
+									        	'; 
+									        	return out;
+									        }
+									   }
+		));
 
 
-		if(arguments.keyExists("search")){
+		if(arguments.keyExists("search") and search != ""){
 			zeroTable.search(arguments.search);
 		}
 
@@ -109,6 +149,14 @@ component accessors="true" {
 				zeroTable.edit(columnName=edit_col, rowId=edit_id);							
 			}
 
+		}
+
+		if(arguments.keyExists("goto_page") and goto_page != ""){
+			var pagination = zeroTable.getPagination();
+			var page = pagination.findPageById(arguments.goto_page).elseThrow("That is not a valid page");
+			location url="#page.getLink()#" addtoken="false";
+			// writeDump(page);
+			// abort;
 		}
 
 		//Serialize zeroTable for the view

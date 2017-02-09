@@ -1,35 +1,5 @@
 var lastButtonClickedValue = {};
 
-// var allFormButtons = $('form').find('button');
-// allFormButtons.each(function(index, element){
-// 	var element = $(element);
-// 	$(element).on('click', function(){
-
-// 		var attr = element.attr('zero-submit-text');
-// 		// For some browsers, `attr` is undefined; for others, `attr` is false. Check for both.
-// 		if (typeof attr !== typeof undefined && attr !== false) {
-// 		  	element.html(attr);
-// 		}
-		
-// 		element.prepend('<i class="fa fa-circle-o-notch fa-spin"></i> ');
-// 		element.addClass('disabled');
-
-// 		// console.log(icon.hasClass('fa'));
-
-// 		// var oldClass = icon.attr('class');
-
-// 		// if(icon.hasClass('fa-refresh')){
-// 		// 	icon.addClass('fa-spin');						
-// 		// } else {
-// 		// 	icon.removeClass();
-// 		// 	icon.addClass('fa fa-circle-o-notch fa-spin');
-// 		// }
-
-// 	});
-
-// });
-// console.log(allFormButtons);
-
 zeroAjax = function(html){
 	var zeroForms = $(html).find('form[zero-target]');
 	$(zeroForms).off('submit');
@@ -152,10 +122,7 @@ zeroAjax = function(html){
 	                    icon.addClass(oldClass);
 	               
 	                    //Call zeroAjax over the document again to add event listeners
-	                    zeroAjax($(document));
-	                    zeroAuto($(document));
-	                    zeroOnChange($(document));
-	                    lastButtonClicked($(document));
+	                    zeroInit();
 	                    // console.log(targetHTML);
 	                }
 	            });
@@ -164,8 +131,110 @@ zeroAjax = function(html){
 	}
 	
 }
-// zeroAjax($(document));
 
+/**
+ * Implements the Zero Ajax progressive enhancement feature for anchorlinks 
+ */
+zeroAjaxAnchor = function(html){
+
+	var zeroAnchors = $(html).find('a[zero-target]');
+	$(zeroAnchors).off('submit');
+
+	for(var i=0 ; i < zeroAnchors.length; i++){
+
+		var anchorAction = $(zeroAnchors[i]).attr('href');
+		
+		var currentPath = window.location.pathname;
+		
+		
+		var gotoAndCurrentPathAreTheSame = true;
+		// var gotoAndCurrentPathAreTheSame = (goto == currentPath);
+		
+		if(gotoAndCurrentPathAreTheSame){
+			$(zeroAnchors[i]).on('click',function(event, selector){
+
+				var event = event;
+				
+				event.preventDefault();
+				// console.log(event);
+
+				var anchor = $(this);
+				anchorAction = $(anchor).attr('href');
+				var target = anchor.attr('zero-target');
+				// console.log(anchor);
+				// throw"";
+				// var anchor = $(anchor).find('button');					
+				var icon = $(anchor).find('i');
+				// console.log(icon.hasClass('fa'));
+
+				var oldClass = icon.attr('class');
+
+				if(icon.hasClass('fa-refresh')){
+					icon.addClass('fa-spin');						
+				} else {
+					icon.removeClass();
+					icon.addClass('fa fa-circle-o-notch fa-spin');
+					console.log('buttons');
+					// alert();
+				}
+
+				anchor.attr('disabled', true);
+			
+
+				// console.log(anchorAction);
+
+	            $.ajax({
+	                url: anchorAction,
+	                type: 'GET',	                
+	                success: function(result) {
+	                	
+	                    // http://stackoverflow.com/questions/14423257/find-body-tag-in-an-ajax-html-response
+	                    if(target == 'body'){
+	                    	var targetHTML = result.substring(result.indexOf("<body>")+6,result.indexOf("</body>"));      
+							var targetPut = $('body');		                    
+	                    	targetPut.html(targetHTML);
+	                    } else {
+	                    	// console.log(result);
+	                		var response = $('<html />').html(result);
+	                		
+	                		/*
+	                		The target can be a comma separated list of targets. This is useful for updating a number
+	                		of sections on the page based on the response
+	                		 */
+	                    	var targetArray = target.split(',');
+	                    	
+	                    	for(var i=0; i < targetArray.length; i++){
+	                    		
+		                    	var targetHTML = $(response).find(targetArray[i]);
+		                    	// console.log(targetHTML);
+		                    	var targetPut = $(targetArray[i]);
+		                    	if(!targetPut.length){
+		                    		throw "Could not find the target " + targetArray[i] + " check your references and ensure it exists";
+		                    	}
+		                    	// console.log(targetPut);		                    
+		                    	targetPut.html(targetHTML.html());
+	                    	}
+	                    	
+	                    	anchor.removeAttr('disabled');                    	
+	                    }	                   
+
+	                    icon.removeClass();
+	                    icon.addClass(oldClass);
+	               
+	                    //Call zeroAjax over the document again to add event listeners
+	                   zeroInit();	                   
+	                }
+	            });
+			})
+		}
+	}
+
+}
+
+/**
+ * Used by zeroAjax to determine which button was clicked when 
+ * overriding form action with HTML button formaction attribute 
+ */
 var lastButtonClicked = function(html){
 	lastButtonClickedValue = {};
 	var formButtons = $(html).find('button,input[type="submit"]');
@@ -175,12 +244,16 @@ var lastButtonClicked = function(html){
 			lastButtonClickedValue = { name: this.name, value: this.value };
 			console.log(lastButtonClickedValue);
 		})
-	});
-	// console.log(formButtons);
+	});	
 }
-// lastButtonClicked($(document));	
 
-
+/**
+ * Automatically submits forms based on a timeout value
+ * useage: 
+ * 	add the property zero-auto to any form
+ * 	
+ * 	zero-auto="2" 
+ */
 zeroAuto = function(html){
 
 	var zeroAutos = $(html).find('form[zero-auto]');
@@ -211,7 +284,6 @@ zeroAuto = function(html){
 	}
 
 }
-// zeroAuto($(document));
 
 zeroOnChange = function(html){
 
@@ -235,7 +307,6 @@ zeroOnChange = function(html){
 	}
 
 }
-// zeroOnChange($(document));
 
 loadTime = "";
 
@@ -302,6 +373,7 @@ function zeroInit(){
 		lastButtonClicked($(document));		
 		zeroAuto($(document));	
 		zeroOnChange($(document));	
+		zeroAjaxAnchor($(document));
 	});
 }
 
