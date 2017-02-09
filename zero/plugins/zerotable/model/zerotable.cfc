@@ -225,13 +225,13 @@ component accessors="true" {
 		return new pagination(data=variables.Rows, 
 							  max=variables.max + variables.more, 
 							  offset=variables.offset, 
-							  queryString=variables.qs,							 
+							  queryString=variables.qs.getNew(),							 
 							  showMaxPages=variables.showMaxPages);
 	}
 
 	public array function getCurrentParams(){
 
-		var params = ["offset", "max", "search", "sort", "direction"];
+		var params = ["offset", "max", "search", "sort", "direction", "more"];
 		var out = [];
 		for(var param in params){
 
@@ -336,31 +336,47 @@ component accessors="true" {
 
 	};
 
-	public struct function toStructure(){
-		var zeroTableOut = new serializer().serializeEntity(this, {
-			rows:{
+	public struct function toJson(){
+		
+		var pagination = this.getPagination();
+		var paginationOut = pagination.toJson();
+		var pagination = this.getPagination();			
+		
+		var zeroOut = {};
+		zeroTableOut["max"] = this.getmax();
+		zeroTableOut["offset"] = this.getoffset();
+		zeroTableOut["sort"] = this.getsort();
+		zeroTableOut["direction"] = this.getdirection();
+		zeroTableOut["current_page_id"] = this.getcurrentPageId();
+		zeroTableOut["search"] = this.getsearch().else("");
+		zeroTableOut["show_more_link"] = this.getshowMoreLink();
+		zeroTableOut["more"] = this.getmore();
+		zeroTableOut["next_more"] = this.getnextMore();
+		zeroTableOut["current_link"] = this.getcurrentLink();
+		zeroTableOut["current_params_as_string"] = this.getcurrentParamsAsString();
+		zeroTableOut["clear_search_link"] = this.getclearSearchLink();
+		zeroTableOut["clear_edit_link"] = this.getclearEditLink();
+		zeroTableOut["base_path"] = this.getbasePath();
+		zeroTableOut["use_zero_ajax"] = this.getuseZeroAjax();
 
-			},
-			columns:{
-				filter:{}
-			},
-			primaryColumn:{},
-			pagination:{
-				firstPage:{},
-				lastPage:{},
-				currentPage:{},
-				nextPage:{},
-				previousPage:{},
-				summaryPages:{},
-				pages:{}
+		zeroTableOut["rows"] = new serializer().serializeEntity(this.getRows());
+		zeroTableOut["pagination"] = this.getPagination().toJson();
+		zeroTableOut["columns"] = [];
+		for(var column in this.getColumns()){
+			zeroTableOut["columns"].append(column.toJson())
+		}
 
-			},
-			currentParams:{}
-		});
+		zeroTableOut["primary_column"] = this.getPrimaryColumn().get().toJson();
+		zeroTableOut["current_params"] = this.getCurrentParams();
+		for(var param in zeroTableOut["current_params"]){
+			if(isInstanceOf(param.value, "optional")){
+				param.value = param.value.else("");
+			}
+		}
 
 		decorateRowsWithCustomColumns(zeroTableOut.rows);
 		decorateRowsWithWrapColumns(zeroTableOut.rows);
-
+		
 		return zeroTableOut;
 	}
 

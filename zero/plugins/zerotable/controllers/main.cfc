@@ -117,6 +117,7 @@ component accessors="true" {
 									   columnType = {
 									        "custom":true,
 									        "output":function(row){
+									        	// writeDump(row);									        	
 									        	var out = '
 													<form action="/zerotable/main/#row.id#/delete" method="post" style="display:inline;">
 							  							<input type="hidden" name="goto" value="/zerotable/main" />
@@ -179,7 +180,10 @@ component accessors="true" {
 		// 	currentParams:{}
 		// });
 
-		var zeroTableOut = zeroTable.toStructure();
+		
+		var zeroTableOut = zeroTable.toJson();
+			
+		
 
 		
 		var out = {

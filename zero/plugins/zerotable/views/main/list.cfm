@@ -36,15 +36,17 @@
 		</div>
 		<div class="row" style="margin-bottom:10px;">
 			<div class="col-lg-8">
-				<form action="" method="get" class="form-inline" {{#if use_zero_ajax}}zero-target="#zero-grid"{{/if}}>
+				<form id="max_items" action="" method="get" class="form-inline" {{#if use_zero_ajax}}zero-target="#zero-grid"{{/if}}>					
 					{{#each current_params}}
 						{{#unless is_max}}
+							{{#unless is_more}}
 							<input type="hidden" name="{{name}}" value="{{value}}">
+							{{/unless}}
 						{{/unless}}
 					{{/each}}			
 					<div class="form-group">
 						<label>Show </label>
-						<select class="form-control" name="max">
+						<select class="form-control" name="max" onChange="$('#max_items').submit();">
 							{{#select max}}<option value="10">10</option>{{/select}}
 							{{#select max}}<option value="25">25</option>{{/select}}
 							{{#select max}}<option value="50">50</option>{{/select}}
@@ -54,8 +56,8 @@
 						</select>
 						<label>records</label>
 					</div>
-					<button class="btn btn-primary">Go</button>
-				</form>				
+					<button id="max_select_button" class="btn btn-primary">Go</button>
+				</form>						
 			</div>
 			<div class="col-lg-4 text-right">
 				<div class="form-group" class="pull-right" style="display:inline;">
@@ -88,7 +90,11 @@
 
 										var prior = searchInput.val();
 										var newKey = event.key;
-										searchInput.attr('value', prior + newKey);
+
+										if(newKey !== 'undefined' && newKey !== 'Backspace'){
+											searchInput.attr('value', prior + newKey);											
+										}
+
 										var strLength = searchInput.val().length * 2;
 										searchInput.focus();
 										searchInput[0].setSelectionRange(strLength, strLength);
@@ -96,7 +102,7 @@
 										event.preventDefault();
 										searchForm.submit();
 
-									}, 500); 							
+									}, 1000); 							
 									isTimeout = false;
 								}
 								
@@ -184,7 +190,7 @@
 
 													--->
 													<style>	
-														#data-grid-form-name{{../id}} {
+														#data-grid-form-{{column_name}}-{{../id}} {
 															display:none;
 														}
 
@@ -192,7 +198,7 @@
 															display:none;
 														}
 
-														#data-grid-form-name{{../id}}.visible-{{column_name}}-{{id}} {
+														#data-grid-form-{{column_name}}-{{../id}}.visible-{{column_name}}-{{id}} {
 															display:block;
 														}
 
@@ -218,7 +224,7 @@
 													</style>
 													
 													<!--- EDIT FIELD --->
-													<form id="data-grid-form-name{{../id}}" 
+													<form id="data-grid-form-{{column_name}}-{{../id}}" 
 														  action="{{base_path}}/{{../id}}" 
 														  method="post"
 														  style="margin:0px; padding:1% 0; height:100%; padding-left:5px;" 														  
@@ -252,7 +258,7 @@
 																	class="btn btn-default btn-sm cancel-button"
 																	style=" 
 																href="{{clear_edit_link}}" 
-																<!--- onClick="$('#data-grid-form-name{{../id}}').hide(); $('#enable-edit-{{column_name}}-{{id}}').show(); return false;" --->
+																onClick="$('#data-grid-form-{{column_name}}-{{../id}}').hide(); $('#enable-edit-{{column_name}}-{{id}}').show(); return false;"
 																>cancel</button>
 														</div>
 													</form>
@@ -280,7 +286,7 @@
 															<input type="hidden" name="edit_id" value="{{id}}">
 															<button class="text" 
 																	style="display:block; text-align:left; width:100%; height:100%; position:absolute;" 
-																	<!--- onClick="$('#data-grid-form-name{{../id}}').show(); $('#enable-edit-{{column_name}}-{{id}}').hide(); return false;" --->
+																	onClick="$('#data-grid-form-{{column_name}}-{{../id}}').show(); $('#enable-edit-{{column_name}}-{{id}}').hide(); return false;"
 																	>
 																	<span style="padding-left:5px;">
 																		{{#if (lookup ../this.wrap column_name)}}

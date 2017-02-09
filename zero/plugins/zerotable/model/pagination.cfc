@@ -45,7 +45,7 @@ component accessors="true" {
 			return new Optional();
 		} else {
 			return new optional(pages[arguments.id]);
-		}
+		}		
 	}
 
 	public page function getFirstPage(){
@@ -54,11 +54,12 @@ component accessors="true" {
 
 	public page function getCurrentPage(){
 		var pages = getPages();
+
 		for(var page in pages){
 			if(page.getIsCurrentPage()){
 				return page;
 			}
-		}
+		}		
 		throw("no page was the current page, this was not expected");
 	}		
 
@@ -75,6 +76,13 @@ component accessors="true" {
 	public void function setCurrentPage(required page page){	
 		// abort;	
 		variables.offset = arguments.page.getStartIndex();
+		for(var tryPage in getPages()){
+			if(tryPage.equals(arguments.page)){
+				tryPage.setIsCurrentPage(true);
+			} else {
+				tryPage.setIsCurrentPage(false);
+			}
+		}	
 	}
 
 	// public function setCurrentPage(){
@@ -90,49 +98,62 @@ component accessors="true" {
 		}
 	}
 
-	public page[] function getPages(){
-		var out = [];
-		for(var i=1; i LTE getTotalPages(); i++){
+	public page[] function getPages(totalPages=this.getTotalPages(),
+									totalItems=this.getTotalItems(),
+									offset=variables.offset,
+									max=variables.max) {
+		/**
+		 * Building the pages takes a long time, so we cache this value so that subsequent
+		 * requests to getPages returns the existing array		 
+		 */
+		if(structKeyExists(variables,"zeroCachePages")){
+			return variables.zeroCachePages;
+		} else {
 
-			if(i == 1){
-				var start = 1;
-				var end = max;
-				if(end > getTotalItems()){
-					end = getTotalItems();
-				}
-			} else {
-				var start = ((i-1) * variables.max) + 1;
-				var end = start + max - 1;
-				if(end > getTotalItems()){
-					end = getTotalItems();
-				}
-			}
+			var out = [];
+			for(var i=1; i LTE arguments.totalPages; i++){
 
-			if(variables.offset >= start and variables.offset <= end){
-				var isCurrentPage = true;
-			} else {
-				var isCurrentPage = false;
-			}
-
-			if(variables.offset >= getTotalItems()){
 				if(i == 1){
-					isCurrentPage = true;
+					var start = 1;
+					var end = max;
+					if(end > arguments.totalItems){
+						end = arguments.totalItems;
+					}
 				} else {
-					isCurrentPage = false;
+					var start = ((i-1) * arguments.max) + 1;
+					var end = start + max - 1;
+					if(end > arguments.totalItems){
+						end = arguments.totalItems;
+					}
 				}
-			}
-			// writeDump(isCurrentPage);		
+
+				if(arguments.offset >= start and arguments.offset <= end){
+					var isCurrentPage = true;
+				} else {
+					var isCurrentPage = false;
+				}
+
+				if(arguments.offset >= arguments.totalItems){
+					if(i == 1){
+						isCurrentPage = true;
+					} else {
+						isCurrentPage = false;
+					}
+				}
+				// writeDump(isCurrentPage);		
 
 
-			out.append(new page(id=i,
-								link=variables.queryString.setValues({"offset":start}).get(), 
-								startIndex=start, 
-								endIndex=end, 
-								isCurrentPage=isCurrentPage)
-			);
-		}		
-
-		return out;
+				out.append(new page(id=i,
+									link=variables.queryString.setValues({"offset":start}).get(), 
+									startIndex=start, 
+									endIndex=end, 
+									isCurrentPage=isCurrentPage)
+				);
+			}		
+			variables.zeroCachePages = out;
+			return out;
+		}
+		
 	}
 
 	/**
@@ -204,8 +225,8 @@ component accessors="true" {
 		return variables.data.count();
 	}
 
-	public numeric function getTotalPages(){
-		return ceiling(getTotalItems() / variables.max);
+	public numeric function getTotalPages(totalItems=this.getTotalItems(), max=variables.max) cachedWithin="request" {
+		return ceiling(arguments.totalItems / arguments.max);
 	}
 
 	public boolean function hasNextPage(){
@@ -231,6 +252,7 @@ component accessors="true" {
 	 */
 	public void function next(){
 		if(getNextPage().exists()){			
+			// writeDump(getNextPage().get());
 			this.setCurrentPage(getNextPage().get());
 		}
 	}
@@ -239,6 +261,51 @@ component accessors="true" {
 		if(getPreviousPage().exists()){
 			setCurrentPage(getPreviousPage().get());
 		}
+	}
+
+	public function toJson(){
+
+		var out = {
+			"current_page":pageToJson(getcurrentPage()),
+			"dir":getdir(),
+			"first_page":pageToJson(getfirstPage()),
+			"has_next_page":gethasNextPage(),
+			"has_previous_page":gethasPreviousPage(),
+			"is_first_page":getisFirstPage(),
+			"is_last_page":getisLastPage(),
+			"last_page":pageToJson(getlastPage()),
+			"max":getmax(),
+			"next_page":pageToJson(getnextPage()),
+			"offset":getoffset(),
+			"pages":pagesToJson(getpages()),
+			"previous_page":pageToJson(getpreviousPage()),
+			"search":getsearch(),
+			"sort":getsort(),
+			"summary_pages":pagesToJson(getsummaryPages()),
+			"total_items":gettotalItems(),
+			"total_pages":gettotalPages(),
+		}
+
+		return out;
+	}
+
+	private function pageToJson(required any page){
+		if(isInstanceOf(arguments.page, "optional")){
+			if(page.exists()){
+				var page = page.get();				
+			} else {
+				return "";
+			}
+		}		
+		return page.toJson();
+	}
+
+	private array function pagesToJson(required array pages){
+		var out = [];
+		for(var page in pages){
+			out.append(page.toJson())
+		}
+		return out;
 	}
 
 }

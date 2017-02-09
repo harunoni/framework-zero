@@ -7,7 +7,7 @@ component accessors="true" {
 	property name="link" setter="false";
 	property name="startIndex" setter="false";
 	property name="endIndex" setter="false";
-	property name="isCurrentPage" setter="false";
+	property name="isCurrentPage";
 
 	public function init(required numeric id, required string link, required numeric startIndex, required numeric endIndex, required boolean isCurrentPage){
 		variables.id = arguments.id;
@@ -24,5 +24,16 @@ component accessors="true" {
 		} else {
 			return false;
 		}
+	}
+
+	public function toJson(){
+		var out = {
+			"id":this.getId(),
+			"link"=this.getLink(),
+			"start_index":this.getStartIndex(),
+			"end_index":this.getEndIndex(),
+			"is_current_page":this.getIsCurrentPage()
+		}
+		return out;
 	}
 }

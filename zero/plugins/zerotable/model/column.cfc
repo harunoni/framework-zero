@@ -149,5 +149,28 @@ component accessors="true"{
 	package function setColumnName(string columnName){
 		variables.columnName = arguments.columnName;
 	}
+
+	public function toJson(){
+		var out = {
+			"column_name":this.getcolumnName(),
+			"data_name":this.getdataName(),
+			"error_message":this.geterrorMessage(),
+			"friendly_name":this.getfriendlyName(),
+			"hidden":this.gethidden(),
+			"has_wrap":this.gethasWrap(),
+			"is_sorted":this.getisSorted(),
+			"is_sorted_desc":this.getisSortedDesc(),
+			"is_sorted_asc":this.getisSortedAsc(),
+			"sort_asc_link":this.getsortAscLink(),
+			"sort_desc_link":this.getsortDescLink(),
+			"edit":this.getedit(),
+			"editable":this.geteditable(),
+			"column_type":this.getcolumnType(),
+			"is_primary":this.getisPrimary(),
+			"filter":this.getfilter(),
+			"filterable":this.getfilterable(),
+		}
+		return out;
+	}
 	
 }

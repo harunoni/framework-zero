@@ -115,6 +115,10 @@ component output="false" displayname=""  {
 				// writeDump(local.entity);				
 			}
 
+			if(structKeyExists(local.entity,"toJson") and isCustomFunction(local.entity.toJson)){
+				return local.entity.toJson();
+			}
+
 			local.prop = getAllProperties(local.entity);
 			local.out = {};
 			local.prop.each(function(prop){
@@ -231,6 +235,7 @@ component output="false" displayname=""  {
 		return local.out;
 	}
 
+
 	/**
 	 * Breaks a camelCased string into separate words
 	 * 8-mar-2010 added option to capitalize parsed words Brian Meloche brianmeloche@gmail.com
@@ -247,7 +252,8 @@ component output="false" displayname=""  {
 	        rtnStr=reReplace(arguments.str,"([a-z])([A-Z])","\1_\2","ALL");
 	        rtnStr=uCase(left(rtnStr,1)) & right(rtnStr,len(rtnStr)-1);
 	    }
-		return trim(rtnStr);
+	    var out = trim(rtnStr);
+		return out;
 	}
 
 	public function serializeEntities(){
@@ -263,6 +269,7 @@ component output="false" displayname=""  {
 	}
 
 	private array function getAllProperties(required component entity){
+		var start = getTickCount();
 		var meta = getMetaData(arguments.entity);
 		var allProperties = meta.properties;
 
@@ -272,8 +279,7 @@ component output="false" displayname=""  {
 			if(structKeyExists(parent.meta,"persistent") AND parent.meta.persistent IS true){
 				allProperties = allProperties.merge(parent.meta.properties);
 			}
-		}
-
+		}	    
 		return allProperties;
 	}
 
