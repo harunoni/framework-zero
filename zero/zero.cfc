@@ -30,7 +30,7 @@ component extends="one" {
 				}							
 			}
 		}
-	}
+	}  
 
      request._fw1 = {
         cgiScriptName = replaceNoCase(copyCGI.SCRIPT_NAME,".json",""),
@@ -42,6 +42,7 @@ component extends="one" {
         doTrace = false,
         trace = [ ]
     };
+
 	
     request._zero.PathInfo = copyCGI.path_Info;    
 	request._zero.ContentType = listLast(request._zero.PathInfo,".");
@@ -778,6 +779,7 @@ component extends="one" {
 		var out = {}
 		var args = getMetaDataFunctionArguments(cfc, method);
 		var cfcName = getMetaData(cfc).name.listLast(".");
+		var data = data;
 
 		cfmltypes = [
 			"any",
@@ -804,11 +806,16 @@ component extends="one" {
 			return left(type, len(type) - 2);
 		}
 
-		var addError = function(name, value){
+		var addError = function(name, value, error, componentPath){
 			
 			if(variables.zero.throwOnFirstArgumentError){
 				writeDump("Zero encountered an error in trying to popluate the values");
 				writeDump(arguments);
+				writeDump(arguments.error);
+				// writeDump(componentPath);
+				writeDump(cfcName);
+				writeDump(args);
+				writeDump(data);
 				writeDump(callStackGet());
 				abort;				
 			} else {
@@ -843,11 +850,12 @@ component extends="one" {
 				},			
 			];
 
+			// writeDump(filePaths);
 			if(variables.zero.keyExists("validationPaths")){
-				for(var path in variables.zero.validationPaths){
+				for(var path in duplicate(variables.zero.validationPaths)){
 					path.file = path.file.replaceNoCase("*", arguments.type);
 					path.com = path.com.replaceNoCase("*", arguments.type);
-					filePaths.append(path)
+					filePaths.append(path);
 				}
 			}
 
@@ -864,7 +872,7 @@ component extends="one" {
 				return;								
 			} else {
 
-				try {
+				try {					
 					var newCfc = createObject(componentPath);
 					var newArgs = recurseFindCFCArguments(data=arguments.data, cfc=newCfc, errors=errors);
 
@@ -876,11 +884,13 @@ component extends="one" {
 					}
 
 				} catch(any e){
+					// writeDump(filePaths);
+					// writeDump(variables.zero.validationPaths);
 					// writeDump(e);
 					// writeDump(newArgs);
 					// writeDump(newCfc);
 					// abort;
-					addError(arguments.name, {message:e.message, original_value:arguments.data});	
+					addError(arguments.name, {message:e.message, original_value:arguments.data, error:e});	
 					return ;
 				}
 			}
@@ -1049,6 +1059,9 @@ component extends="one" {
 				request.context[keyNoUnderscore] = request.context[key];
 			}
 		}
+
+		// writeDump(request.context);
+		// abort;
 		
 		argsToPass = recurseFindCFCArguments(data=request.context, cfc=cfc, method=method, errors=request._zero.argumentErrors, forceArgumentCollection=true);	
 		return argsToPass;
@@ -1083,7 +1096,21 @@ component extends="one" {
             			}
 
                 	} else {
-                		request._zero.controllerResult = evaluate( 'cfc.#method#( rc = request.context, headers = request._fw1.headers )' );	
+                		try {
+                		for(var key in request.context){
+							var keyNoUnderscore = replaceNoCase(key,"_","","all");
+							if(!request.context.keyExists(keyNoUnderscore)){
+								request.context[keyNoUnderscore] = request.context[key];
+							}
+						}
+	                	request._zero.controllerResult = evaluate( 'cfc.#method#( argumentCollection = request.context)' );
+                			
+                		}catch(any e){
+                			writeDump(request.context);
+                			writeDump(e);
+                			abort;
+                		}
+                		// request._zero.controllerResult = evaluate( 'cfc.#method#( rc = request.context, headers = request._fw1.headers )' );	
                 	}
 
                 	if(controllerHasFunction(cfc, "result")){
@@ -1686,6 +1713,136 @@ component extends="one" {
 		if(variables.zero.csrfPRotect){
 			finalOutput = injectCSRFIntoForms(finalOutput);			
 		}
+
+		if(variables.zero.validateHTMLOutput){
+
+			jsoup = createObject("java", "org.jsoup.Jsoup", "formcheck/jsoup-1.10.2.jar");
+			var doc = jsoup.parse(finalOutput);
+			var links = doc.select("a");
+			// writeDump(links);
+			var linkErrors = [];
+			for(var link in links){
+				
+
+				// writeDump(link.attr("href"));
+				// writeDump(link.toString());
+				// writeDump(link);
+				// abort;
+				
+				var href = link.attr("href");
+				if(href == "" or href == "/" or href == "##"){
+					continue;
+				}
+
+				var match = processRoutes(href, variables.framework.routes, "GET");
+				if(match.matched == false){
+					linkErrors.append(link.toString());
+				}
+				
+			}
+
+			var errorTypes = {
+				"routeNotFound":{
+					"type":"routeNotFound",
+					"message":"Found a form which did not match any routes"
+				},
+				"missingFormInput":{
+					"type":"missingFormInput",
+					"message":"The form was missing an input that was required"
+				},
+				"missingControllerFunction":{
+					"type":"missingContollerFuntion",
+					"message":"The form found a route for the controller but the controller was missing the expected function"
+				}
+			}
+
+			var getError = function(type, originalForm, detail=""){
+				var errorOut = {};
+				errorOut.append(errorTypes[arguments.type]);
+				errorOut.insert("original_form", arguments.originalForm);
+				errorOut.insert("error_detail", arguments.detail);
+				return errorOut;
+			}
+
+			var forms = doc.select("form");
+			var formErrors = [];
+			for(var _form in forms){
+				// writeDump(_form);
+				var action = _form.attr("action");
+				if(_form.hasAttr("method")){
+					var method = ucase(_form.attr("method"));
+				} else {
+					var method = "GET";
+				}
+				var match = processRoutes(action, variables.framework.routes, method);
+				// writeDump(match);
+
+				if(match.matched == false){					
+					formErrors.append(getError("routeNotFound", _form.toString()));
+				} else {
+					
+					// writeDump(getPathAction(pathInfo=action));
+					var newContext = getPathAction(pathInfo=action, cgiRequestMethod="POST");
+					// writeDump(newContext);
+					var action = newContext.action;
+					var subsystem = listFirst(action, ":");
+					var subAction = listLast(action, ":");					
+					var controller = listFirst(subAction, ".");
+					var cfcMethod = listLast(subAction, ".");
+					// writeDump(action);
+					var cfc = getCachedController(subsystem, controller);
+					var meta = getMetaData(cfc);
+					// writeDump(meta);
+
+					var foundFunc = meta.functions.find(function(_func){
+						if(_func.name == cfcMethod){	
+							// return _func;
+							return true;
+						} else {
+							return false;
+						}
+					});
+
+					if(foundFunc == 0){
+						formErrors.append(getError("missingControllerFunction", _form.toString(), "Did not find the function #cfcMethod# in controller #controller#"));
+					} else {
+						func = meta.functions[foundFunc];
+						//Check all required contorller method arguments
+						for(var param in func.parameters){
+							if(param.required){
+								var inputs = _form.select("input,select[name='#param.name#']");
+								// writeDump(inputs);
+								if(arrayLen(inputs) == 0){
+
+									if(!structKeyExists(newContext, param.name)){
+										formErrors.append(getError("missingFormInput", 
+																	_form.toString(),
+																	"Form has a missing required variable [#param.name#] expected for the method [#controller#.#cfcMethod#]: "
+											
+										))									
+									}
+								}							
+							}
+						}
+					}
+
+					// writeDump(func);
+
+				}
+			}
+
+			if(linkErrors.len()){
+				writeDump(var=linkErrors, label="Zero detected the following bad links");				
+			}
+
+			if(formErrors.len()){
+				writeDump(var=formErrors, label="Zero detected the following incorect forms");				
+			}
+
+		}
+
+		
+
 		writeOutput(finalOutput);		
 
 		if(variables.zero.traceRequests){
@@ -1711,6 +1868,130 @@ component extends="one" {
 		// client = {};
 		// structClear(client);		
 	}
+
+	/* Duplicate and localize setupRequestDefaults() from one.cfc
+	* so that we can pass in our own path info and get an action back
+	* to manually check the controller
+	*/
+	private void function getPathAction(pathInfo=request._fw1.cgiPathInfo, 
+                                    base=variables.framework.base, 
+                                    cfcbase=variables.framework.cfcbase,
+                                    cgiScriptName=request._fw1.cgiScriptName,
+                                    routes=variables.framework.routes,
+                                    cgiRequestMethod=request._fw1.cgiRequestMethod) {
+        // setupFrameworkDefaults();
+        
+        var pathInfo = arguments.pathInfo;
+        var base = arguments.base;
+        var cfcbase = arguments.cfcbase;
+        var cgiScriptName = arguments.cgiScriptName;
+        var routes = arguments.routes;
+        var cgiRequestMethod = arguments.cgiRequestMethod;
+
+        if ( !structKeyExists(local, 'context') ) {
+            local.context = { };
+        }
+        // SES URLs by popular request :)
+        if ( len( pathInfo ) > len( cgiScriptName ) && left( pathInfo, len( cgiScriptName ) ) == cgiScriptName ) {
+            // canonicalize for IIS:
+            pathInfo = right( pathInfo, len( pathInfo ) - len( cgiScriptName ) );
+        } else if ( len( pathInfo ) > 0 && pathInfo == left( cgiScriptName, len( pathInfo ) ) ) {
+            // pathInfo is bogus so ignore it:
+            pathInfo = '';
+        }
+        
+        if ( arrayLen( routes ) ) {            
+            var routeMatch = processRoutes( pathInfo, routes, cgiRequestMethod );
+            if ( routeMatch.matched ) {
+                if ( variables.framework.routesCaseSensitive ) {
+                    pathInfo = rereplace( routeMatch.path, routeMatch.pattern, routeMatch.target );
+                } else {
+                    pathInfo = rereplacenocase( routeMatch.path, routeMatch.pattern, routeMatch.target );
+                }
+                if ( routeMatch.redirect ) {
+                    location( pathInfo, false, routeMatch.statusCode );
+                } else {
+                    local.route = routeMatch.route;
+                }
+            }
+        } else if ( variables.framework.preflightOptions && local.cgiRequestMethod == "OPTIONS" ) {
+            // non-route matching but we have OPTIONS support enabled
+            local.routeMethodsMatched.get = true;
+            local.routeMethodsMatched.post = true;
+        }
+        
+        try {
+            // we use .split() to handle empty items in pathInfo - we fallback to listToArray() on
+            // any system that doesn't support .split() just in case (empty items won't work there!)
+            if ( len( pathInfo ) > 1 ) {
+                // Strip leading "/" if present.
+                if ( left( pathInfo, 1 ) EQ '/' ) {
+                    pathInfo = right( pathInfo, len( pathInfo ) - 1 );
+                }
+                pathInfo = pathInfo.split( '/' );
+            } else {
+                pathInfo = arrayNew( 1 );
+            }
+        } catch ( any exception ) {
+            pathInfo = listToArray( pathInfo, '/' );
+        }
+        var sesN = arrayLen( pathInfo );
+        if ( ( sesN > 0 || variables.framework.generateSES ) && getBaseURL() != 'useRequestURI' ) {
+            local.generateSES = true;
+        }
+        for ( var sesIx = 1; sesIx <= sesN; sesIx = sesIx + 1 ) {
+            if ( sesIx == 1 ) {
+                local.context["action"] = pathInfo[sesIx];
+            } else if ( sesIx == 2 ) {
+                local.context["action"] = pathInfo[sesIx-1] & '.' & pathInfo[sesIx];
+            } else if ( sesIx mod 2 == 1 ) {
+                local.context[ pathInfo[sesIx] ] = '';
+            } else {
+                local.context[ pathInfo[sesIx-1] ] = pathInfo[sesIx];
+            }
+        }
+        // certain remote calls do not have URL or form scope:
+        if ( isDefined( 'URL'  ) ) structAppend( local.context, URL );
+        if ( isDefined( 'form' ) ) structAppend( local.context, form );
+        var httpData = getHttpRequestData();
+        if ( variables.framework.enableJSONPOST ) {
+            // thanks to Adam Tuttle and by proxy Jason Dean and Ray Camden for the
+            // seed of this code, inspired by Taffy's basic deserialization
+            var body = httpData.content;
+            if ( isBinary( body ) ) body = charSetEncode( body, "utf-8" );
+            if ( len( body ) ) {
+                switch ( listFirst( CGI.CONTENT_TYPE, ';' ) ) {
+                case "application/json":
+                case "text/json":
+                    try {
+                        var bodyStruct = deserializeJSON( body );
+                        structAppend( local.context, bodyStruct );
+                    } catch ( any e ) {
+                        throw( type = "FW1.JSONPOST",
+                               message = "Content-Type implies JSON but could not deserialize body: " & e.message );
+                    }
+                    break;
+                default:
+                    // ignore -- either built-in (form handling) or unsupported
+                    break;
+                }
+            }
+        }
+        local.headers = httpData.headers;
+        // figure out the request action before restoring flash context:
+        if ( !structKeyExists( local.context, "action" ) ) {
+            local.context[ "action" ] = getFullyQualifiedAction( variables.framework.home );
+        } else {
+            local.context[ "action" ] = getFullyQualifiedAction( local.context[ "action" ] );
+        }
+        if ( variables.framework.noLowerCase ) {
+            local.action = validateAction( local.context[ "action" ] );
+        } else {
+            local.action = validateAction( lCase(local.context[ "action" ]) );
+        }
+        local.requestDefaultsInitialized = true;
+        return local.context; 
+    }
 
 	/**
 	* We have to define our own onSessionStart because fw/1 builds resources rotes before initializing the session. This causes
@@ -1762,6 +2043,7 @@ component extends="one" {
 		
 		writeLog(file="zero_trace", text="start onRequestStart()");		
 		variables.zero.throwOnNullControllerResult = variables.zero.throwOnNullControllerResult?: true;
+		variables.zero.validateHTMLOutput = variables.zero.validateHTMLOutput?: false;
 		variables.zero.argumentCheckedControllers = variables.zero.argumentCheckedControllers?: true;
 		variables.zero.equalizeSnakeAndCamelCase = variables.zero.equalizeSnakeAndCamelCase?: true;
 		variables.zero.outputNonControllerErrors = variables.zero.outputNonControllerErrors?: false;

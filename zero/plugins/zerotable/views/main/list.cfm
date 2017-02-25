@@ -28,7 +28,6 @@
 <cf_handlebars context="#rc.data#">
 <div class="row" id="zero-grid">
 	<div class="col-lg-12">
-		<h1>Zero Table</h1>
 		<div class="row" style="margin-bottom:10px;">
 			<div class="col-lg-12">
 								
@@ -36,7 +35,7 @@
 		</div>
 		<div class="row" style="margin-bottom:10px;">
 			<div class="col-lg-8">
-				<form id="max_items" action="" method="get" class="form-inline" {{#if use_zero_ajax}}zero-target="#zero-grid"{{/if}}>					
+				<form id="max_items" action="" method="get" class="form-inline" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}>					
 					{{#each current_params}}
 						{{#unless is_max}}
 							{{#unless is_more}}
@@ -61,7 +60,7 @@
 			</div>
 			<div class="col-lg-4 text-right">
 				<div class="form-group" class="pull-right" style="display:inline;">
-					<form id="search-form" method="GET" action="{{base_path}}/list" class="form-inline" style="display:inline;" {{#if use_zero_ajax}}zero-target="#zero-grid"{{/if}}>
+					<form id="search-form" method="GET" action="{{base_path}}" class="form-inline" style="display:inline;" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}>
 						{{#each current_params}}
 							{{#unless is_search}}
 								<input type="hidden" name="{{name}}" value="{{value}}">
@@ -118,7 +117,7 @@
 							searchInput[0].setSelectionRange(strLength, strLength);
 						</script>
 					{{/if}}					
-					<a class="btn btn-default btn-sm" href="{{clear_search_link}}" {{#if use_zero_ajax}}zero-target="#zero-grid"{{/if}}>Clear</a>					
+					<a class="btn btn-default btn-sm" href="{{clear_search_link}}" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}>Clear</a>					
 				</div>
 			</div>
 		</div>
@@ -133,12 +132,12 @@
 								<th>{{friendly_name}}
 									{{#if is_sorted}}
 										{{#if is_sorted_asc}}
-											<span class="pull-right"><a href="{{sort_desc_link}}" {{#if use_zero_ajax}}zero-target="#zero-grid"{{/if}}><i class="fa fa-fw fa-sort-desc"></i></a></span>
+											<span class="pull-right"><a href="{{sort_desc_link}}" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}><i class="fa fa-fw fa-sort-desc"></i></a></span>
 										{{else}}
-											<span class="pull-right"><a href="{{sort_asc_link}}" {{#if use_zero_ajax}}zero-target="#zero-grid"{{/if}}><i class="fa fa-fw fa-sort-asc"></i></a></span>
+											<span class="pull-right"><a href="{{sort_asc_link}}" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}><i class="fa fa-fw fa-sort-asc"></i></a></span>
 										{{/if}}
 									{{else}}
-										<span class="pull-right"><a href="{{sort_asc_link}}" {{#if use_zero_ajax}}zero-target="#zero-grid"{{/if}}><i class="fa fa-fw fa-sort"></i></a></span>
+										<span class="pull-right"><a href="{{sort_asc_link}}" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}><i class="fa fa-fw fa-sort"></i></a></span>
 									{{/if}}
 										<!--- <span class="pull-right"><a href=""><i class="fa fa-fw fa-filter"></i></a></span>
 										<span class="pull-right"><a href=""><i class="fa fa-fw fa-search"></i></a></span> --->
@@ -266,7 +265,7 @@
 													<div style="display:table-cell; position:relative">
 														<!--- ENABLE EDIT FIELD --->													
 														<form id="enable-edit-{{column_name}}-{{id}}" 
-															  action="{{base_path}}/list" 
+															  action="{{base_path}}" 
 															  method="post" 
 															  style="margin:0px; padding:0px; height:100%" 
 															  {{#if use_zero_ajax}}zero-target="#cell-{{column_name}}-{{id}}"{{/if}}
@@ -319,7 +318,7 @@
 											{{/if}}
 
 											{{#if column_type.checkbox}}
-												<form id="data-grid-form-name{{../id}}" action="{{base_path}}/{{../id}}" method="post" class="form-inline" style="display:inline;" {{#if use_zero_ajax}}zero-target="#zero-grid"{{/if}}>
+												<form id="data-grid-form-name{{../id}}" action="{{base_path}}/{{../id}}" method="post" class="form-inline" style="display:inline;" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}>
 													<div class="form-group">
 														<!--- {{../is_active}} --->
 														<input type="hidden" name="goto" value="{{current_link}}" />
@@ -377,7 +376,7 @@
 
 													  "
 													  style="padding:1% 0; padding-left:5px;" 													  
-													  {{#if use_zero_ajax}}zero-target="#zero-grid"{{/if}}>
+													  {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}>
 													
 													<div class="form-group" style="padding:2% 0;">
 														<input type="hidden" name="goto" value="{{pagination.current_page.link}}" />
@@ -397,7 +396,7 @@
 												<div style="display:table-cell; position:relative;">									
 																								
 													<form id="enable-edit-{{column_name}}-{{id}}" 
-														  action="{{base_path}}/list" 
+														  action="{{base_path}}" 
 														  method="post" 
 														  style="margin:0px; padding:0px; height:100%" 
 														  {{#if use_zero_ajax}}zero-target="#cell-{{column_name}}-{{id}}"{{/if}}
@@ -449,7 +448,7 @@
 					Showing {{toString pagination.current_page.start_index}} to {{toString pagination.current_page.end_index}} of {{pagination.total_items}} entries					
 				</div>
 				<div class="col-lg-2">
-					<form action="{{base_path}}/list" method="GET" {{#if use_zero_ajax}}zero-target="#zero-grid"{{/if}}>
+					<form action="{{base_path}}" method="GET" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}>
 						{{#each current_params}}
 							{{#unless is_more}}						
 								<input type="hidden" name="{{name}}" value="{{value}}">							
@@ -465,32 +464,32 @@
 							<nav aria-label="Page navigation" class="text-right">					
 								<ul class="pagination text-right" style="margin-top:-5px;">						
 									<li {{#if pagination.is_first_page}}class="disabled"{{/if}}>
-										<a href="{{pagination.first_page.link}}" aria-label="Previous" {{#if use_zero_ajax}}zero-target="#zero-grid"{{/if}}>
+										<a href="{{pagination.first_page.link}}" aria-label="Previous" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}>
 											<span aria-hidden="true">First</span>
 										</a>
 									</li>
 
 									<li {{#unless pagination.has_previous_page}}class="disabled"{{/unless}}>
-										<a href="{{pagination.previous_page.link}}" aria-label="Previous" {{#if use_zero_ajax}}zero-target="#zero-grid"{{/if}}>
+										<a href="{{pagination.previous_page.link}}" aria-label="Previous" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}>
 											Previous
 										</a>
 									</li>
 									
 									{{#each pagination.summary_pages}}							
-										<li {{#if is_current_page}}class="active"{{/if}}><a href="{{link}}" {{#if use_zero_ajax}}zero-target="#zero-grid"{{/if}}>{{toString id}}</a></li>							
+										<li {{#if is_current_page}}class="active"{{/if}}><a href="{{link}}" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}>{{toString id}}</a></li>							
 									{{/each}}												
 									<li {{#unless pagination.has_next_page}}class="disabled"{{/unless}}>
-										<a href="{{pagination.next_page.link}}" aria-label="Next" {{#if use_zero_ajax}}zero-target="#zero-grid"{{/if}}>Next</a>
+										<a href="{{pagination.next_page.link}}" aria-label="Next" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}>Next</a>
 									</li>
 
 									<li {{#if pagination.is_last_page}}class="disabled"{{/if}}>
-										<a href="{{pagination.last_page.link}}" aria-label="Previous" {{#if use_zero_ajax}}zero-target="#zero-grid"{{/if}}>
+										<a href="{{pagination.last_page.link}}" aria-label="Previous" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}>
 											<span aria-hidden="true">Last</span>
 										</a>
 									</li>		
 
 									<li class="" style="margin-left:15px;">
-										<form action="{{current_link}}" method="POST" class="form-inline" style="display:inline;" {{#if use_zero_ajax}}zero-target="#zero-grid"{{/if}}>
+										<form action="{{current_link}}" method="POST" class="form-inline" style="display:inline;" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}>
 											<div class="form-group">
 												<!--- <label>Go to Page</label> --->
 												<input type="hidden" name="current_params" value="{{current_params_as_string}}">

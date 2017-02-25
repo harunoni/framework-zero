@@ -259,20 +259,36 @@ component output="false" displayname=""  {
 	private array function getAllProperties(required component entity){
 		var meta = getMetaData(arguments.entity);
 		var allProperties = meta.properties;
-
+		// writeDump(allProperties);
 		if(structKeyExists(meta,"extends")){
-			var parent.meta = getComponentMetaData(meta.extends.fullName);
+			if(meta.extends.name != "lucee.Component"){
+				try {
 
-			if(structKeyExists(parent.meta,"persistent") AND parent.meta.persistent IS true){
-				allProperties = allProperties.merge(parent.meta.properties);
+					if(meta.persistent == true){
+						var entity = entityNew(meta.extends.fullName);
+						var parent.meta = getMetaData(entity);
+					} else {
+						var parent.meta = getComponentMetaData(meta.extends.fullName);									
+					}
+
+				} catch(any e){
+					writeDump(meta.extends.fullName);
+					writeDump(meta);
+					abort;
+				}
+
+				// writeDump(parent.meta);
+				// abort;
+				if(structKeyExists(parent.meta,"persistent") AND parent.meta.persistent IS true){				
+					allProperties = allProperties.merge(parent.meta.properties);
+				}
+			} else {
+
 			}
 		}
+		// writeDump(allProperties);
 
 		return allProperties;
 	}
-
-
-
-
 
 }

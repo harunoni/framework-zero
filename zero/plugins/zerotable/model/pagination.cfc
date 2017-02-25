@@ -27,7 +27,7 @@ component accessors="true" {
 		variables.data = arguments.data;
 		variables.max = arguments.max;
 		variables.offset = arguments.offset;
-		variables.queryString = arguments.queryString;
+		variables.queryString = arguments.queryString;		
 
 		//Remove variables from the query string which are never used in pagination
 		variables.queryString.delete("edit_col")
@@ -111,45 +111,32 @@ component accessors="true" {
 		} else {
 
 			var out = [];
-			for(var i=1; i LTE arguments.totalPages; i++){
 
-				if(i == 1){
-					var start = 1;
-					var end = max;
-					if(end > arguments.totalItems){
-						end = arguments.totalItems;
-					}
+			var startIndex = 1;
+			var endIndex = max;
+			
+			var isCurrentPage = false;
+
+			for(var i=0; i LT arguments.totalPages; i++){
+
+				pageOffset = i * max;
+				startIndex = (i * max) + 1;
+				endIndex = (i + 1) * max;
+
+				if(offset >= pageOffset and offset < endIndex){					
+					isCurrentPage = true;
 				} else {
-					var start = ((i-1) * arguments.max) + 1;
-					var end = start + max - 1;
-					if(end > arguments.totalItems){
-						end = arguments.totalItems;
-					}
-				}
+					isCurrentPage = false;
+				}			
 
-				if(arguments.offset >= start and arguments.offset <= end){
-					var isCurrentPage = true;
-				} else {
-					var isCurrentPage = false;
-				}
-
-				if(arguments.offset >= arguments.totalItems){
-					if(i == 1){
-						isCurrentPage = true;
-					} else {
-						isCurrentPage = false;
-					}
-				}
-				// writeDump(isCurrentPage);		
-
-
-				out.append(new page(id=i,
-									link=variables.queryString.setValues({"offset":start}).get(), 
-									startIndex=start, 
-									endIndex=end, 
+				out.append(new page(id=i+1,
+									link=variables.queryString.setValues({"offset":pageOffset}).get(), 
+									startIndex=startIndex, 
+									endIndex=endIndex, 
 									isCurrentPage=isCurrentPage)
 				);
 			}		
+			// writeDump(out);
 			variables.zeroCachePages = out;
 			return out;
 		}
@@ -226,7 +213,11 @@ component accessors="true" {
 	}
 
 	public numeric function getTotalPages(totalItems=this.getTotalItems(), max=variables.max) cachedWithin="request" {
-		return ceiling(arguments.totalItems / arguments.max);
+		var ceiling = ceiling(arguments.totalItems / arguments.max);
+		if(ceiling == 0){
+			ceiling = 1;
+		}		
+		return ceiling;
 	}
 
 	public boolean function hasNextPage(){
@@ -277,7 +268,7 @@ component accessors="true" {
 			"max":getmax(),
 			"next_page":pageToJson(getnextPage()),
 			"offset":getoffset(),
-			"pages":pagesToJson(getpages()),
+			// "pages":pagesToJson(getpages()),
 			"previous_page":pageToJson(getpreviousPage()),
 			"search":getsearch(),
 			"sort":getsort(),

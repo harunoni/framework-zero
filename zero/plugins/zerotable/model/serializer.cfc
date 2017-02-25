@@ -73,21 +73,16 @@ component output="false" displayname=""  {
 			}
 
 		}
-		else if(isStruct(arguments.entity) AND NOT isInstanceOf(arguments.entity, "component")){
-			local.out = {};			
+		else if(isStruct(arguments.entity) AND NOT isObject(arguments.entity)){
+			local.out = {};
+			// writeDump(entity);
 			if(!structIsEmpty(entity)){
 				for(key IN entity){
 					if(isNull(entity[key])){				
 						out[camelToUnderscore(key)] = convertNullToEmptyString(entity[key]?:nullValue());
 						// out[camelToUnderscore(key)] = "";
-					} else {	
-						try {
-							out[camelToUnderscore(key)] = serializeEntity(entity[key], includes);													
-						}catch(any e){
-							writeDump(arguments.entity);
-							writeDump(e);
-							abort;
-						}
+					} else {
+						out[camelToUnderscore(key)] = serializeEntity(entity[key], includes);						
 					}
 				};
 			}			
@@ -106,17 +101,12 @@ component output="false" displayname=""  {
 			if(isInstanceOf(arguments.entity, "Optional")){
 				if(arguments.entity.exists()){
 					local.entity = arguments.entity.get();
-					return new serializer().serializeEntity(local.entity, includes);
 				} else {
-					return "";
+					throw "The entity via an Optional object did not exist so we cannot use it";
 				}
 			} else {
 				local.entity = arguments.entity;
 				// writeDump(local.entity);				
-			}
-
-			if(structKeyExists(local.entity,"toJson") and isCustomFunction(local.entity.toJson)){
-				return local.entity.toJson();
 			}
 
 			local.prop = getAllProperties(local.entity);
@@ -235,7 +225,6 @@ component output="false" displayname=""  {
 		return local.out;
 	}
 
-
 	/**
 	 * Breaks a camelCased string into separate words
 	 * 8-mar-2010 added option to capitalize parsed words Brian Meloche brianmeloche@gmail.com
@@ -252,8 +241,7 @@ component output="false" displayname=""  {
 	        rtnStr=reReplace(arguments.str,"([a-z])([A-Z])","\1_\2","ALL");
 	        rtnStr=uCase(left(rtnStr,1)) & right(rtnStr,len(rtnStr)-1);
 	    }
-	    var out = trim(rtnStr);
-		return out;
+		return trim(rtnStr);
 	}
 
 	public function serializeEntities(){
@@ -269,22 +257,38 @@ component output="false" displayname=""  {
 	}
 
 	private array function getAllProperties(required component entity){
-		var start = getTickCount();
 		var meta = getMetaData(arguments.entity);
 		var allProperties = meta.properties;
-
+		// writeDump(allProperties);
 		if(structKeyExists(meta,"extends")){
-			var parent.meta = getComponentMetaData(meta.extends.fullName);
+			if(meta.extends.name != "lucee.Component"){
+				try {
 
-			if(structKeyExists(parent.meta,"persistent") AND parent.meta.persistent IS true){
-				allProperties = allProperties.merge(parent.meta.properties);
+					if(meta.persistent == true){
+						var entity = entityNew(meta.extends.fullName);
+						var parent.meta = getMetaData(entity);
+					} else {
+						var parent.meta = getComponentMetaData(meta.extends.fullName);									
+					}
+
+				} catch(any e){
+					writeDump(meta.extends.fullName);
+					writeDump(meta);
+					abort;
+				}
+
+				// writeDump(parent.meta);
+				// abort;
+				if(structKeyExists(parent.meta,"persistent") AND parent.meta.persistent IS true){				
+					allProperties = allProperties.merge(parent.meta.properties);
+				}
+			} else {
+
 			}
-		}	    
+		}
+		// writeDump(allProperties);
+
 		return allProperties;
 	}
-
-
-
-
 
 }

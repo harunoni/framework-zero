@@ -2714,6 +2714,7 @@ component {
                 request._fw1.routeMethodsMatched.get = true;
                 request._fw1.routeMethodsMatched.post = true;
             }
+            
             try {
                 // we use .split() to handle empty items in pathInfo - we fallback to listToArray() on
                 // any system that doesn't support .split() just in case (empty items won't work there!)

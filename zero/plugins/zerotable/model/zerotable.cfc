@@ -25,8 +25,31 @@ component accessors="true" {
 	property name="clearEditLink" setter="false";
 	property name="basePath" setter="false";
 	property name="useZeroAjax" setter="false";
+	property name="ajaxTarget" setter="false";
 
-	public function init(required data Rows, required numeric max=10, required numeric offset=1, showMaxPages=5, string basePath="", numeric more=0, useZeroAjax=true){
+	/**
+	 * [init description]
+	 * @param  {data}    required           Rows          		A component implementing the zerotable data interface
+	 * @param  {Number}  required           max           		The maximum number of rows that the table should return
+	 * @param  {Number}  required           offset        		The starting position in the source data to seek to
+	 * @param  {Number}  					showMaxPages		The total number of pages to display in the summary section
+	 * @param  {String}  string             basePath      		The base url path that query string paramters will be appended to
+	 * @param  {Number}  numeric            more          		The number of additional items to show beyong the max
+	 * @param  {Boolean} 					useZeroAjax         Whether to turn on ajax for the data table
+	 * @param  {[type]}  					ajaxTarget          The HTML target attribute that zeroAjax will replace when the data table changes
+	 * @param  {Object}  Required 			serializerIncludes 	When serializing over the entityDate output, this will tell zerotable to include nested data in the rows
+	 * @return {zeroTable}                     					Returns an instance of zerotable
+	 */
+	public zeroTable function init(required data Rows, 
+						 required numeric max=10, 
+						 required numeric offset=0, 
+						 required showMaxPages=5, 
+						 required string basePath="", 
+						 required numeric more=0, 
+						 required useZeroAjax=true, 
+						 ajaxTarget, 
+						 required serializerIncludes={}){
+
 		variables.Rows = arguments.Rows;
 		variables.max = arguments.max;
 		variables.offset = arguments.offset;
@@ -37,6 +60,13 @@ component accessors="true" {
 		variables.basePath = arguments.basePath;
 		variables.convertCamelCaseToUnderscore = false;
 		variables.useZeroAjax = arguments.useZeroAjax;
+		variables.serializerIncludes = arguments.serializerIncludes;
+
+		if(arguments.keyExists("ajaxTarget")){
+			variables.ajaxTarget = arguments.ajaxTarget;
+		} else {
+			variables.ajaxTarget = "##zero-grid";
+		}
 		// variables.searchString = "";
 		variables.customColumns = [];
 		variables.more = arguments.more;
@@ -58,11 +88,12 @@ component accessors="true" {
 			"more":variables.more
 		});
 
-		variables.qs.setBasePath(arguments.basePath & "/list");
+		variables.qs.setBasePath(arguments.basePath);
 		
 		if(variables.useZeroAjax){
 			requiredAjaxFiles();
 		}
+		return this;
 	}
 	
 	public function addColumn(required column column){
@@ -184,14 +215,14 @@ component accessors="true" {
 	}
 
 	public string function getClearSearchLink(){
-		return variables.qs.getNew().setBasePath("#variables.basePath#/list")
+		return variables.qs.getNew().setBasePath("#variables.basePath#")
 									.delete("search")
 									.delete("edit_col")
 									.delete("edit_id").get();
 	}
 
 	public string function getCurrentLink(){
-		return variables.qs.getNew().setBasePath("#variables.basePath#/list").get();
+		return variables.qs.getNew().setBasePath("#variables.basePath#").get();
 	}
 
 	public column[] function getCustomColumns(){
@@ -275,7 +306,7 @@ component accessors="true" {
 
 		if(isNull(variables.serializedRows)){
 			var rows = variables.Rows.list(max=variables.max + variables.more, offset=variables.offset);
-			var rows = new serializer().serializeEntity(rows);
+			var rows = new serializer().serializeEntity(rows, variables.serializerIncludes);
 			variables.serializedRows = rows;			
 		} 
 		return variables.serializedRows;
@@ -358,6 +389,7 @@ component accessors="true" {
 		zeroTableOut["clear_edit_link"] = this.getclearEditLink();
 		zeroTableOut["base_path"] = this.getbasePath();
 		zeroTableOut["use_zero_ajax"] = this.getuseZeroAjax();
+		zeroTableOut["ajax_target"] = this.getAjaxTarget();
 
 		zeroTableOut["rows"] = new serializer().serializeEntity(this.getRows());
 		zeroTableOut["pagination"] = this.getPagination().toJson();
