@@ -246,9 +246,9 @@ component extends="one" {
 			case "json":				
 				//If we are allowing null data, then we're going to putput an empty object
 				if(isNull(request._zero.controllerResult)){
-					renderData("json", {});
+					renderData("json", {} );
 				} else {
-					renderData("json", request._zero.controllerResult);					
+					renderData("json", request._zero.controllerResult, request._zero.controllerResult.status_code?:"200");
 				}				
 			break;
 
@@ -890,7 +890,7 @@ component extends="one" {
 					// writeDump(newArgs);
 					// writeDump(newCfc);
 					// abort;
-					addError(arguments.name, {message:e.message, original_value:arguments.data, error:e});	
+					addError(arguments.name, {message:e.message, original_value:arguments.data});
 					return ;
 				}
 			}
@@ -1092,7 +1092,25 @@ component extends="one" {
                 				"errors":request._zero.argumentErrors
                 			}                			
             			} else {
-	                		request._zero.controllerResult = evaluate( 'cfc.#method#( argumentCollection = argsToPass)' );
+	                		// request._zero.controllerResult = evaluate( 'cfc.#method#( argumentCollection = argsToPass)' );
+	                		try {
+	                			request._zero.controllerResult = evaluate( 'cfc.#method#( argumentCollection = argsToPass)' );            					
+            				} catch(any e){
+            					
+            					if(!e.errorCode == "0"){
+									var errorcode = e.errorCode
+								} else {
+									var errorcode = "500";
+								}								
+
+            					request._zero.controllerResult = {
+	                				"success":false,
+	                				"errors":{
+	                					"#e.type#":e.message,	                					
+	                				},
+	                				"status_code":errorCode
+	                			}	                			
+            				}
             			}
 
                 	} else {
@@ -1620,6 +1638,7 @@ component extends="one" {
 				} else {
 					var errorcode = "500";
 				}
+				
 
 				if(errorCode ==""){
 					errorCode = "500";					
