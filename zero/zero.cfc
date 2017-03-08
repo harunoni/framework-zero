@@ -1892,7 +1892,7 @@ component extends="one" {
 	* so that we can pass in our own path info and get an action back
 	* to manually check the controller
 	*/
-	private void function getPathAction(pathInfo=request._fw1.cgiPathInfo, 
+	private struct function getPathAction(pathInfo=request._fw1.cgiPathInfo, 
                                     base=variables.framework.base, 
                                     cfcbase=variables.framework.cfcbase,
                                     cgiScriptName=request._fw1.cgiScriptName,
