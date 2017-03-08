@@ -1749,6 +1749,7 @@ component extends="one" {
 				// abort;
 				
 				var href = link.attr("href");
+				var href = listFirst(href, "?");
 				if(href == "" or href == "/" or href == "##"){
 					continue;
 				}
@@ -1788,6 +1789,7 @@ component extends="one" {
 			for(var _form in forms){
 				// writeDump(_form);
 				var action = _form.attr("action");
+				var action = listFirst(action, "?");
 				if(_form.hasAttr("method")){
 					var method = ucase(_form.attr("method"));
 				} else {
