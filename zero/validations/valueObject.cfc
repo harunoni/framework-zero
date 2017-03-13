@@ -1,4 +1,4 @@
-component implements="zero.lib.printable" {	
+component implements="" {	
 	property name="value";
 	public valueObject function init(required value){
 		variables.value = arguments.value;

@@ -26,7 +26,7 @@ component output="false" displayname=""  {
 	}
 
 	public function serializeEntity(required entity, includes=""){
-		
+
 		if(isSimpleValue(arguments.includes)){
 			var includesArray = listToArray(arguments.includes);
 			var includes = {};
@@ -56,20 +56,20 @@ component output="false" displayname=""  {
 							out[camelToUnderscore(key)] = convertNullToEmptyString(entity[key]);
 						}
 						else {
-							out[camelToUnderscore(key)] = serializeEntity(entity[key], includes);					
-						}					
-	
+							out[camelToUnderscore(key)] = serializeEntity(entity[key], includes);
+						}
+
 					};
-				}				
+				}
 			} else {
 				local.out = [];
 				for(ent IN entity){
 					if(isNull(ent)){
 						out.append(convertNullToEmptyString(ent?:nullValue()));
 					} else {
-						out.append(serializeEntity(ent, includes));							
+						out.append(serializeEntity(ent, includes));
 					}
-				};				
+				};
 			}
 
 		}
@@ -78,20 +78,20 @@ component output="false" displayname=""  {
 			// writeDump(entity);
 			if(!structIsEmpty(entity)){
 				for(key IN entity){
-					if(isNull(entity[key])){				
+					if(isNull(entity[key])){
 						out[camelToUnderscore(key)] = convertNullToEmptyString(entity[key]?:nullValue());
 						// out[camelToUnderscore(key)] = "";
 					} else {
-						out[camelToUnderscore(key)] = serializeEntity(entity[key], includes);						
+						out[camelToUnderscore(key)] = serializeEntity(entity[key], includes);
 					}
 				};
-			}			
+			}
 		}
 		else{
 
 			if(isInstanceOf(arguments.entity, "valueObject")){
 				try{
-					return arguments.entity.toString();										
+					return arguments.entity.toString();
 				}catch(any e){
 					writeDump(arguments.entity);
 					abort;
@@ -106,7 +106,7 @@ component output="false" displayname=""  {
 				}
 			} else {
 				local.entity = arguments.entity;
-				// writeDump(local.entity);				
+				// writeDump(local.entity);
 			}
 
 			local.prop = getAllProperties(local.entity);
@@ -163,17 +163,17 @@ component output="false" displayname=""  {
 						}catch (any e){
 
 							writeDump(evaluate('entity.get#prop.name#()'));
-							writeDump(e);							
+							writeDump(e);
 							abort;
 
 						}
 					}
 				} else {
 
-					if(!structKeyExists(prop,"serializeJson") OR (structKeyExists(prop,"serializeJson") AND prop.serializeJson IS NOT false)){	
+					if(!structKeyExists(prop,"serializeJson") OR (structKeyExists(prop,"serializeJson") AND prop.serializeJson IS NOT false)){
 
 						try {
-							local.getValue = evaluate('entity.get#prop.name#()');				
+							local.getValue = evaluate('entity.get#prop.name#()');
 						} catch(any e){
 							throw(e);
 							// // writeDump(entity);
@@ -198,7 +198,7 @@ component output="false" displayname=""  {
 						} else if(isInstanceOf(local.getValue,"valueObject")){
 							out[camelToUnderscore(prop.name)] = local.getValue.toString();
 						}
-						else if(isInstanceOf(local.getValue, "component")){							
+						else if(isInstanceOf(local.getValue, "component")){
 							if(includes.keyExists(prop.name)){
 								out[camelToUnderscore(prop.name)] = new serializer().serializeEntity(local.getValue, includes[prop.name]);
 							}
@@ -208,13 +208,13 @@ component output="false" displayname=""  {
 							if(includes.keyExists(prop.name)){
 								out[camelToUnderscore(prop.name)] = [];
 								for(var item in local.getValue){
-									
+
 									out[camelToUnderscore(prop.name)].append(new serializer().serializeEntity(item, includes[prop.name]));
-								}								
+								}
 							}
 
 						}
-						else {							
+						else {
 							out[camelToUnderscore(prop.name)] = local.getValue;
 						}
 					}
@@ -265,13 +265,28 @@ component output="false" displayname=""  {
 				try {
 
 					if(meta.persistent == true){
-						var entity = entityNew(meta.extends.fullName);
+						//Try the entity both by its fully qualified name
+						//and its root name. This is because the extension
+						//can used both paths and this may impact where the
+						//entity can be loaded from
+						try {
+							var entity = entityNew(meta.extends.fullName);
+						}catch(any e){
+
+							var entityName = listLast(meta.extends.fullName, ".");
+							var entity = entityNew(entityName);
+							// writeDump(entity);
+							// writeDump(entityNew("users"));
+							// abort;
+						}
 						var parent.meta = getMetaData(entity);
 					} else {
-						var parent.meta = getComponentMetaData(meta.extends.fullName);									
+
+						var parent.meta = getComponentMetaData(meta.extends.fullName);
 					}
 
 				} catch(any e){
+					writeDump(e);
 					writeDump(meta.extends.fullName);
 					writeDump(meta);
 					abort;
@@ -279,7 +294,7 @@ component output="false" displayname=""  {
 
 				// writeDump(parent.meta);
 				// abort;
-				if(structKeyExists(parent.meta,"persistent") AND parent.meta.persistent IS true){				
+				if(structKeyExists(parent.meta,"persistent") AND parent.meta.persistent IS true){
 					allProperties = allProperties.merge(parent.meta.properties);
 				}
 			} else {

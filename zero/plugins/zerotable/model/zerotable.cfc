@@ -26,6 +26,7 @@ component accessors="true" {
 	property name="basePath" setter="false";
 	property name="useZeroAjax" setter="false";
 	property name="ajaxTarget" setter="false";
+	property name="persistFields" setter="false";
 
 	/**
 	 * [init description]
@@ -48,7 +49,8 @@ component accessors="true" {
 						 required numeric more=0, 
 						 required useZeroAjax=true, 
 						 ajaxTarget, 
-						 required serializerIncludes={}){
+						 required serializerIncludes={},
+						 struct persistFields={}){
 
 		variables.Rows = arguments.Rows;
 		variables.max = arguments.max;
@@ -61,6 +63,7 @@ component accessors="true" {
 		variables.convertCamelCaseToUnderscore = false;
 		variables.useZeroAjax = arguments.useZeroAjax;
 		variables.serializerIncludes = arguments.serializerIncludes;
+		variables.persistFields = arguments.persistFields;
 
 		if(arguments.keyExists("ajaxTarget")){
 			variables.ajaxTarget = arguments.ajaxTarget;
@@ -287,6 +290,15 @@ component accessors="true" {
 				});				
 			}
 		}
+
+		for(var key in persistFields){
+			out.append({
+				"name":key,
+				"value":persistFields[key],
+				"is_#key#":true
+			});
+		}
+
 		return out;
 	}
 
@@ -390,6 +402,8 @@ component accessors="true" {
 		zeroTableOut["base_path"] = this.getbasePath();
 		zeroTableOut["use_zero_ajax"] = this.getuseZeroAjax();
 		zeroTableOut["ajax_target"] = this.getAjaxTarget();
+		zeroTableOut["persist_fields"] = this.getPersistFields();
+
 
 		zeroTableOut["rows"] = new serializer().serializeEntity(this.getRows());
 		zeroTableOut["pagination"] = this.getPagination().toJson();

@@ -35,7 +35,7 @@
 		</div>
 		<div class="row" style="margin-bottom:10px;">
 			<div class="col-lg-8">
-				<form id="max_items" action="" method="get" class="form-inline" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}>					
+				<form id="max_items" action="{{base_path}}" method="get" class="form-inline" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}>				
 					{{#each current_params}}
 						{{#unless is_max}}
 							{{#unless is_more}}
