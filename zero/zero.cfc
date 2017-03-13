@@ -815,6 +815,10 @@ component extends="one" {
 		return false;
 	}
 
+	public function appendRoute(required struct route){
+		variables.framework.routes.append(arguments.route);
+	}
+
 	public function createFormState(required string steps, name, clientStorage={}){
 		request._zero.zeroFormState = new zeroFormState(argumentCollection=arguments);
 		return request._zero.zeroFormState;
@@ -1798,6 +1802,7 @@ component extends="one" {
 		}
 
 		if(variables.zero.validateHTMLOutput){
+			// setupFrameworkDefaults();
 
 			jsoup = createObject("java", "org.jsoup.Jsoup", "formcheck/jsoup-1.10.2.jar");
 			var doc = jsoup.parse(finalOutput);
@@ -1860,7 +1865,6 @@ component extends="one" {
 					var method = "GET";
 				}
 				var match = processRoutes(action, variables.framework.routes, method);
-				// writeDump(match);
 
 				if(match.matched == false){
 					formErrors.append(getError("routeNotFound", _form.toString()));
@@ -1964,7 +1968,6 @@ component extends="one" {
                                     cgiScriptName=request._fw1.cgiScriptName,
                                     routes=variables.framework.routes,
                                     cgiRequestMethod=request._fw1.cgiRequestMethod) {
-        // setupFrameworkDefaults();
 
         var pathInfo = arguments.pathInfo;
         var base = arguments.base;
