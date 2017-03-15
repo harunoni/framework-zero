@@ -34,6 +34,7 @@ component implements="validation,formElement,cfc,cfcMethod,urlArguments" {
 				} else {
 
 					for(var input in inputs){
+
 						if(!input.hasAttr('value')){
 							throw("Required input '#param.name#' for #metaData.fullName#:#cfcMethod#() was missing a value attribute", "requiredInputMissingValue");
 						}

@@ -1834,7 +1834,8 @@ component extends="one" {
 				"routesFunc",
 				"htmlDoc",
 				"validation",
-				"urlArguments"
+				"urlArguments",
+				"inputElement"
 			]
 
 			var implements = function(cfc, type){
@@ -1947,6 +1948,18 @@ component extends="one" {
 											formErrors.append({type:e.type, message:e.message, original:formElement.toString()});
 											continue loopForm;
 										}
+
+										//Check for additional formactions within the form
+										// var formActions = formElement.select('button[formaction]');
+										// for(var formAction in formActions){
+
+										// 	try {
+										// 		new formRouteNotFound()
+										// 	}
+
+										// }
+
+
 									} else {
 										formErrors.append({type:"missingFormAction", message:"Forms must have an action attribute", original:formElement.toString()});
 										continue loopForm;
