@@ -13,4 +13,8 @@ component {
 	public function getMessage(){
 		return variables.message;
 	}
+
+	public function getType(){
+		return variables.type;
+	}
 }

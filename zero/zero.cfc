@@ -156,7 +156,7 @@ component extends="one" {
 	  { method = 'read', httpMethods = [ '$POST' ], includeId = true, routeSuffix = '/read' },
 
 	  { method = 'update', httpMethods = [ '$PUT','$POST' ], includeId = true },
-	  { method = 'update', httpMethods = [ '$PUT','$POST' ], routeSuffix = '/update' },
+	  { method = 'update', httpMethods = [ '$PUT','$POST' ], includeId = true, routeSuffix = '/update' },
 
 	  { method = 'delete', httpMethods = [ '$DELETE' ], includeId = true },
 	  { method = 'delete', httpMethods = [ '$POST' ], includeId = true, routeSuffix = '/delete' },
@@ -1145,8 +1145,8 @@ component extends="one" {
                 internalFrameworkTrace( 'calling #lifecycle# controller', tuple.subsystem, tuple.section, method );
                 // request._zero.controllerResult = evaluate( 'cfc.#method#( rc = request.context, headers = request._fw1.headers )' );
                 //
-                if(arguments.lifecycle == "item"){
 
+                if(arguments.lifecycle == "item"){
                 	if(controllerHasFunction(cfc, "request")){
                 		evaluate( 'cfc.request( rc = request.context, headers = request._fw1.headers)' );
                 	}
@@ -1616,7 +1616,6 @@ component extends="one" {
 			var nested = listToArray(meta.nested?:"");
 			for(var nest in nested){
 				//Add nesting
-				variables.framework.routes.prepend({ "$RESOURCES" = { resources = "#name#", nested="#nest#"} });
 
 				//Add route for linking resource
 				variables.framework.routes.prepend({'$POST/#name#/:#name#_id/#nest#/:id/link*' = '/#nest#/link/#name#_id/:#nest#_id/id/:id' });
@@ -1625,7 +1624,13 @@ component extends="one" {
 				variables.framework.routes.prepend({'$POST/#name#/:#name#_id/#nest#/:id/unlink*' = '/#nest#/unlink/#name#_id/:#nest#_id/id/:id' });
 			}
 
-			variables.framework.routes.prepend({ "$RESOURCES" = { resources = name} })
+			if(arrayLen(nested)){
+				variables.framework.routes.prepend({ "$RESOURCES" = { resources = "#name#", nested="#nested.toList()#"} });
+			} else {
+				variables.framework.routes.prepend({ "$RESOURCES" = { resources = name} })
+			}
+
+
 		}
 		return variables.framework.routes;
 	}
@@ -1648,20 +1653,24 @@ component extends="one" {
 				for(var controller in controllers){
 					file = getFileFromPath(controller);
 					name = listFirst(file, ".");
-					variables.framework.routes.prepend({ "$RESOURCES" = { resources = name } })
 					//Runscrit Routes
 
 					var meta = getComponentMetaData("#variables.framework.base#.#subsystemName#.controllers.#name#");
 					var nested = listToArray(meta.nested?:"");
 					for(var nest in nested){
 						//Add nesting
-						variables.framework.routes.prepend({ "$RESOURCES" = { resources = "#name#", nested="#nest#"} });
 
 						//Add route for linking resource
 						variables.framework.routes.prepend({'$POST/#name#/:#name#_id/#nest#/:id/link*' = '/#nest#/link/#name#_id/:#name#_id/id/:id' });
 
 						//Add route for unlinking resource
 						variables.framework.routes.prepend({'$POST/#name#/:#name#_id/#nest#/:id/unlink*' = '/#nest#/unlink/#name#_id/:#name#_id/id/:id' });
+					}
+
+					if(arrayLen(nested)){
+						variables.framework.routes.prepend({ "$RESOURCES" = { resources = "#name#", nested="#nested.toList()#"} });
+					} else {
+						variables.framework.routes.prepend({ "$RESOURCES" = { resources = name } })
 					}
 				}
 
@@ -1673,20 +1682,22 @@ component extends="one" {
 					file = getFileFromPath(controller);
 					name = listFirst(file, ".");
 
-					variables.framework.routes.prepend({ "$RESOURCES" = { resources = name, subsystem = subsystemName } })
 					//Runscrit Routes
 
 					var meta = getComponentMetaData("#variables.framework.base#.#subsystemName#.controllers.#name#");
 					var nested = listToArray(meta.nested?:"");
 					for(var nest in nested){
-						//Add nesting
-						variables.framework.routes.prepend({ "$RESOURCES" = { resources = "#name#", nested="#nest#", subsystem = subsystemName} });
 
 						//Add route for linking resource
 						variables.framework.routes.prepend({'$POST/#subsystemName#/#name#/:#name#_id/#nest#/:id/link*' = '/#subsystemName#:#nest#/link/#name#_id/:#name#_id/id/:id' });
 
 						//Add route for unlinking resource
 						variables.framework.routes.prepend({'$POST/#subsystemName#/#name#/:#name#_id/#nest#/:id/unlink*' = '/#subsystemName#:#nest#/unlink/#name#_id/:#name#_id/id/:id' });
+					}
+					if(arrayLen(nested)){
+						variables.framework.routes.prepend({ "$RESOURCES" = { resources = "#name#", nested="#nested.toList()#", subsystem = subsystemName} });
+					} else {
+						variables.framework.routes.prepend({ "$RESOURCES" = { resources = name, subsystem = subsystemName } })
 					}
 
 					//Create a universal route for the subsystem to the subsystem name for SES urls
@@ -1805,132 +1816,184 @@ component extends="one" {
 			// setupFrameworkDefaults();
 
 			jsoup = createObject("java", "org.jsoup.Jsoup", "formcheck/jsoup-1.10.2.jar");
-			var doc = jsoup.parse(finalOutput);
-			var links = doc.select("a");
+			var htmlDoc = jsoup.parse(finalOutput);
+			var links = htmlDoc.select("a");
+			var forms = htmlDoc.select("form");
+
+			var routesFunc = function(link, routes, method){
+				return this.processRoutes(arguments.link, arguments.routes, arguments.method);
+			}
+
+			var routes = variables.framework.routes;
+			var interfaces = [
+				"cfc",
+				"cfcMethod",
+				"formElement",
+				"linkElement",
+				"routes",
+				"routesFunc",
+				"htmlDoc",
+				"validation",
+				"urlArguments"
+			]
+
+			var implements = function(cfc, type){
+
+				var metaData = getMetaData(cfc);
+				if(metaData.keyExists("implements")){
+					if(metaData.implements.keyExists(arguments.type)){
+						return true;
+					} else {
+						writeDump(metaData);
+						abort;
+						return false;
+					}
+
+				} else {
+					return false;
+				}
+			}
 			// writeDump(links);
 			var linkErrors = [];
-			for(var link in links){
 
+			var validations = directoryList("formcheck/validations");
 
-				// writeDump(link.attr("href"));
-				// writeDump(link.toString());
-				// writeDump(link);
-				// abort;
+			for(var linkElement in links){
 
-				var href = link.attr("href");
-				var href = listFirst(href, "?");
-				if(href == "" or href == "/" or href == "##"){
-					continue;
-				}
+				for(var validation in validations){
+					var file = listFirst(getFileFromPath(validation), ".");
 
-				var match = processRoutes(href, variables.framework.routes, "GET");
-				if(match.matched == false){
-					linkErrors.append(link.toString());
-				}
+					if(arrayFindNoCase(interfaces, file) == 0){
+						var validator = createObject("formcheck.validations.#file#");
 
-			}
+						if(isInstanceOf(validator, "validation") and isInstanceOf(validator,"linkElement")){
 
-			var errorTypes = {
-				"routeNotFound":{
-					"type":"routeNotFound",
-					"message":"Found a form which did not match any routes"
-				},
-				"missingFormInput":{
-					"type":"missingFormInput",
-					"message":"The form was missing an input that was required"
-				},
-				"missingControllerFunction":{
-					"type":"missingContollerFuntion",
-					"message":"The form found a route for the controller but the controller was missing the expected function"
-				}
-			}
+							var args = {};
+							if(isInstanceOf(validator, "linkElement")){args.linkElement = linkElement}
+							if(isInstanceOf(validator, "htmlDoc")){args.htmlDoc = htmlDoc}
+							if(isInstanceOf(validator, "routes")){args.routes = routes}
+							if(isInstanceOf(validator, "routesFunc")){args.routesFunc = routesFunc}
 
-			var getError = function(type, originalForm, detail=""){
-				var errorOut = {};
-				errorOut.append(errorTypes[arguments.type]);
-				errorOut.insert("original_form", arguments.originalForm);
-				errorOut.insert("error_detail", arguments.detail);
-				return errorOut;
-			}
+							try {
 
-			var forms = doc.select("form");
-			var formErrors = [];
-			for(var _form in forms){
-				// writeDump(_form);
-				var action = _form.attr("action");
-				var action = listFirst(action, "?");
-				if(_form.hasAttr("method")){
-					var method = ucase(_form.attr("method"));
-				} else {
-					var method = "GET";
-				}
-				var match = processRoutes(action, variables.framework.routes, method);
-
-				if(match.matched == false){
-					formErrors.append(getError("routeNotFound", _form.toString()));
-				} else {
-
-					// writeDump(getPathAction(pathInfo=action));
-					var newContext = getPathAction(pathInfo=action, cgiRequestMethod="POST");
-					// writeDump(newContext);
-					var action = newContext.action;
-					var subsystem = listFirst(action, ":");
-					var subAction = listLast(action, ":");
-					var controller = listFirst(subAction, ".");
-					var cfcMethod = listLast(subAction, ".");
-					// writeDump(action);
-					var cfc = getCachedController(subsystem, controller);
-					var meta = getMetaData(cfc);
-					// writeDump(meta);
-
-					var foundFunc = meta.functions.find(function(_func){
-						if(_func.name == cfcMethod){
-							// return _func;
-							return true;
-						} else {
-							return false;
-						}
-					});
-
-					if(foundFunc == 0){
-						formErrors.append(getError("missingControllerFunction", _form.toString(), "Did not find the function #cfcMethod# in controller #controller#"));
-					} else {
-						func = meta.functions[foundFunc];
-						//Check all required contorller method arguments
-						for(var param in func.parameters){
-							if(param.required){
-								var inputs = _form.select("input,select[name='#param.name#']");
-								// writeDump(inputs);
-								if(arrayLen(inputs) == 0){
-
-									if(!structKeyExists(newContext, param.name)){
-										formErrors.append(getError("missingFormInput",
-																	_form.toString(),
-																	"Form has a missing required variable [#param.name#] expected for the method [#controller#.#cfcMethod#]: "
-
-										))
-									}
-								}
+								validator.init(argumentCollection=args);
+							} catch(any e){
+								linkErrors.append({type:e.type, message:e.message, original:linkElement.toString()});
 							}
 						}
 					}
+				}
+			}
 
-					// writeDump(func);
+			var formErrors = [];
+			loopForm: for(var formElement in forms){
 
+				for(var validation in validations){
+					var file = listFirst(getFileFromPath(validation), ".");
+
+					if(arrayFindNoCase(interfaces, file) == 0){
+
+						var validator = createObject("formcheck.validations.#file#");
+
+						if(isInstanceOf(validator, "validation") and isInstanceOf(validator, "formElement")){
+
+							var args = {};
+							if(isInstanceOf(validator, "formElement")){args.formElement = formElement}
+							if(isInstanceOf(validator, "htmlDoc")){args.htmlDoc = htmlDoc}
+							if(isInstanceOf(validator, "routes")){args.routes = routes}
+							if(isInstanceOf(validator, "routesFunc")){args.routesFunc = routesFunc}
+
+							if(isInstanceOf(validator, "cfc") or isInstanceOf(validator, "cfcMethod")){
+								try {
+									// new formCheck.validations.formRouteNotFound(routesFunc, formElement, routes);
+									// new formCheck.validations.missingFormMethod(argumentCollection=args);
+
+									if(formElement.hasAttr('action')){
+										var action = formElement.attr('action');
+										var action = listFirst(action,"?");
+										var method = uCase(formElement.attr('method'));
+										var newContext = getPathAction(pathInfo=action, cgiRequestMethod=method);
+										writeDump(newContext);
+										// abort;
+										var action = newContext.action;
+										var subsystem = listFirst(action, ":");
+										var subAction = listLast(action, ":");
+										var controller = listFirst(subAction, ".");
+										var cfcMethod = listLast(subAction, ".");
+										// writeDump(action);
+										var cfc = getCachedController(subsystem, controller);
+
+
+										if(isInstanceOf(validator, "cfc")){args.cfc = cfc}
+										if(isInstanceOf(validator, "cfcMethod")){args.cfcMethod = cfcMethod}
+										if(isInstanceOf(validator, "urlArguments")){
+											var urlArgs = {};
+											if(newContext.keyExists("id")){
+												urlArgs.id = newContext.id;
+											}
+											args.urlArguments = urlArgs;
+										}
+
+										try {
+											validator.init(argumentCollection=args);
+
+										} catch(expression e){
+											writeDump(args);
+												writeDump(validator);
+												writeDump(isInstanceOf(validator,""));
+												writeDump(e);
+												abort;
+										} catch(any e){
+											formErrors.append({type:e.type, message:e.message, original:formElement.toString()});
+											continue loopForm;
+										}
+									} else {
+										formErrors.append({type:"missingFormAction", message:"Forms must have an action attribute", original:formElement.toString()});
+										continue loopForm;
+									}
+
+
+								} catch(expression e){
+									writeDump(validator);
+									writeDump(isInstanceOf(validator,""));
+									writeDump(e);
+									abort;
+								} catch(any e){
+									formErrors.append({type:e.type, message:e.message, original:formElement.toString()});
+									continue loopForm;
+								}
+
+
+							} else {
+
+								try {
+									validator.init(argumentCollection=args);
+								} catch(expression e){
+										writeDump(validator);
+										writeDump(isInstanceOf(validator,""));
+										writeDump(e);
+										abort;
+								} catch(any e){
+									formErrors.append({type:e.type, message:e.message, original:formElement.toString()});
+									continue loopForm;
+								}
+							}
+
+						}
+					}
 				}
 			}
 
 			if(linkErrors.len()){
+				request._zero.linkErrors = linkErrors;
 				writeDump(var=linkErrors, label="Zero detected the following bad links");
 			}
 
 			if(formErrors.len()){
+				request._zero.formErrors = formErrors;
 				writeDump(var=formErrors, label="Zero detected the following incorect forms");
 			}
-
 		}
-
-
 
 		writeOutput(finalOutput);
 
