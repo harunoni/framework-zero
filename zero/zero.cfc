@@ -1172,6 +1172,10 @@ component extends="one" {
 									var errorcode = "500";
 								}
 
+								if(variables.zero.throwOnControllerError){
+									throw(e);
+								}
+
             					request._zero.controllerResult = {
 	                				"success":false,
 	                				"errors":{
@@ -2229,6 +2233,7 @@ component extends="one" {
 		variables.zero.traceRequests = variables.zero.traceRequests ?: false;
 		variables.zero.cacheControllers = variables.zero.cacheControllers ?: false;
 		variables.zero.throwOnFirstArgumentError = variables.zero.throwOnFirstArgumentError ?: false;
+		variables.zero.throwOnControllerError = variables.zero.throwOnControllerError ?: false;
 
 		if(isNull(application.zero)){application.zero = {}};
 

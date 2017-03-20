@@ -27,6 +27,8 @@ component accessors="true" {
 	property name="useZeroAjax" setter="false";
 	property name="ajaxTarget" setter="false";
 	property name="persistFields" setter="false";
+	property name="tableName" setter="false";
+	property name="tableNamePrefix" setter="false";
 
 	/**
 	 * [init description]
@@ -50,7 +52,8 @@ component accessors="true" {
 						 required useZeroAjax=true,
 						 ajaxTarget,
 						 required serializerIncludes={},
-						 struct persistFields={}){
+						 struct persistFields={},
+						 tableName){
 
 		variables.Rows = arguments.Rows;
 		variables.max = arguments.max;
@@ -64,6 +67,11 @@ component accessors="true" {
 		variables.useZeroAjax = arguments.useZeroAjax;
 		variables.serializerIncludes = arguments.serializerIncludes;
 		variables.persistFields = arguments.persistFields;
+		variables.siblingTables = [];
+
+		if(arguments.keyExists("tableName")){
+			variables.tableName = arguments.tableName;
+		}
 
 		if(arguments.keyExists("ajaxTarget")){
 			variables.ajaxTarget = arguments.ajaxTarget;
@@ -72,29 +80,37 @@ component accessors="true" {
 		}
 		// variables.searchString = "";
 		variables.customColumns = [];
-		variables.more = arguments.more;
-		variables.nextMore = variables.more + variables.max;
+
 
 		variables.qs = new queryString(cgi.query_string);
-		variables.qs.delete("search")
-					.delete("sort")
-					.delete("submit")
-					.delete("max")
-					.delete("offset")
-					.delete("more")
+		variables.qs.delete(getFieldNameWithTablePrefix("search"))
+					.delete(getFieldNameWithTablePrefix("sort"))
+					.delete(getFieldNameWithTablePrefix("submit"))
+					.delete(getFieldNameWithTablePrefix("max"))
+					.delete(getFieldNameWithTablePrefix("offset"))
+					.delete(getFieldNameWithTablePrefix("more"))
 					//Not sure why jquery ajax is submitting an undefined variable, but delete it anyway
-					.delete("undefined");
+					.delete(getFieldNameWithTablePrefix("undefined"));
+
+		setMore(arguments.more);
+		setMax(arguments.max);
+		setOffset(arguments.offset);
 
 		//Set all of the persist fields into the query string
 		for(var field in variables.persistFields){
 			variables.qs.setValue(field, variables.persistFields[field]);
 		}
 
-		variables.qs.setValues({
-			"max":variables.max,
-			"offset":variables.offset,
-			"more":variables.more
-		});
+		//Set the name for the table into the querystring if it exists
+		if(variables.keyExists("tableName")){
+			variables.qs.setValue(getFieldNameWithTablePrefix("table_name"), variables.tableName);
+		}
+
+		// variables.qs.setValues({
+		// 	"max":variables.max,
+		// 	"offset":variables.offset,
+		// 	"more":variables.more
+		// });
 
 		variables.qs.setBasePath(arguments.basePath);
 
@@ -102,6 +118,17 @@ component accessors="true" {
 			requiredAjaxFiles();
 		}
 		return this;
+	}
+
+	public function addPersistFields(required struct fields){
+		for(var field in arguments.fields){
+			variables.persistFields.insert(field, arguments.fields[field], true);
+			variables.qs.setValue(field, variables.persistFields[field], true);
+		}
+	}
+
+	public function init_formValidation(required zeroTableFields){
+
 	}
 
 	public function addColumn(required column column){
@@ -126,12 +153,17 @@ component accessors="true" {
 
 			column.setQueryString(variables.qs.getNew());
 			variables.columns.append(column);
+			column.setZeroTable(this);
 			// column.setSortAscLink(variables.qs.getNew().setValues({"sort":column.getColumnName(), "direction":"asc"}).get());
 			// column.setSortDescLink(variables.qs.getNew().setValues({"sort":column.getColumnName(), "direction":"desc"}).get());
 
 		} else {
 			throw("column already exists");
 		}
+	}
+
+	public function addSiblingTable(required zeroTable table){
+		variables.siblingTables.append(arguments.table);
 	}
 
 	/**
@@ -186,7 +218,7 @@ component accessors="true" {
 		}
 
 		var primaryColumn = getPrimaryColumn().elseThrow("Can only edit tables which have a primary column. Add a primary column");
-		variables.qs.setValues({"edit_col":primaryColumn.getColumnName(), "edit_id":rowId});
+		variables.qs.setValues({"#getFieldNameWithTablePrefix("edit_col")#":primaryColumn.getColumnName(), "edit_id":rowId});
 		for(var row in getRows()){
 			var name = primaryColumn.getColumnName();
 			if(row[name] == arguments.rowId){
@@ -219,18 +251,27 @@ component accessors="true" {
 	}
 
 	public string function getClearEditLink(){
-		return variables.qs.getNew().delete("edit_col").delete("edit_id").get();
+		return variables.qs.getNew().delete(getFieldNameWithTablePrefix("edit_col")).delete(getFieldNameWithTablePrefix("edit_id")).get();
 	}
 
 	public string function getClearSearchLink(){
+		// writeDump(variables.qs.get());
 		return variables.qs.getNew().setBasePath("#variables.basePath#")
-									.delete("search")
-									.delete("edit_col")
-									.delete("edit_id").get();
+									.delete(getFieldNameWithTablePrefix("search"))
+									.delete(getFieldNameWithTablePrefix("edit_col"))
+									.delete(getFieldNameWithTablePrefix("edit_id")).get();
 	}
 
 	public string function getCurrentLink(){
 		return variables.qs.getNew().setBasePath("#variables.basePath#").get();
+	}
+
+	public function getFieldNameWithTablePrefix(required string field){
+		if(variables.keyExists("tableName")){
+			return "#variables.tableName#.#arguments.field#";
+		} else {
+			return arguments.field;
+		}
 	}
 
 	public column[] function getCustomColumns(){
@@ -245,7 +286,7 @@ component accessors="true" {
 
 	public string function getShowMoreLink(){
 
-		return variables.qs.getNew().setValues({"offset":variables.offset, "max": max+max}).get();
+		return variables.qs.getNew().setValues({"#getFieldNameWithTablePrefix("offset")#":variables.offset, "#getFieldNameWithTablePrefix("max")#": max+max}).get();
 
 	}
 
@@ -265,10 +306,11 @@ component accessors="true" {
 							  max=variables.max + variables.more,
 							  offset=variables.offset,
 							  queryString=variables.qs.getNew(),
-							  showMaxPages=variables.showMaxPages);
+							  showMaxPages=variables.showMaxPages,
+							  zeroTable=this);
 	}
 
-	public array function getCurrentParams(){
+	public array function getCurrentParams(skipSiblings=false){
 
 		var params = ["offset", "max", "search", "sort", "direction", "more"];
 		var out = [];
@@ -290,7 +332,7 @@ component accessors="true" {
 
 				if(!isNull(value)){
 					out.append({
-						"name":param,
+						"name":getFieldNameWithTablePrefix(param),
 						"value":evaluate("this.get#param#()"),
 						"is_#param#":true
 					});
@@ -298,6 +340,7 @@ component accessors="true" {
 			}
 		}
 
+		//Add the persistFields to the currentParams out
 		for(var key in persistFields){
 			out.append({
 				"name":key,
@@ -305,6 +348,38 @@ component accessors="true" {
 				"is_#key#":true
 			});
 		}
+
+		// if(!arguments.skipSiblings){
+		// 	for(var siblingTable in variables.siblingTables){
+		// 		//Need to set the flag skipSiblings so that we do not create
+		// 		//a circular reference. This ensures that each table only gets
+		// 		//siblings from its sibling tables once per request.
+		// 		var siblingParams = duplicate(siblingTable.getCurrentParams(skipSiblings=true));
+		// 		for(var param in siblingParams){
+		// 			var newParam = {}
+		// 			for(var key in param){
+		// 				if(key contains "is_"){
+
+		// 				} else {
+		// 					newParam.insert(key, param[key]);
+		// 				}
+		// 			}
+		// 			out.append(newParam);
+		// 		}
+		// 	}
+		// }
+
+		//Add a table name if it exists to the out, this allows the user
+		//to support multiple zerotables
+		if(variables.keyExists("tableName")){
+			out.append({
+				"name":getFieldNameWithTablePrefix("table_name"),
+				"value":variables.tableName,
+				"is_table_name":true,
+				"is_#variables.tableName#":true
+			})
+		}
+
 		return out;
 	}
 
@@ -312,7 +387,7 @@ component accessors="true" {
 		var params = getCurrentParams();
 		var out = {};
 		for(var param in params){
-			out.insert(param.name, param);
+			out.insert(param.name, param, true);
 		}
 		return out;
 	}
@@ -351,6 +426,15 @@ component accessors="true" {
 		}
 	}
 
+	public function getSort(){
+		// if(isNull(variables.sortString)){
+		// 	return new Optional();
+		// } else {
+		// 	return new Optional(variables.sortString);
+		// }
+		return variables.sortString?:"";
+	}
+
 	private function requiredAjaxFiles(){
 		include template="/zero/plugins/zerotable/model/require_js.cfm";
 	}
@@ -359,15 +443,63 @@ component accessors="true" {
 		variables.currentPageId = arguments.id;
 	}
 
+	public void function persistSiblingTable(required zeroTable table){
+		var fields = arguments.table.getCurrentParamsAsStruct();
+		var fieldsOut = {};
+		for(var field in fields){
+
+			if(isInstanceOf(fields[field].value, "optional")){
+				if(fields[field].value.exists()){
+					fieldsOut.insert(field, fields[field].value.get(), true);
+				}
+			} else {
+				fieldsOut.insert(field, fields[field].value, true);
+			}
+		}
+		addPersistFields(fieldsOut);
+
+		var fields = this.getCurrentParamsAsStruct();
+		for(var field in fields){
+
+			if(isInstanceOf(fields[field].value, "optional")){
+				if(fields[field].value.exists()){
+					fieldsOut.insert(field, fields[field].value.get(), true);
+				}
+			} else {
+				fieldsOut.insert(field, fields[field].value, true);
+			}
+		}
+
+		arguments.table.addPersistFields(fieldsOut);
+		// this.addSiblingTable(arguments.table);
+		// arguments.table.addSiblingTable(this);
+	}
+
 	public void function search(required string search){
 		variables.searchString = arguments.search;
-		variables.qs.setValues({"search":variables.searchString});
+		variables.qs.setValues({"#getFieldNameWithTablePrefix("search")#":variables.searchString});
 		variables.Rows.search(arguments.search);
 
 		if(variables.rows.count() <= variables.offset){
 			// variables.offset = variables.offset - variables.max;
 			variables.offset = 1;
 		}
+	}
+
+	private function setMore(required numeric more){
+		variables.more = arguments.more;
+		variables.nextMore = variables.more + variables.max;
+		variables.qs.setValue(getFieldNameWithTablePrefix("more"), arguments.more);
+	}
+
+	private function setMax(required numeric max){
+		variables.max = arguments.max;
+		variables.qs.setValue(getFieldNameWithTablePrefix("max"), arguments.max);
+	}
+
+	private function setOffset(required numeric offset){
+		variables.offset = arguments.offset;
+		variables.qs.setValue(getFieldNameWithTablePrefix("offset"), arguments.offset);
 	}
 
 	public void function sort(required string column, required string direction){
@@ -380,11 +512,10 @@ component accessors="true" {
 			variables.isSortedById = true;
 		}
 
-		variables.sort = column.getColumnName();
+		variables.sortString = column.getColumnName();
 		variables.direction = arguments.direction;
 
-
-		variables.qs.setValues({"sort":column.getColumnName(), "direction":arguments.direction});
+		variables.qs.setValues({"#getFieldNameWithTablePrefix("sort")#":column.getColumnName(), "#getFieldNameWithTablePrefix("direction")#":arguments.direction});
 		for(var updateColumn in variables.columns){
 			updateColumn.setQueryString(variables.qs.getNew());
 		}
@@ -407,7 +538,7 @@ component accessors="true" {
 		var zeroOut = {};
 		zeroTableOut["max"] = this.getmax();
 		zeroTableOut["offset"] = this.getoffset();
-		zeroTableOut["sort"] = this.getsort();
+		zeroTableOut["sort"] = this.getSort();
 		zeroTableOut["direction"] = this.getdirection();
 		zeroTableOut["current_page_id"] = this.getcurrentPageId();
 		zeroTableOut["search"] = this.getsearch().else("");
@@ -423,6 +554,12 @@ component accessors="true" {
 		zeroTableOut["ajax_target"] = this.getAjaxTarget();
 		zeroTableOut["persist_fields"] = this.getPersistFields();
 
+		if(variables.keyExists("tableName")){
+			zeroTableOut["table_name"] = variables.tableName;
+			zeroTableOut["table_name_prefix"] = "#variables.tableName#."
+		} else {
+			zeroTableOut["table_name_prefix"] = "";
+		}
 
 		zeroTableOut["rows"] = new serializer().serializeEntity(this.getRows());
 		zeroTableOut["pagination"] = this.getPagination().toJson();
@@ -433,16 +570,73 @@ component accessors="true" {
 
 		zeroTableOut["primary_column"] = this.getPrimaryColumn().get().toJson();
 		zeroTableOut["current_params"] = this.getCurrentParams();
+
 		for(var param in zeroTableOut["current_params"]){
 			if(isInstanceOf(param.value, "optional")){
 				param.value = param.value.else("");
 			}
 		}
 
+		// for(var siblingTable in variables.siblingTables){
+		// 	var siblingParams = siblingTable.getCurrentParams();
+		// 	arrayMerge(zeroTableOut["current_params"], siblingParams);
+		// }
+
 		decorateRowsWithCustomColumns(zeroTableOut.rows);
 		decorateRowsWithWrapColumns(zeroTableOut.rows);
 
 		return zeroTableOut;
+	}
+
+	public function update( numeric max=10,
+							numeric more,
+							numeric offset=1,
+							sort,
+							direction,
+							goto_page,
+							search,
+							edit_col,
+							edit_id,
+							edit_message){
+
+		// writeDump(arguments);
+		if(arguments.keyExists("max") and trim(arguments.max) != ""){ setMax(arguments.max)}
+		if(arguments.keyExists("more") and trim(arguments.more) != "" and more > 0){ setMore(arguments.more)}
+		if(arguments.keyExists("offset") and trim(arguments.offset) != ""){ setOffset(arguments.offset)}
+
+		//SORTING
+		if(arguments.keyExists("sort") and trim(arguments.sort) != ""){
+			var dir = "asc";
+			if(arguments.keyExists("direction") and trim(arguments.direction) != ""){dir = arguments.direction}
+			this.sort(arguments.sort, dir);
+		}
+
+
+		//SEARCHING
+		if(arguments.keyExists("search") and trim(arguments.search) != ""){
+			this.search(arguments.search);
+		}
+
+		//EDITING
+		if(
+			(arguments.keyExists("edit_col") and trim(arguments.edit_col) != "") and
+			(arguments.keyExists("edit_id") and trim(arguments.edit_id) != "")
+		){
+
+			if(arguments.keyExists("edit_message") and trim(arguments.edit_message) != ""){
+				this.edit(arguments.edit_col, arguments.edit_id, arguments.edit_message);
+			} else {
+				this.edit(arguments.edit_col, arguments.edit_id);
+			}
+		}
+
+		//JUMP TO PAGE. Needs to be last so that other values are updated first
+		if(arguments.keyExists("goto_page") and trim(arguments.goto_page) != ""){
+			var pagination = getPagination();
+			var page = pagination.findPageById(arguments.goto_page).elseThrow("That is not a valid page to go to");
+			location url="#page.getLink()#" addtoken="false";
+		}
+
 	}
 
 }

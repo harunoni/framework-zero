@@ -3,7 +3,7 @@
 */
 component accessors="true"{
 
-	property name="columnName" setter="false";	
+	property name="columnName" setter="false";
 	property name="dataName" setter="false";
 	property name="errorMessage";
 	property name="friendlyName" setter="false";
@@ -19,11 +19,11 @@ component accessors="true"{
 	property name="columnType" type="struct" setter="false";
 	property name="isPrimary" type="boolean" setter="false";
 	property name="filter" type="array" setter="false";
-	property name="filterable" type="boolean" setter="false"; 
+	property name="filterable" type="boolean" setter="false";
 
 	public function init(required string columnName,
-						 string friendlyName, 
-						 boolean editable=false, 
+						 string friendlyName,
+						 boolean editable=false,
 						 struct columnType,
 						 boolean isPrimary=false,
 						 array filter,
@@ -34,7 +34,7 @@ component accessors="true"{
 		if(arguments.keyExists("columnType")){
 			variables.columnType = arguments.columnType;
 		} else {
-			variables.columnType = {"text":true}	
+			variables.columnType = {"text":true}
 		}
 
 		if(arguments.keyExists("friendlyName")){
@@ -44,7 +44,7 @@ component accessors="true"{
 		}
 
 		if(arguments.keyExists("dataName")){
-			variables.dataName = arguments.dataName;			
+			variables.dataName = arguments.dataName;
 		} else {
 			variables.dataName = arguments.columnName;
 		}
@@ -53,7 +53,7 @@ component accessors="true"{
 			variables.filter = arguments.filter;
 			variables.filterable = true;
 		} else {
-			variables.filterable = false;			
+			variables.filterable = false;
 		}
 
 		if(arguments.keyExists("Wrap")){
@@ -88,11 +88,11 @@ component accessors="true"{
 
 	public function getColumnType(){
 
-		if(variables.columnType.keyExists("custom")){			
+		if(variables.columnType.keyExists("custom")){
 			var out = duplicate(variables.columnType);
 			if(isClosure(out.output)){
 				out.output = "function call";
-			}			
+			}
 			return out;
 		}
 
@@ -112,7 +112,7 @@ component accessors="true"{
 			else {
 				out = variables.customOutput;
 			}
-		}		
+		}
 		return out;
 	}
 
@@ -122,11 +122,11 @@ component accessors="true"{
 	}
 
 	public function getSortAscLink(){
-		return variables.queryString.getNew().delete("DIRECTION").setValues({"sort":getColumnName(), "direction":"asc"}).get();
+		return variables.queryString.getNew().delete(variables.zeroTable.getFieldNameWithTablePrefix("direction")).setValues({"#variables.zeroTable.getFieldNameWithTablePrefix("sort")#":getColumnName(), "#variables.zeroTable.getFieldNameWithTablePrefix("direction")#":"asc"}).get();
 	}
 
 	public function getSortDescLink(){
-		return variables.queryString.getNew().delete("DIRECTION").setValues({"sort":getColumnName(), "direction":"desc"}).get();
+		return variables.queryString.getNew().delete(variables.zeroTable.getFieldNameWithTablePrefix("direction")).setValues({"#variables.zeroTable.getFieldNameWithTablePrefix("sort")#":getColumnName(), "#variables.zeroTable.getFieldNameWithTablePrefix("direction")#":"desc"}).get();
 	}
 
 	public function setIsSortedAsc(){
@@ -141,6 +141,10 @@ component accessors="true"{
 
 	public function setQueryString(required queryString queryString){
 		variables.queryString = arguments.queryString;
+	}
+
+	public function setZeroTable(required zeroTable zeroTable){
+		variables.zeroTable = arguments.zeroTable;
 	}
 
 	/**
@@ -172,5 +176,5 @@ component accessors="true"{
 		}
 		return out;
 	}
-	
+
 }

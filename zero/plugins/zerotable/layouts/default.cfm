@@ -45,7 +45,7 @@
 
 		<!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
 		<!--- <script src="/assets/vendor/bootstrap/js/ie10-viewport-bug-workaround.js"></script> --->
-		<script src="/zero-js/zero-animate.js"></script> 		
+		<script src="/zero-js/zero-animate.js"></script>
 	</head>
 	<body>
 
@@ -89,7 +89,7 @@
 	</nav>
 
 	<div class="container">
-		<cfoutput>#body#</cfoutput>		
+		<cfoutput>#body#</cfoutput>
 	</div> <!-- /container -->
 
 
@@ -100,21 +100,21 @@
 	<script>window.jQuery || document.write('<script src="/assets/vendor/bootstrap/js/vendor/jquery.min.js"><\/script>')</script>
 	<script src="/assets/vendor/bootstrap/js/bootstrap.min.js"></script> --->
 	<!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
-	
+
 
 	<script src="/assets/vendor/bootstrap/js/ie10-viewport-bug-workaround.js"></script>
-	<script src="/zero/zeroAjax.js"></script>
+	<script src="/framework-zero/zero/zeroAjax.js"></script>
 	<script>
 		zeroInit();
 	</script>
 
-	
-	<script type="text/javascript">		
+
+	<script type="text/javascript">
 	// window.scrollTo(0,100);
 	// alert('test');
 	// Keeps scroll position on postbacks
 	// http://codepen.io/patrickkahl/pen/KFmAb
-	;(function($){  
+	;(function($){
 	  /**
 	   * Store scroll position for and set it after reload
 	   *
@@ -147,8 +147,8 @@
 	      // $('body').removeAttr('style');
 	      // $('html').scrollPosReaload();
 
-	      // $('##main').smoothState();   
-	      
+	      // $('##main').smoothState();
+
 	      $(function () {
 	      	$('[data-toggle="tooltip"]').tooltip();
 	      	$('[data-toggle="dropdown"]').dropdown();
@@ -156,7 +156,7 @@
 
 	  });
 
-	 }(jQuery));  
+	 }(jQuery));
 
 
 	</script>

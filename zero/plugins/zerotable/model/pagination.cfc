@@ -23,16 +23,17 @@ component accessors="true" {
 	property name="totalPages" setter="false"; //
 
 
-	public function init(required data data, required numeric max=10, required numeric offset, required queryString queryString, required numeric showMaxPages){
+	public function init(required data data, required numeric max=10, required numeric offset, required queryString queryString, required numeric showMaxPages, required zeroTable zeroTable){
 		variables.data = arguments.data;
 		variables.max = arguments.max;
 		variables.offset = arguments.offset;
-		variables.queryString = arguments.queryString;		
+		variables.queryString = arguments.queryString;
+		variables.zeroTable = arguments.zeroTable;
 
 		//Remove variables from the query string which are never used in pagination
-		variables.queryString.delete("edit_col")
-							 .delete("edit_id");
-							 
+		variables.queryString.delete(zeroTable.getFieldNameWithTablePrefix("edit_col"))
+							 .delete(zeroTable.getFieldNameWithTablePrefix("edit_id"));
+
 		variables.showMaxPages = arguments.showMaxPages;
 		// variables.currentPageId = arguments.currentPageId;
 		// setCurrentPage(getFirstPage());
@@ -45,7 +46,7 @@ component accessors="true" {
 			return new Optional();
 		} else {
 			return new optional(pages[arguments.id]);
-		}		
+		}
 	}
 
 	public page function getFirstPage(){
@@ -59,9 +60,9 @@ component accessors="true" {
 			if(page.getIsCurrentPage()){
 				return page;
 			}
-		}		
+		}
 		throw("no page was the current page, this was not expected");
-	}		
+	}
 
 	public function getHasLastPage(){return hasLastPage();}
 	public function getHasNextPage(){return hasNextPage();}
@@ -73,8 +74,8 @@ component accessors="true" {
 		return getPages().last();
 	}
 
-	public void function setCurrentPage(required page page){	
-		// abort;	
+	public void function setCurrentPage(required page page){
+		// abort;
 		variables.offset = arguments.page.getStartIndex();
 		for(var tryPage in getPages()){
 			if(tryPage.equals(arguments.page)){
@@ -82,7 +83,7 @@ component accessors="true" {
 			} else {
 				tryPage.setIsCurrentPage(false);
 			}
-		}	
+		}
 	}
 
 	// public function setCurrentPage(){
@@ -104,7 +105,7 @@ component accessors="true" {
 									max=variables.max) {
 		/**
 		 * Building the pages takes a long time, so we cache this value so that subsequent
-		 * requests to getPages returns the existing array		 
+		 * requests to getPages returns the existing array
 		 */
 		if(structKeyExists(variables,"zeroCachePages")){
 			return variables.zeroCachePages;
@@ -114,7 +115,7 @@ component accessors="true" {
 
 			var startIndex = 1;
 			var endIndex = max;
-			
+
 			var isCurrentPage = false;
 
 			for(var i=0; i LT arguments.totalPages; i++){
@@ -123,24 +124,24 @@ component accessors="true" {
 				startIndex = (i * max) + 1;
 				endIndex = (i + 1) * max;
 
-				if(offset >= pageOffset and offset < endIndex){					
+				if(offset >= pageOffset and offset < endIndex){
 					isCurrentPage = true;
 				} else {
 					isCurrentPage = false;
-				}			
+				}
 
 				out.append(new page(id=i+1,
-									link=variables.queryString.setValues({"offset":pageOffset}).get(), 
-									startIndex=startIndex, 
-									endIndex=endIndex, 
+									link=variables.queryString.setValues({"#zeroTable.getFieldNameWithTablePrefix("offset")#":pageOffset}).get(),
+									startIndex=startIndex,
+									endIndex=endIndex,
 									isCurrentPage=isCurrentPage)
 				);
-			}		
+			}
 			// writeDump(out);
 			variables.zeroCachePages = out;
 			return out;
 		}
-		
+
 	}
 
 	/**
@@ -160,7 +161,7 @@ component accessors="true" {
 			var diff = 1;
 			if(min <= 0){
 				diff = abs(half - min) - 1;
-				min = 1;												
+				min = 1;
 			}
 
 			// writeDump(min);
@@ -175,7 +176,7 @@ component accessors="true" {
 				if(min <= 0){
 					min = 1;
 				}
-			}			
+			}
 
 			try {
 
@@ -188,7 +189,7 @@ component accessors="true" {
 				}
 
 			}catch(any e){
-				
+
 				writeDump(min);
 				writeDump(max);
 				writeDump(pages.len());
@@ -216,7 +217,7 @@ component accessors="true" {
 		var ceiling = ceiling(arguments.totalItems / arguments.max);
 		if(ceiling == 0){
 			ceiling = 1;
-		}		
+		}
 		return ceiling;
 	}
 
@@ -237,12 +238,12 @@ component accessors="true" {
 	}
 
 	/**
-	 * Moves the pagination forward to the next page, or the last 
+	 * Moves the pagination forward to the next page, or the last
 	 * page if it is already there
 	 * @return {Function} [description]
 	 */
 	public void function next(){
-		if(getNextPage().exists()){			
+		if(getNextPage().exists()){
 			// writeDump(getNextPage().get());
 			this.setCurrentPage(getNextPage().get());
 		}
@@ -283,11 +284,11 @@ component accessors="true" {
 	private function pageToJson(required any page){
 		if(isInstanceOf(arguments.page, "optional")){
 			if(page.exists()){
-				var page = page.get();				
+				var page = page.get();
 			} else {
 				return "";
 			}
-		}		
+		}
 		return page.toJson();
 	}
 
