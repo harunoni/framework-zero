@@ -4,7 +4,7 @@
  */
 import _vendor.queryString.queryString;
 component accessors="true" {
-	
+
 	property name="rows" setter="false";
 	property name="columns" setter="false";
 	property name="primaryColumn" setter="false";
@@ -41,14 +41,14 @@ component accessors="true" {
 	 * @param  {Object}  Required 			serializerIncludes 	When serializing over the entityDate output, this will tell zerotable to include nested data in the rows
 	 * @return {zeroTable}                     					Returns an instance of zerotable
 	 */
-	public zeroTable function init(required data Rows, 
-						 required numeric max=10, 
-						 required numeric offset=0, 
-						 required showMaxPages=5, 
-						 required string basePath="", 
-						 required numeric more=0, 
-						 required useZeroAjax=true, 
-						 ajaxTarget, 
+	public zeroTable function init(required data Rows,
+						 required numeric max=10,
+						 required numeric offset=0,
+						 required showMaxPages=5,
+						 required string basePath="",
+						 required numeric more=0,
+						 required useZeroAjax=true,
+						 ajaxTarget,
 						 required serializerIncludes={},
 						 struct persistFields={}){
 
@@ -74,7 +74,7 @@ component accessors="true" {
 		variables.customColumns = [];
 		variables.more = arguments.more;
 		variables.nextMore = variables.more + variables.max;
-		
+
 		variables.qs = new queryString(cgi.query_string);
 		variables.qs.delete("search")
 					.delete("sort")
@@ -85,6 +85,11 @@ component accessors="true" {
 					//Not sure why jquery ajax is submitting an undefined variable, but delete it anyway
 					.delete("undefined");
 
+		//Set all of the persist fields into the query string
+		for(var field in variables.persistFields){
+			variables.qs.setValue(field, variables.persistFields[field]);
+		}
+
 		variables.qs.setValues({
 			"max":variables.max,
 			"offset":variables.offset,
@@ -92,13 +97,13 @@ component accessors="true" {
 		});
 
 		variables.qs.setBasePath(arguments.basePath);
-		
+
 		if(variables.useZeroAjax){
 			requiredAjaxFiles();
 		}
 		return this;
 	}
-	
+
 	public function addColumn(required column column){
 		var column = arguments.column;
 
@@ -154,7 +159,7 @@ component accessors="true" {
 		for(var column in columns){
 			var name = column.getColumnName();
 			for(var row in rows){
-				row[name] = column.getCustomOutput(row);				
+				row[name] = column.getCustomOutput(row);
 			}
 		}
 	}
@@ -165,7 +170,7 @@ component accessors="true" {
 		for(var column in columns){
 			var name = column.getColumnName();
 			for(var row in rows){
-				row["wrap"][name] = column.getWrapOutput(row[name]);				
+				row["wrap"][name] = column.getWrapOutput(row[name]);
 			}
 		}
 	}
@@ -194,7 +199,7 @@ component accessors="true" {
 			} else {
 				row.edit = false;
 			}
-		}		
+		}
 	}
 
 	public Optional function findColumnByName(required string columnName){
@@ -256,10 +261,10 @@ component accessors="true" {
 
 	public pagination function getPagination(){
 
-		return new pagination(data=variables.Rows, 
-							  max=variables.max + variables.more, 
-							  offset=variables.offset, 
-							  queryString=variables.qs.getNew(),							 
+		return new pagination(data=variables.Rows,
+							  max=variables.max + variables.more,
+							  offset=variables.offset,
+							  queryString=variables.qs.getNew(),
 							  showMaxPages=variables.showMaxPages);
 	}
 
@@ -272,22 +277,24 @@ component accessors="true" {
 			var value = evaluate("this.get#param#()");
 
 			if(isNull(value)){
-				writeDump(param);
-				abort;
-			}
+				//Do nothing with the paramter
+				// writeDump(param);
+				// abort;
+			} else {
 
-			if(isInstanceOf(value,"optional")){
-				if(!value.exists()){
-					continue;
+				if(isInstanceOf(value,"optional")){
+					if(!value.exists()){
+						continue;
+					}
 				}
-			} 		
 
-			if(!isNull(value)){
-				out.append({
-					"name":param,
-					"value":evaluate("this.get#param#()"),
-					"is_#param#":true
-				});				
+				if(!isNull(value)){
+					out.append({
+						"name":param,
+						"value":evaluate("this.get#param#()"),
+						"is_#param#":true
+					});
+				}
 			}
 		}
 
@@ -298,12 +305,24 @@ component accessors="true" {
 				"is_#key#":true
 			});
 		}
+		return out;
+	}
 
+	public struct function getCurrentParamsAsStruct(){
+		var params = getCurrentParams();
+		var out = {};
+		for(var param in params){
+			out.insert(param.name, param);
+		}
 		return out;
 	}
 
 	public string function getCurrentParamsAsString(){
 		return variables.qs.getNew().setBasePath("").get();
+	}
+
+	public queryString function getCurrentParamsAsQueryString(){
+		return variables.qs.getNew();
 	}
 
 	public optional function getPrimaryColumn(){
@@ -319,8 +338,8 @@ component accessors="true" {
 		if(isNull(variables.serializedRows)){
 			var rows = variables.Rows.list(max=variables.max + variables.more, offset=variables.offset);
 			var rows = new serializer().serializeEntity(rows, variables.serializerIncludes);
-			variables.serializedRows = rows;			
-		} 
+			variables.serializedRows = rows;
+		}
 		return variables.serializedRows;
 	}
 
@@ -332,7 +351,7 @@ component accessors="true" {
 		}
 	}
 
-	private function requiredAjaxFiles(){		
+	private function requiredAjaxFiles(){
 		include template="/zero/plugins/zerotable/model/require_js.cfm";
 	}
 
@@ -344,17 +363,17 @@ component accessors="true" {
 		variables.searchString = arguments.search;
 		variables.qs.setValues({"search":variables.searchString});
 		variables.Rows.search(arguments.search);
-		
+
 		if(variables.rows.count() <= variables.offset){
 			// variables.offset = variables.offset - variables.max;
-			variables.offset = 1;			
+			variables.offset = 1;
 		}
 	}
 
 	public void function sort(required string column, required string direction){
-		
+
 		var column = findColumnByName(arguments.column).elseThrow("The column name #arguments.column# was not a valid name");
-		
+
 		variables.Rows.sort(column=column.getDataName(), direction=arguments.direction);
 
 		if(column.getIsPrimary()){
@@ -363,14 +382,14 @@ component accessors="true" {
 
 		variables.sort = column.getColumnName();
 		variables.direction = arguments.direction;
-		
-		
+
+
 		variables.qs.setValues({"sort":column.getColumnName(), "direction":arguments.direction});
 		for(var updateColumn in variables.columns){
 			updateColumn.setQueryString(variables.qs.getNew());
 		}
 
-		column.setIsSorted(true);		
+		column.setIsSorted(true);
 		if(direction == "asc"){
 			column.setIsSortedAsc(true);
 		} else {
@@ -380,11 +399,11 @@ component accessors="true" {
 	};
 
 	public struct function toJson(){
-		
+
 		var pagination = this.getPagination();
 		var paginationOut = pagination.toJson();
-		var pagination = this.getPagination();			
-		
+		var pagination = this.getPagination();
+
 		var zeroOut = {};
 		zeroTableOut["max"] = this.getmax();
 		zeroTableOut["offset"] = this.getoffset();
@@ -422,7 +441,7 @@ component accessors="true" {
 
 		decorateRowsWithCustomColumns(zeroTableOut.rows);
 		decorateRowsWithWrapColumns(zeroTableOut.rows);
-		
+
 		return zeroTableOut;
 	}
 

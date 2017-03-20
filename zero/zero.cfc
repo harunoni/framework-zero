@@ -868,7 +868,7 @@ component extends="one" {
 				// abort;
 				writeDump("Zero encountered an error in trying to popluate the values");
 				writeDump(arguments);
-				writeDump(arguments.error);
+				// writeDump(arguments.error);
 				// writeDump(componentPath);
 				writeDump(cfcName);
 				writeDump(args);
@@ -1914,16 +1914,27 @@ component extends="one" {
 										var action = listFirst(action,"?");
 										var method = uCase(formElement.attr('method'));
 										var newContext = getPathAction(pathInfo=action, cgiRequestMethod=method);
-										writeDump(newContext);
+										// writeDump(newContext);
 										// abort;
 										var action = newContext.action;
-										var subsystem = listFirst(action, ":");
+										if(action contains ":"){
+											var subsystem = listFirst(action, ":");
+										} else {
+											var subsystem = variables.framework.defaultSubsystem;
+										}
 										var subAction = listLast(action, ":");
 										var controller = listFirst(subAction, ".");
 										var cfcMethod = listLast(subAction, ".");
 										// writeDump(action);
 										var cfc = getCachedController(subsystem, controller);
 
+										if(isNull(cfc)){
+											writeDump("Could not locate the controller, this was unexpected. Check the values below");
+											writeDump(subsystem);
+											writeDump(controller);
+											writeDump(newContext);
+											abort;
+										}
 
 										if(isInstanceOf(validator, "cfc")){args.cfc = cfc}
 										if(isInstanceOf(validator, "cfcMethod")){args.cfcMethod = cfcMethod}

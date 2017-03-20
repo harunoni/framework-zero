@@ -5,7 +5,7 @@ component implements="validation,inputElement" {
 		var name = inputElement.attr('name');
 		if(lcase(name) == "submit_overload"){
 			var value = inputElement.attr('value');
-			writeDump(value);
+
 			if(!isJson(value)){
 				throw("The value for a submit_overload must be valid json", "invalidSubmitOverloadJson");
 			}
