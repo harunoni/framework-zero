@@ -148,49 +148,191 @@
 
 			  			<tbody>
 			  				{{#each rows}}
-			  				<tr>
-								{{#each columns}}
-									<td id="cell-{{column_name}}-{{id}}"
-									style="vertical-align: middle; padding:0px; height:1px;"
-									>
-										<div
-											style="margin:0px; border-radius:0px; border:none; height:100%; width:100%; display:table;"
-											class="cell-wrapper-{{column_name}}-{{id}}
-												{{#if error_message}}
-													{{#if ../error_message}}
-														alert alert-danger
+				  				<tr>
+									{{#each columns}}
+										<td id="cell-{{column_name}}-{{id}}"
+										style="vertical-align: middle; padding:0px; height:1px;"
+										>
+											<div
+												style="margin:0px; border-radius:0px; border:none; height:100%; width:100%; display:table;"
+												class="cell-wrapper-{{column_name}}-{{id}}
+													{{#if error_message}}
+														{{#if ../error_message}}
+															alert alert-danger
+														{{/if}}
+													{{/if}}
+												"
+											>
+											{{#if error_message}}
+												{{#if ../error_message}}
+													<label class="label label-danger" style="display:block;">{{error_message}}</label>
+												{{/if}}
+											{{/if}}
+
+											{{#if column_type}}
+												{{#if column_type.text}}
+													{{#if editable}} <!--- if column is editable --->
+
+														<!--- TEXT EDIT WEB COMPONENT
+
+														This web component is made up of a text edit box with a save/cancel button
+														and an enable edit button, which is the text of the column
+
+														Notes:
+														- In order to have a hitbox which takes up the entire width and height
+														  of the cell, we emply a few strategies:
+
+														  1. The td side is 1px, which will force it to be the side of any child elements
+														  2. Each form input and edit button are 100% width and height
+														  3. Using a padding trick to get vertical alignment out of the form elements: http://vanseodesign.com/css/vertical-centering/
+														  4. Inside the TD is a div.table and div.tabel-cell, this is so that we can vertically-align regular text
+														  5. Visibility is controlled by a ID+Class selector. By default the input form is hidden, and is made visible by adding a visiblity class
+
+														--->
+														<style>
+															#data-grid-form-{{column_name}}-{{../id}} {
+																display:none;
+															}
+
+															.hidden-{{column_name}}-{{id}} {
+																display:none;
+															}
+
+															#data-grid-form-{{column_name}}-{{../id}}.visible-{{column_name}}-{{id}} {
+																display:block;
+															}
+
+															button.link {
+															     background:none!important;
+															     border:none;
+															     padding:0!important;
+															     font: inherit;
+															     /*border is optional*/
+															     border-bottom:1px solid #444;
+															     cursor: pointer;
+															}
+
+															button.text {
+															     background:none!important;
+															     border:none;
+															     padding:0!important;
+															     font: inherit;
+															     /*border is optional*/
+															     border-bottom:none;
+															     cursor: pointer;
+															}
+														</style>
+
+														<!--- EDIT FIELD --->
+														<form id="data-grid-form-{{column_name}}-{{../id}}"
+															  action="{{base_path}}/{{../id}}"
+															  method="post"
+															  style="margin:0px; padding:1% 0; height:100%; padding-left:5px;"
+															  class="text-edit
+															  		 form-inline
+															  		 {{#if edit}}
+															  		 	{{#if ../edit}}
+															  		 		visible-{{column_name}}-{{id}}
+															  		 	{{/if}}
+															  		 {{/if}}"
+															 {{#if use_zero_ajax}}zero-target="#cell-{{column_name}}-{{id}}"{{/if}}>
+
+															<div class="" style="padding:2% 0; width:100%">
+																<input type="hidden" name="goto" value="{{pagination.current_page.link}}" />
+																<input type="hidden" name="goto_fail" value="{{pagination.current_page.link}}" />
+																<input type="hidden" name="edit_col" value="{{column_name}}">
+																<input type="hidden" name="edit_id" value="{{../id}}">
+																<!--- <input type="hidden" name="preserve_request" value="true"> --->
+																<input type="text"
+																	   name="{{column_name}}"
+																	   id="data-grid-input-name{{id}}"
+																	   class="form-control input-sm"
+																	   style="width:60%; height:32px;"
+																	   value="{{lookup ../this column_name}}"
+																	   data-initial-value="{{lookup ../this column_name}}"/>
+
+																<button class="btn btn-primary btn-sm" style="">save</button>
+																<button name="submit_overload"
+																		value="{'clear_form':true}"
+																		formaction="{{pagination.current_page.link}}"
+																		class="btn btn-default btn-sm cancel-button"
+																		style="
+																	href="{{clear_edit_link}}"
+																	onClick="$('#data-grid-form-{{column_name}}-{{../id}}').hide(); $('#enable-edit-{{column_name}}-{{id}}').show(); return false;"
+																	>cancel</button>
+															</div>
+														</form>
+
+														<div style="display:table-cell; position:relative">
+															<!--- ENABLE EDIT FIELD --->
+															<form id="enable-edit-{{column_name}}-{{id}}"
+																  action="{{base_path}}"
+																  method="post"
+																  style="margin:0px; padding:0px; height:100%"
+																  {{#if use_zero_ajax}}zero-target="#cell-{{column_name}}-{{id}}"{{/if}}
+																  class="
+																  		text-enable-edit
+																	{{#if edit}}
+															  		 	{{#if ../edit}}
+															  		 		hidden-{{column_name}}-{{id}}
+															  		 	{{/if}}
+															  		 {{/if}}"
+																  "
+																  >
+																{{#each current_params}}
+																	<input type="hidden" name="{{name}}" value="{{value}}">
+																{{/each}}
+																<input type="hidden" name="edit_col" value="{{column_name}}">
+																<input type="hidden" name="edit_id" value="{{id}}">
+																<button class="text"
+																		style="display:block; text-align:left; width:100%; height:100%; position:absolute;"
+																		onClick="$('#data-grid-form-{{column_name}}-{{../id}}').show(); $('#enable-edit-{{column_name}}-{{id}}').hide(); return false;"
+																		>
+																		<span style="padding-left:5px;">
+																			{{#if (lookup ../this.wrap column_name)}}
+																				{{{lookup ../this.wrap column_name}}}
+																			{{else}}
+																				{{lookup ../this column_name}}
+																			{{/if}}
+																		</span>
+																</button>
+															</form>
+														</div>
+
+
+													{{else}} <!--- NOT editable --->
+														<div style="display:table-cell; vertical-align:middle;">
+															{{#if (lookup ../this.wrap column_name)}}
+																<span id="data-grid-edit-name{{id}}" style="padding-left:5px;">{{{lookup ../this.wrap column_name}}}</span>
+															{{else}}
+																<span id="data-grid-edit-name{{id}}" style="padding-left:5px;">{{lookup ../this column_name}}</span>
+															{{/if}}
+														</div>
 													{{/if}}
 												{{/if}}
-											"
-										>
-										{{#if error_message}}
-											{{#if ../error_message}}
-												<label class="label label-danger" style="display:block;">{{error_message}}</label>
-											{{/if}}
-										{{/if}}
 
-										{{#if column_type}}
-											{{#if column_type.text}}
-												{{#if editable}} <!--- if column is editable --->
+												{{#if column_type.custom}}
+													<div style="display:table-cell; vertical-align:middle; padding-left:5px;">
+														{{{lookup ../this column_name}}}
+													</div>
+													<!--- {{{lookup ../this column_name}}} --->
+												{{/if}}
 
-													<!--- TEXT EDIT WEB COMPONENT
+												{{#if column_type.checkbox}}
+													<form id="data-grid-form-name{{../id}}" action="{{base_path}}/{{../id}}" method="post" class="form-inline" style="display:inline;" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}>
+														<div class="form-group">
+															<!--- {{../is_active}} --->
+															<input type="hidden" name="goto" value="{{current_link}}" />
+															<input type="hidden" name="is_active" value="{{#if ../is_active}}false{{else}}true{{/if}}">
+															<!--- <input type="submit" name="{{column_name}}" id="data-grid-input-name{{id}}" class="form-control input-sm" value="{{lookup ../this column_name}}" data-initial-value="{{lookup ../this column_name}}" {{#if zero_is_checked}}checked{{/if}}/> --->
+															<button id="data-grid-input-name{{id}}" class="form-control" style="border:none;" value="" data-initial-value="{{lookup ../this column_name}}">{{#if ../is_active}}&#9745;{{else}}&#9744;{{/if}}</button>
+														</div>
+													</form>
+												{{/if}}
 
-													This web component is made up of a text edit box with a save/cancel button
-													and an enable edit button, which is the text of the column
-
-													Notes:
-													- In order to have a hitbox which takes up the entire width and height
-													  of the cell, we emply a few strategies:
-
-													  1. The td side is 1px, which will force it to be the side of any child elements
-													  2. Each form input and edit button are 100% width and height
-													  3. Using a padding trick to get vertical alignment out of the form elements: http://vanseodesign.com/css/vertical-centering/
-													  4. Inside the TD is a div.table and div.tabel-cell, this is so that we can vertically-align regular text
-													  5. Visibility is controlled by a ID+Class selector. By default the input form is hidden, and is made visible by adding a visiblity class
-
-													--->
+												{{#if column_type.select}}
 													<style>
-														#data-grid-form-{{column_name}}-{{../id}} {
+														#data-grid-form-name-{{column_name}}-{{../id}} {
 															display:none;
 														}
 
@@ -198,7 +340,7 @@
 															display:none;
 														}
 
-														#data-grid-form-{{column_name}}-{{../id}}.visible-{{column_name}}-{{id}} {
+														#data-grid-form-name-{{column_name}}-{{../id}}.visible-{{column_name}}-{{id}} {
 															display:block;
 														}
 
@@ -223,48 +365,37 @@
 														}
 													</style>
 
-													<!--- EDIT FIELD --->
-													<form id="data-grid-form-{{column_name}}-{{../id}}"
+													<form id="data-grid-form-name-{{column_name}}-{{../id}}"
 														  action="{{base_path}}/{{../id}}"
 														  method="post"
-														  style="margin:0px; padding:1% 0; height:100%; padding-left:5px;"
-														  class="text-edit
-														  		 form-inline
-														  		 {{#if edit}}
-														  		 	{{#if ../edit}}
-														  		 		visible-{{column_name}}-{{id}}
-														  		 	{{/if}}
-														  		 {{/if}}"
-														 {{#if use_zero_ajax}}zero-target="#cell-{{column_name}}-{{id}}"{{/if}}>
+														  class="form-inline
+																{{#if edit}}
+																	{{#if ../edit}}
+																		visible-{{column_name}}-{{id}}
+																	{{/if}}
+																{{/if}}
 
-														<div class="" style="padding:2% 0; width:100%">
+														  "
+														  style="padding:1% 0; padding-left:5px;"
+														  {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}>
+
+														<div class="form-group" style="padding:2% 0;">
 															<input type="hidden" name="goto" value="{{pagination.current_page.link}}" />
-															<input type="hidden" name="goto_fail" value="{{pagination.current_page.link}}" />
-															<input type="hidden" name="edit_col" value="{{column_name}}">
-															<input type="hidden" name="edit_id" value="{{../id}}">
-															<!--- <input type="hidden" name="preserve_request" value="true"> --->
-															<input type="text"
-																   name="{{column_name}}"
-																   id="data-grid-input-name{{id}}"
-																   class="form-control input-sm"
-																   style="width:60%; height:32px;"
-																   value="{{lookup ../this column_name}}"
-																   data-initial-value="{{lookup ../this column_name}}"/>
-
-															<button class="btn btn-primary btn-sm" style="">save</button>
-															<button name="submit_overload"
-																	value="{'clear_form':true}"
-																	formaction="{{pagination.current_page.link}}"
-																	class="btn btn-default btn-sm cancel-button"
-																	style="
-																href="{{clear_edit_link}}"
-																onClick="$('#data-grid-form-{{column_name}}-{{../id}}').hide(); $('#enable-edit-{{column_name}}-{{id}}').show(); return false;"
-																>cancel</button>
+															<select name="{{column_name}}" class="form-control" style="">
+																{{#each column_type.options}}
+																	{{#select (lookup ../this column_name)}}<option value="{{id}}">{{name}}</option>{{/select}}
+																{{/each}}
+															</select>
+															{{#unless hide_buttons}}
+															<button class="btn btn-primary btn-sm">save</button>
+															<a class="btn btn-default btn-sm" href="{{clear_edit_link}}">cancel</a>
+															{{/unless}}
 														</div>
 													</form>
 
-													<div style="display:table-cell; position:relative">
-														<!--- ENABLE EDIT FIELD --->
+													<!--- ENABLE EDIT FIELD --->
+													<div style="display:table-cell; position:relative;">
+
 														<form id="enable-edit-{{column_name}}-{{id}}"
 															  action="{{base_path}}"
 															  method="post"
@@ -286,7 +417,7 @@
 															<input type="hidden" name="edit_id" value="{{id}}">
 															<button class="text"
 																	style="display:block; text-align:left; width:100%; height:100%; position:absolute;"
-																	onClick="$('#data-grid-form-{{column_name}}-{{../id}}').show(); $('#enable-edit-{{column_name}}-{{id}}').hide(); return false;"
+																	<!--- onClick="$('#data-grid-form-name{{../id}}').show(); $('#enable-edit-{{column_name}}-{{id}}').hide(); return false;" --->
 																	>
 																	<span style="padding-left:5px;">
 																		{{#if (lookup ../this.wrap column_name)}}
@@ -298,145 +429,23 @@
 															</button>
 														</form>
 													</div>
-
-
-												{{else}} <!--- NOT editable --->
-													<div style="display:table-cell; vertical-align:middle;">
-														{{#if (lookup ../this.wrap column_name)}}
-															<span id="data-grid-edit-name{{id}}" style="padding-left:5px;">{{{lookup ../this.wrap column_name}}}</span>
-														{{else}}
-															<span id="data-grid-edit-name{{id}}" style="padding-left:5px;">{{lookup ../this column_name}}</span>
-														{{/if}}
-													</div>
 												{{/if}}
+											{{else}}
+
 											{{/if}}
+											</div>
+					  					</td>
+									{{/each}}
+				  				</tr>
 
-											{{#if column_type.custom}}
-												<div style="display:table-cell; vertical-align:middle; padding-left:5px;">
-													{{{lookup ../this column_name}}}
-												</div>
-												<!--- {{{lookup ../this column_name}}} --->
-											{{/if}}
-
-											{{#if column_type.checkbox}}
-												<form id="data-grid-form-name{{../id}}" action="{{base_path}}/{{../id}}" method="post" class="form-inline" style="display:inline;" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}>
-													<div class="form-group">
-														<!--- {{../is_active}} --->
-														<input type="hidden" name="goto" value="{{current_link}}" />
-														<input type="hidden" name="is_active" value="{{#if ../is_active}}false{{else}}true{{/if}}">
-														<!--- <input type="submit" name="{{column_name}}" id="data-grid-input-name{{id}}" class="form-control input-sm" value="{{lookup ../this column_name}}" data-initial-value="{{lookup ../this column_name}}" {{#if zero_is_checked}}checked{{/if}}/> --->
-														<button id="data-grid-input-name{{id}}" class="form-control" style="border:none;" value="" data-initial-value="{{lookup ../this column_name}}">{{#if ../is_active}}&#9745;{{else}}&#9744;{{/if}}</button>
-													</div>
-												</form>
-											{{/if}}
-
-											{{#if column_type.select}}
-												<style>
-													#data-grid-form-name-{{column_name}}-{{../id}} {
-														display:none;
-													}
-
-													.hidden-{{column_name}}-{{id}} {
-														display:none;
-													}
-
-													#data-grid-form-name-{{column_name}}-{{../id}}.visible-{{column_name}}-{{id}} {
-														display:block;
-													}
-
-													button.link {
-													     background:none!important;
-													     border:none;
-													     padding:0!important;
-													     font: inherit;
-													     /*border is optional*/
-													     border-bottom:1px solid #444;
-													     cursor: pointer;
-													}
-
-													button.text {
-													     background:none!important;
-													     border:none;
-													     padding:0!important;
-													     font: inherit;
-													     /*border is optional*/
-													     border-bottom:none;
-													     cursor: pointer;
-													}
-												</style>
-
-												<form id="data-grid-form-name-{{column_name}}-{{../id}}"
-													  action="{{base_path}}/{{../id}}"
-													  method="post"
-													  class="form-inline
-															{{#if edit}}
-																{{#if ../edit}}
-																	visible-{{column_name}}-{{id}}
-																{{/if}}
-															{{/if}}
-
-													  "
-													  style="padding:1% 0; padding-left:5px;"
-													  {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}>
-
-													<div class="form-group" style="padding:2% 0;">
-														<input type="hidden" name="goto" value="{{pagination.current_page.link}}" />
-														<select name="{{column_name}}" class="form-control" style="">
-															{{#each column_type.options}}
-																{{#select (lookup ../this column_name)}}<option value="{{id}}">{{name}}</option>{{/select}}
-															{{/each}}
-														</select>
-														{{#unless hide_buttons}}
-														<button class="btn btn-primary btn-sm">save</button>
-														<a class="btn btn-default btn-sm" href="{{clear_edit_link}}">cancel</a>
-														{{/unless}}
-													</div>
-												</form>
-
-												<!--- ENABLE EDIT FIELD --->
-												<div style="display:table-cell; position:relative;">
-
-													<form id="enable-edit-{{column_name}}-{{id}}"
-														  action="{{base_path}}"
-														  method="post"
-														  style="margin:0px; padding:0px; height:100%"
-														  {{#if use_zero_ajax}}zero-target="#cell-{{column_name}}-{{id}}"{{/if}}
-														  class="
-														  		text-enable-edit
-															{{#if edit}}
-													  		 	{{#if ../edit}}
-													  		 		hidden-{{column_name}}-{{id}}
-													  		 	{{/if}}
-													  		 {{/if}}"
-														  "
-														  >
-														{{#each current_params}}
-															<input type="hidden" name="{{name}}" value="{{value}}">
-														{{/each}}
-														<input type="hidden" name="edit_col" value="{{column_name}}">
-														<input type="hidden" name="edit_id" value="{{id}}">
-														<button class="text"
-																style="display:block; text-align:left; width:100%; height:100%; position:absolute;"
-																<!--- onClick="$('#data-grid-form-name{{../id}}').show(); $('#enable-edit-{{column_name}}-{{id}}').hide(); return false;" --->
-																>
-																<span style="padding-left:5px;">
-																	{{#if (lookup ../this.wrap column_name)}}
-																		{{{lookup ../this.wrap column_name}}}
-																	{{else}}
-																		{{lookup ../this column_name}}
-																	{{/if}}
-																</span>
-														</button>
-													</form>
-												</div>
-											{{/if}}
-										{{else}}
-
-										{{/if}}
-										</div>
-				  					</td>
-								{{/each}}
-			  				</tr>
+								<!--- Edit / Additional data panel --->
+				  				{{#if show_row_edit_panel}}
+									<tr>
+										<td colspan="{{../column_count}}">
+											{{row_edit_panel_content}}
+										</td>
+									</tr>
+								{{/if}}
 
 			  				{{/each}}
 			  			</tbody>

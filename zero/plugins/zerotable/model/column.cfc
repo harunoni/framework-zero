@@ -28,6 +28,7 @@ component accessors="true"{
 						 boolean isPrimary=false,
 						 array filter,
 						 hidden = false
+
 						 ){
 		variables.columnName = arguments.columnName;
 
@@ -107,7 +108,7 @@ component accessors="true"{
 			if(isSimpleValue(variables.columnType.output)){
 				out = variables.columnType.output;
 			} else if(isClosure(variables.columnType.output)){
-				out = evaluate("variables.columnType.output(arguments.row)");
+				out = evaluate("variables.columnType.output(arguments.row, variables.zeroTable)");
 			}
 			else {
 				out = variables.customOutput;

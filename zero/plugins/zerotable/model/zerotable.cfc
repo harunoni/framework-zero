@@ -7,6 +7,7 @@ component accessors="true" {
 
 	property name="rows" setter="false";
 	property name="columns" setter="false";
+	property name="columnCount" setter="false";
 	property name="primaryColumn" setter="false";
 	property name="pagination" setter="false";
 	property name="max";
@@ -29,6 +30,9 @@ component accessors="true" {
 	property name="persistFields" setter="false";
 	property name="tableName" setter="false";
 	property name="tableNamePrefix" setter="false";
+	property name="rowEditPanelColumn" setter="false";
+	property name="rowEditPanelId" setter="false";
+	property name="rowEditPanelContent" setter="false";
 
 	/**
 	 * [init description]
@@ -53,7 +57,9 @@ component accessors="true" {
 						 ajaxTarget,
 						 required serializerIncludes={},
 						 struct persistFields={},
-						 tableName){
+						 tableName,
+						 rowEditPanelColumn,
+						 rowEditPanelContent){
 
 		variables.Rows = arguments.Rows;
 		variables.max = arguments.max;
@@ -68,6 +74,17 @@ component accessors="true" {
 		variables.serializerIncludes = arguments.serializerIncludes;
 		variables.persistFields = arguments.persistFields;
 		variables.siblingTables = [];
+
+		if(arguments.keyExists("rowEditPanelColumn")){
+			variables.hasRowEditPanel = true;
+			variables.rowEditPanelColumn = arguments.rowEditPanelColumn;
+		} else {
+			variables.hasRowEditPanel = false;
+		}
+
+		if(arguments.keyExists("rowEditPanelContent")){
+			variables.rowEditPanelContent = arguments.rowEditPanelContent;
+		}
 
 		if(arguments.keyExists("tableName")){
 			variables.tableName = arguments.tableName;
@@ -209,6 +226,29 @@ component accessors="true" {
 		}
 	}
 
+	private void function decorateRowsWithRowEditPanel(required array rows){
+		var rows = arguments.rows;
+		if(getHasRowEditPanel()){
+			if(getHasRowEditPanelId()){
+				for(var row in rows){
+					if(row[getRowEditPanelColumn()] == getRowEditPanelId()){
+						row["show_row_edit_panel"] = true;
+
+						if(getHasRowEditPanelContent()){
+							var rowEditPanelContent = getRowEditPanelContent();
+							if(isClosure(rowEditPanelContent)){
+								var out = rowEditPanelContent(row, this);
+							} else {
+								var out = rowEditPanelContent;
+							}
+							row["row_edit_panel_content"] = out;
+						}
+					}
+				}
+			}
+		}
+	}
+
 	public function edit(required string columnName, required string rowId, string errorMessage){
 
 
@@ -276,6 +316,10 @@ component accessors="true" {
 		}
 	}
 
+	public function getColumnCount(){
+		return arrayLen(variables.columns);
+	}
+
 	public column[] function getCustomColumns(){
 		var out = [];
 		for(var column in variables.columns){
@@ -284,6 +328,18 @@ component accessors="true" {
 			}
 		}
 		return out;
+	}
+
+	public function getHasRowEditPanel(){
+		return variables.hasRowEditPanel;
+	}
+
+	public boolean function getHasRowEditPanelId(){
+		return variables.keyExists("rowEditPanelId");
+	}
+
+	public boolean function getHasRowEditPanelContent(){
+		return variables.keyExists("rowEditPanelContent");
 	}
 
 	public string function getShowMoreLink(){
@@ -441,7 +497,10 @@ component accessors="true" {
 	public function getRows(){
 
 		if(!variables.isSortedById){
-			variables.Rows.sort("id", "asc");
+			var primaryColumn = getPrimaryColumn();
+			if(primaryColumn.exists()){
+				variables.Rows.sort(primaryColumn.get().getColumnName(), "asc");
+			}
 		}
 
 		if(isNull(variables.serializedRows)){
@@ -552,6 +611,7 @@ component accessors="true" {
 		zeroTableOut["sort"] = this.getSort();
 		zeroTableOut["direction"] = this.getdirection();
 		zeroTableOut["current_page_id"] = this.getcurrentPageId();
+		zeroTableOut["column_count"] = this.getColumnCount();
 		zeroTableOut["search"] = this.getsearch().else("");
 		zeroTableOut["show_more_link"] = this.getshowMoreLink();
 		zeroTableOut["more"] = this.getmore();
@@ -595,6 +655,7 @@ component accessors="true" {
 
 		decorateRowsWithCustomColumns(zeroTableOut.rows);
 		decorateRowsWithWrapColumns(zeroTableOut.rows);
+		decorateRowsWithRowEditPanel(zeroTableOut.rows);
 
 		return zeroTableOut;
 	}
@@ -608,9 +669,11 @@ component accessors="true" {
 							search,
 							edit_col,
 							edit_id,
+							row_edit_panel,
 							edit_message){
 
 		// writeDump(arguments);
+		// writeDump(callStackGet());
 		if(arguments.keyExists("max") and trim(arguments.max) != ""){ setMax(arguments.max)}
 		if(arguments.keyExists("more") and trim(arguments.more) != "" and more > 0){ setMore(arguments.more)}
 		if(arguments.keyExists("offset") and trim(arguments.offset) != ""){ setOffset(arguments.offset)}
@@ -641,6 +704,10 @@ component accessors="true" {
 			}
 		}
 
+		if(arguments.keyExists("row_edit_panel") and trim(arguments.row_edit_panel) != ""){
+			variables.rowEditPanelId = arguments.row_edit_panel;
+		}
+
 		//JUMP TO PAGE. Needs to be last so that other values are updated first
 		if(arguments.keyExists("goto_page") and trim(arguments.goto_page) != ""){
 			var pagination = getPagination();
@@ -649,5 +716,10 @@ component accessors="true" {
 		}
 
 	}
+
+	public function updateWithZeroTableFields(zeroTableFields zeroTableFields){
+		update(argumentCollection=arguments.zeroTableFields.toStruct());
+	}
+
 
 }

@@ -27,6 +27,7 @@ component accessors="true"{
 							string search,
 							string edit_col,
 							numeric edit_id,
+							string row_edit_panel,
 							string table_name
 		){
 
@@ -41,6 +42,7 @@ component accessors="true"{
 		if(arguments.keyExists("edit_col")) { variables.edit_col = arguments.edit_col; }
 		if(arguments.keyExists("edit_id")) { variables.edit_id = arguments.edit_id; }
 		if(arguments.keyExists("table_name")) { variables.table_name = arguments.table_name; }
+		if(arguments.keyExists("row_edit_panel")) { variables.row_edit_panel = arguments.row_edit_panel; }
 		return this;
 	}
 
