@@ -30,8 +30,6 @@ component accessors="true"{
 							string table_name
 		){
 
-		writeDump(arguments);
-
 		if(arguments.keyExists("offset")) { variables.offset = arguments.offset; }
 		if(arguments.keyExists("more")) { variables.more = arguments.more; }
 		if(arguments.keyExists("max")) { variables.max = arguments.max; }
@@ -69,9 +67,30 @@ component accessors="true"{
 		for(var column in arguments.columns){
 			zeroTable.addColumn(column);
 		}
-
-		zeroTable.update(argumentCollection=variables);
-
 		return zeroTable;
+	}
+
+	public function toStruct(){
+
+		var keys = [
+			"offset",
+			"more",
+			"max",
+			"page",
+			"sort",
+			"direction",
+			"goto_page",
+			"search",
+			"edit_col",
+			"edit_id",
+			"table_name"
+		];
+		var out = {}
+		for(var key in keys){
+			if(variables.keyExists(key)){
+				out.insert(key, variables[key]);
+			}
+		}
+		return out;
 	}
 }

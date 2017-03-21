@@ -23,20 +23,13 @@ component accessors="true" {
 	property name="totalPages" setter="false"; //
 
 
-	public function init(required data data, required numeric max=10, required numeric offset, required queryString queryString, required numeric showMaxPages, required zeroTable zeroTable){
+	public function init(required data data, required numeric max=10, required numeric offset, required numeric showMaxPages, required zeroTable zeroTable){
 		variables.data = arguments.data;
 		variables.max = arguments.max;
 		variables.offset = arguments.offset;
-		variables.queryString = arguments.queryString;
 		variables.zeroTable = arguments.zeroTable;
-
-		//Remove variables from the query string which are never used in pagination
-		variables.queryString.delete(zeroTable.getFieldNameWithTablePrefix("edit_col"))
-							 .delete(zeroTable.getFieldNameWithTablePrefix("edit_id"));
-
 		variables.showMaxPages = arguments.showMaxPages;
-		// variables.currentPageId = arguments.currentPageId;
-		// setCurrentPage(getFirstPage());
+
 		return this;
 	}
 
@@ -131,7 +124,7 @@ component accessors="true" {
 				}
 
 				out.append(new page(id=i+1,
-									link=variables.queryString.setValues({"#zeroTable.getFieldNameWithTablePrefix("offset")#":pageOffset}).get(),
+									link=getCleanedPaginationQueryString().getNew().setValues({"#zeroTable.getFieldNameWithTablePrefix("offset")#":pageOffset}).get(),
 									startIndex=startIndex,
 									endIndex=endIndex,
 									isCurrentPage=isCurrentPage)
@@ -141,7 +134,15 @@ component accessors="true" {
 			variables.zeroCachePages = out;
 			return out;
 		}
+	}
 
+	private queryString function getCleanedPaginationQueryString(){
+
+		//Remove variables from the query string which are never used in pagination
+		var qs = variables.zeroTable.getQueryString().getNew().delete(zeroTable.getFieldNameWithTablePrefix("edit_col"))
+							 .delete(zeroTable.getFieldNameWithTablePrefix("edit_id"));
+
+		return qs;
 	}
 
 	/**
@@ -213,7 +214,7 @@ component accessors="true" {
 		return variables.data.count();
 	}
 
-	public numeric function getTotalPages(totalItems=this.getTotalItems(), max=variables.max) cachedWithin="request" {
+	public numeric function getTotalPages(totalItems=this.getTotalItems(), max=variables.max) {
 		var ceiling = ceiling(arguments.totalItems / arguments.max);
 		if(ceiling == 0){
 			ceiling = 1;

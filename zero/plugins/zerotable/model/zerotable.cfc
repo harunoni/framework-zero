@@ -71,12 +71,14 @@ component accessors="true" {
 
 		if(arguments.keyExists("tableName")){
 			variables.tableName = arguments.tableName;
+		} else {
+			variables.tableName = "";
 		}
 
 		if(arguments.keyExists("ajaxTarget")){
 			variables.ajaxTarget = arguments.ajaxTarget;
 		} else {
-			variables.ajaxTarget = "##zero-grid";
+			variables.ajaxTarget = "##zero-grid#variables.tableName#";
 		}
 		// variables.searchString = "";
 		variables.customColumns = [];
@@ -120,15 +122,16 @@ component accessors="true" {
 		return this;
 	}
 
+	/*
+	Adds additional persisted fields to the table that the table should include in
+	its posts and gets. This is primarily used by other zerotables to pass
+	themselves through so that each table on a page maintains its state
+	 */
 	public function addPersistFields(required struct fields){
 		for(var field in arguments.fields){
 			variables.persistFields.insert(field, arguments.fields[field], true);
 			variables.qs.setValue(field, variables.persistFields[field], true);
 		}
-	}
-
-	public function init_formValidation(required zeroTableFields){
-
 	}
 
 	public function addColumn(required column column){
@@ -151,7 +154,6 @@ component accessors="true" {
 				variables.primaryColumn = new optional(Column);
 			}
 
-			column.setQueryString(variables.qs.getNew());
 			variables.columns.append(column);
 			column.setZeroTable(this);
 			// column.setSortAscLink(variables.qs.getNew().setValues({"sort":column.getColumnName(), "direction":"asc"}).get());
@@ -267,7 +269,7 @@ component accessors="true" {
 	}
 
 	public function getFieldNameWithTablePrefix(required string field){
-		if(variables.keyExists("tableName")){
+		if(variables.keyExists("tableName") and variables.tableName != ""){
 			return "#variables.tableName#.#arguments.field#";
 		} else {
 			return arguments.field;
@@ -305,13 +307,11 @@ component accessors="true" {
 		return new pagination(data=variables.Rows,
 							  max=variables.max + variables.more,
 							  offset=variables.offset,
-							  queryString=variables.qs.getNew(),
 							  showMaxPages=variables.showMaxPages,
 							  zeroTable=this);
 	}
 
-	public array function getCurrentParams(skipSiblings=false){
-
+	public array function getPrimaryParams(){
 		var params = ["offset", "max", "search", "sort", "direction", "more"];
 		var out = [];
 		for(var param in params){
@@ -340,35 +340,6 @@ component accessors="true" {
 			}
 		}
 
-		//Add the persistFields to the currentParams out
-		for(var key in persistFields){
-			out.append({
-				"name":key,
-				"value":persistFields[key],
-				"is_#key#":true
-			});
-		}
-
-		// if(!arguments.skipSiblings){
-		// 	for(var siblingTable in variables.siblingTables){
-		// 		//Need to set the flag skipSiblings so that we do not create
-		// 		//a circular reference. This ensures that each table only gets
-		// 		//siblings from its sibling tables once per request.
-		// 		var siblingParams = duplicate(siblingTable.getCurrentParams(skipSiblings=true));
-		// 		for(var param in siblingParams){
-		// 			var newParam = {}
-		// 			for(var key in param){
-		// 				if(key contains "is_"){
-
-		// 				} else {
-		// 					newParam.insert(key, param[key]);
-		// 				}
-		// 			}
-		// 			out.append(newParam);
-		// 		}
-		// 	}
-		// }
-
 		//Add a table name if it exists to the out, this allows the user
 		//to support multiple zerotables
 		if(variables.keyExists("tableName")){
@@ -383,6 +354,48 @@ component accessors="true" {
 		return out;
 	}
 
+	public struct function getPrimaryParamsAsStruct(){
+		var params = getPrimaryParams();
+		var out = {};
+		for(var param in params){
+			out.insert(param.name, param, true);
+		}
+		return out;
+	}
+
+	public struct function getPrimaryParamsAsKeyValue(){
+
+		var params = getPrimaryParamsAsStruct();
+		var paramsOut = {};
+		for(var param in params){
+
+			if(isInstanceOf(params[param].value, "optional")){
+				if(params[param].value.exists()){
+					paramsOut.insert(param, params[param].value.get(), true);
+				}
+			} else {
+				paramsOut.insert(param, params[param].value, true);
+			}
+		}
+		return paramsOut;
+	}
+
+	public array function getCurrentParams(){
+
+		var out = getPrimaryParams();
+
+		//Add the persistFields to the currentParams out
+		for(var key in persistFields){
+			out.append({
+				"name":key,
+				"value":persistFields[key],
+				"is_#key#":true
+			});
+		}
+
+		return out;
+	}
+
 	public struct function getCurrentParamsAsStruct(){
 		var params = getCurrentParams();
 		var out = {};
@@ -390,6 +403,23 @@ component accessors="true" {
 			out.insert(param.name, param, true);
 		}
 		return out;
+	}
+
+	public struct function getCurrentParamsAsKeyValue(){
+
+		var params = getCurrentParamsAsStruct();
+		var paramsOut = {};
+		for(var param in params){
+
+			if(isInstanceOf(params[param].value, "optional")){
+				if(params[param].value.exists()){
+					paramsOut.insert(param, params[param].value.get(), true);
+				}
+			} else {
+				paramsOut.insert(param, params[param].value, true);
+			}
+		}
+		return paramsOut;
 	}
 
 	public string function getCurrentParamsAsString(){
@@ -402,6 +432,10 @@ component accessors="true" {
 
 	public optional function getPrimaryColumn(){
 		return variables.primaryColumn?: new optional();
+	}
+
+	public queryString function getQueryString(){
+		return variables.qs;
 	}
 
 	public function getRows(){
@@ -444,33 +478,9 @@ component accessors="true" {
 	}
 
 	public void function persistSiblingTable(required zeroTable table){
-		var fields = arguments.table.getCurrentParamsAsStruct();
-		var fieldsOut = {};
-		for(var field in fields){
 
-			if(isInstanceOf(fields[field].value, "optional")){
-				if(fields[field].value.exists()){
-					fieldsOut.insert(field, fields[field].value.get(), true);
-				}
-			} else {
-				fieldsOut.insert(field, fields[field].value, true);
-			}
-		}
-		addPersistFields(fieldsOut);
-
-		var fields = this.getCurrentParamsAsStruct();
-		for(var field in fields){
-
-			if(isInstanceOf(fields[field].value, "optional")){
-				if(fields[field].value.exists()){
-					fieldsOut.insert(field, fields[field].value.get(), true);
-				}
-			} else {
-				fieldsOut.insert(field, fields[field].value, true);
-			}
-		}
-
-		arguments.table.addPersistFields(fieldsOut);
+		addPersistFields(arguments.table.getPrimaryParamsAsKeyValue());
+		arguments.table.addPersistFields(this.getPrimaryParamsAsKeyValue());
 		// this.addSiblingTable(arguments.table);
 		// arguments.table.addSiblingTable(this);
 	}
@@ -516,9 +526,10 @@ component accessors="true" {
 		variables.direction = arguments.direction;
 
 		variables.qs.setValues({"#getFieldNameWithTablePrefix("sort")#":column.getColumnName(), "#getFieldNameWithTablePrefix("direction")#":arguments.direction});
-		for(var updateColumn in variables.columns){
-			updateColumn.setQueryString(variables.qs.getNew());
-		}
+
+		// for(var updateColumn in variables.columns){
+		// 	updateColumn.setQueryString(variables.qs.getNew());
+		// }
 
 		column.setIsSorted(true);
 		if(direction == "asc"){

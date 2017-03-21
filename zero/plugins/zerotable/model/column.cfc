@@ -122,11 +122,11 @@ component accessors="true"{
 	}
 
 	public function getSortAscLink(){
-		return variables.queryString.getNew().delete(variables.zeroTable.getFieldNameWithTablePrefix("direction")).setValues({"#variables.zeroTable.getFieldNameWithTablePrefix("sort")#":getColumnName(), "#variables.zeroTable.getFieldNameWithTablePrefix("direction")#":"asc"}).get();
+		return variables.zeroTable.getQueryString().getNew().delete(variables.zeroTable.getFieldNameWithTablePrefix("direction")).setValues({"#variables.zeroTable.getFieldNameWithTablePrefix("sort")#":getColumnName(), "#variables.zeroTable.getFieldNameWithTablePrefix("direction")#":"asc"}).get();
 	}
 
 	public function getSortDescLink(){
-		return variables.queryString.getNew().delete(variables.zeroTable.getFieldNameWithTablePrefix("direction")).setValues({"#variables.zeroTable.getFieldNameWithTablePrefix("sort")#":getColumnName(), "#variables.zeroTable.getFieldNameWithTablePrefix("direction")#":"desc"}).get();
+		return variables.zeroTable.getQueryString().getNew().delete(variables.zeroTable.getFieldNameWithTablePrefix("direction")).setValues({"#variables.zeroTable.getFieldNameWithTablePrefix("sort")#":getColumnName(), "#variables.zeroTable.getFieldNameWithTablePrefix("direction")#":"desc"}).get();
 	}
 
 	public function setIsSortedAsc(){
@@ -137,10 +137,6 @@ component accessors="true"{
 	public function setIsSortedDesc(){
 		variables.isSortedAsc = false;
 		variables.isSortedDesc = true;
-	}
-
-	public function setQueryString(required queryString queryString){
-		variables.queryString = arguments.queryString;
 	}
 
 	public function setZeroTable(required zeroTable zeroTable){

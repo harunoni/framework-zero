@@ -27,7 +27,7 @@
 
 <cfset zeroTableContext = request.zeroTableContext?:rc.data>
 <cf_handlebars context="#zeroTableContext#">
-<div class="row" id="zero-grid">
+<div class="row" id="zero-grid{{table_name}}">
 	<div class="col-lg-12">
 		<div class="row" style="margin-bottom:10px;">
 			<div class="col-lg-12">
@@ -127,7 +127,7 @@
 				<div class="col-lg-12">
 
 					<div class="table-responsive">
-					<table id="zerotable" class="table table-bordered" >
+					<table id="zerotable{{table_name}}" class="table table-bordered" >
 			  			<thead>
 							{{#each columns}}
 								<th>{{friendly_name}}
@@ -519,7 +519,8 @@
 
 {{#if use_zero_ajax}}
 	<script>
-	NProgress.configure({ parent: "#zerotable", showSpinner: false });
+	NProgress.configure({ parent: "#zerotable{{table_name}}", showSpinner: false });
+
 	$( document ).ajaxStart(function() {
 		NProgress.start();
 	  // $( "#loading" ).show();
