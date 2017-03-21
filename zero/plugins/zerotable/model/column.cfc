@@ -108,7 +108,11 @@ component accessors="true"{
 			if(isSimpleValue(variables.columnType.output)){
 				out = variables.columnType.output;
 			} else if(isClosure(variables.columnType.output)){
-				out = evaluate("variables.columnType.output(arguments.row, variables.zeroTable)");
+				if(variables.keyExists("zeroTable")){
+					out = evaluate("variables.columnType.output(arguments.row, variables.zeroTable)");
+				} else {
+					out = evaluate("variables.columnType.output(arguments.row)");
+				}
 			}
 			else {
 				out = variables.customOutput;

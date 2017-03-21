@@ -85,6 +85,7 @@ component accessors="true"{
 			"search",
 			"edit_col",
 			"edit_id",
+			"row_edit_panel",
 			"table_name"
 		];
 		var out = {}

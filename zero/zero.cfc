@@ -877,6 +877,14 @@ component extends="one" {
 				abort;
 			} else {
 				errors.insert(arguments.name, arguments.value);
+				errors.insert("action_string", request.action, true);
+				var actionOut = {"#request.subsystem#":{
+						"#request.section#":{
+							"#request.item#":true
+						}
+					}
+				}
+				errors.insert("action", actionOut, true);
 				if(arguments.keyExists("subErrors")){
 					arguments.value.sub_errors = arguments.subErrors;
 					arguments.value.append(arguments.subErrors);

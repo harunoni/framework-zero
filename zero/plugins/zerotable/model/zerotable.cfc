@@ -372,6 +372,7 @@ component accessors="true" {
 		var out = [];
 		for(var param in params){
 
+
 			var value = evaluate("this.get#param#()");
 
 			if(isNull(value)){
@@ -393,6 +394,16 @@ component accessors="true" {
 						"is_#param#":true
 					});
 				}
+			}
+		}
+
+		if(getHasRowEditPanel()){
+			if(getHasRowEditPanelId()){
+				out.append({
+					"name":getFieldNameWithTablePrefix("row_edit_panel"),
+					"value":getRowEditPanelId(),
+					"is_row_edit_panel":true
+				})
 			}
 		}
 
