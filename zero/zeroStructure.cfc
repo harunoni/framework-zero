@@ -8,8 +8,8 @@ component {
 		a unique struct
 		 */
 		var newStruct = {};
-		for(var key in form){
-			newStruct.insert(key, duplicate(form[key]));
+		for(var key in arguments.data){
+			newStruct.insert(key, duplicate(arguments.data[key]));
 		}
 
 		var expandedData = expandFlattenedData(newStruct);
@@ -109,6 +109,8 @@ component {
 							str[key] = convertStructArrayToArray(str[key]);
 						}
 						recurseStructs(str[key]);
+					} else if(isArray(str[key])){
+						recurseStructs(str[key]);
 					} else {
 						if(lcase(str[key]) == "true" or lcase(str[key]) == "false"){
 			    			if(str[key]){str[key] = true;} else {str[key] = false}
@@ -138,7 +140,7 @@ component {
     	return out;
     }
 
-	public function flattenDataStructureForCookies(required any data, prefix="", ignore=[]){
+	public function flattenDataStructureForCookies(required any data=getValues(), prefix="", ignore=[]){
     	var prefix = arguments.prefix;
 		var pile = {};
 

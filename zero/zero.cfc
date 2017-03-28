@@ -1,6 +1,8 @@
 import serializer;
 component extends="one" {
 
+
+
 	this.customTagPaths = ["./vendor/handlebars.lucee"];
 
 	copyCGI = duplicate(CGI);
@@ -376,7 +378,7 @@ component extends="one" {
 						}
 						// writeDump(prefix);
 
-						var formKeys = flattenDataStructureForCookies(data=request._zero.controllerResult, prefix=prefix, ignore="delete_key,goto,goto_fail,preserve_form,submit_overload,redirect,map,preserve_response");
+						var formKeys = createObject("zeroStructure").flattenDataStructureForCookies(data=request._zero.controllerResult, prefix=prefix, ignore="delete_key,goto,goto_fail,preserve_form,submit_overload,redirect,map,preserve_response");
 						cookie.append(formKeys);
 					}
 
@@ -392,17 +394,17 @@ component extends="one" {
 						}
 
 						if(form.preserve_form){
-							var formKeys = flattenDataStructureForCookies(data=form, prefix="preserve_form", ignore="delete_key,goto,goto_fail,preserve_form,submit_overload,redirect,map,preserve_response");
+							var formKeys = createObject("zeroStructure").flattenDataStructureForCookies(data=form, prefix="preserve_form", ignore="delete_key,goto,goto_fail,preserve_form,submit_overload,redirect,map,preserve_response");
 							cookie.append(formKeys);
 						}
 					}
 
 
 					if(form.keyExists("preserve_request")){
-						var formKeys = flattenDataStructureForCookies(data=form, prefix="preserve_request.form", ignore="delete_key,goto,goto_fail,preserve_form,submit_overload,redirect,map,preserve_response,preserve_request");
+						var formKeys = createObject("zeroStructure").flattenDataStructureForCookies(data=form, prefix="preserve_request.form", ignore="delete_key,goto,goto_fail,preserve_form,submit_overload,redirect,map,preserve_response,preserve_request");
 						cookie.append(formKeys);
 
-						var formKeys = flattenDataStructureForCookies(data=url, prefix="preserve_request.url", ignore="delete_key,goto,goto_fail,preserve_form,submit_overload,redirect,map,preserve_response,preserve_request");
+						var formKeys = createObject("zeroStructure").flattenDataStructureForCookies(data=url, prefix="preserve_request.url", ignore="delete_key,goto,goto_fail,preserve_form,submit_overload,redirect,map,preserve_response,preserve_request");
 						cookie.append(formKeys);
 					}
 
@@ -480,6 +482,7 @@ component extends="one" {
 	}
 
 	public function before( rc ){
+
 		writeLog(file="zero_trace", text="start before()");
 		doTrace(rc, "RC before()");
 
@@ -511,19 +514,16 @@ component extends="one" {
 		// }
 
 		/*
-		Cookie structures are saved as individual keys, so need to use structKeyTranslate
-		to get them back into a structure
+		Cookie structures are saved as individual keys, so need to use
+		the zeroStructure class to expand the cookies back into
+		a regular structure and array
 		 */
-		// cookies = duplicate(cookie);
-		// structKeyTranslate(cookies, true, true);
-		cookies = expandFlattenedData(cookie);
-		// writeDump(cookies);
-		// abort;
+		cookies = createObject("zeroStructure").init(cookie).getValues();
 
 		if(cookies.keyExists("preserve_form")){
 			form.append(cookies.preserve_form);
 			rc.Append(cookies.preserve_form);
-			var deleteCookies = flattenDataStructureForCookies(data=cookies.preserve_form, prefix="preserve_form", ignore=[]);
+			var deleteCookies = createObject("zeroStructure").flattenDataStructureForCookies(data=cookies.preserve_form, prefix="preserve_form", ignore=[]);
 			for(var cook in deleteCookies){
 				header name="Set-Cookie" value="#ucase(cook)#=; path=/; Max-Age=0; Expires=Thu, 01-Jan-1970 00:00:00 GMT";
 			}
@@ -537,7 +537,7 @@ component extends="one" {
 			if(cookies.preserve_request.keyExists("form")){
 				form.append(cookies.preserve_request.form);
 				rc.Append(cookies.preserve_request.form);
-				var deleteCookies = flattenDataStructureForCookies(data=cookies.preserve_request.form, prefix="preserve_request.form", ignore=[]);
+				var deleteCookies = createObject("zeroStructure").flattenDataStructureForCookies(data=cookies.preserve_request.form, prefix="preserve_request.form", ignore=[]);
 				for(var cook in deleteCookies){
 					header name="Set-Cookie" value="#ucase(cook)#=; path=/; Max-Age=0; Expires=Thu, 01-Jan-1970 00:00:00 GMT";
 					structDelete(cookie,cook);
@@ -547,7 +547,7 @@ component extends="one" {
 			if(cookies.preserve_request.keyExists("url")){
 				url.append(cookies.preserve_request.url);
 				rc.Append(cookies.preserve_request.url);
-				var deleteCookies = flattenDataStructureForCookies(data=cookies.preserve_request.url, prefix="preserve_request.url", ignore=[]);
+				var deleteCookies = createObject("zeroStructure").flattenDataStructureForCookies(data=cookies.preserve_request.url, prefix="preserve_request.url", ignore=[]);
 				for(var cook in deleteCookies){
 					header name="Set-Cookie" value="#ucase(cook)#=; path=/; Max-Age=0; Expires=Thu, 01-Jan-1970 00:00:00 GMT";
 					structDelete(cookie,cook);
@@ -578,7 +578,7 @@ component extends="one" {
 				}
 			}
 
-			var deleteCookies = flattenDataStructureForCookies(data=cookies.preserve_response, prefix="preserve_response", ignore=[]);
+			var deleteCookies = createObject("zeroStructure").flattenDataStructureForCookies(data=cookies.preserve_response, prefix="preserve_response", ignore=[]);
 			for(var cook in deleteCookies){
 				// structDelete(cookie,cook);
 				header name="Set-Cookie" value="#ucase(cook)#=; path=/; Max-Age=0; Expires=Thu, 01-Jan-1970 00:00:00 GMT";
@@ -609,10 +609,7 @@ component extends="one" {
 
 		// structKeyTranslate(form, true);
 		form.append(new zeroStructure(form).getValues());
-		// form.append(recurseConvertStructArrayToArrays(duplicate(form)));
-		form.append(new zeroStructure(rc).getValues());
-		// rc.append(recurseConvertStructArrayToArrays(duplicate(rc)));
-		// rc.append(recurseConvertStructArrayToArrays(duplicate(rc)));
+		rc.append(new zeroStructure(rc).getValues());
 
 		//Append anything in the client scope to the RC scope as this is also to be used for controller arguments
 		for(key in client){
@@ -757,7 +754,7 @@ component extends="one" {
 			}
 
 			if(rc.keyExists("preserve_form")){
-				var formKeys = flattenDataStructureForCookies(data=form, prefix="preserve_form", ignore="delete_key,preserve_redirect,redirect,preserve_map,preserve_response,preserve_form,goto_before,goto,submit_overload");
+				var formKeys = createObject("zeroStructure").flattenDataStructureForCookies(data=form, prefix="preserve_form", ignore="delete_key,preserve_redirect,redirect,preserve_map,preserve_response,preserve_form,goto_before,goto,submit_overload");
 				cookie.append(formKeys);
 
 			}
@@ -877,10 +874,12 @@ component extends="one" {
 				abort;
 			} else {
 				errors.insert(arguments.name, arguments.value);
+
+
 				errors.insert("action_string", request.action, true);
-				var actionOut = {"#request.subsystem#":{
-						"#request.section#":{
-							"#request.item#":true
+				var actionOut = {"#getSubsystem()#":{
+						"#getSection()#":{
+							"#getItem()#":true
 						}
 					}
 				}
@@ -889,6 +888,14 @@ component extends="one" {
 					arguments.value.sub_errors = arguments.subErrors;
 					arguments.value.append(arguments.subErrors);
 				}
+
+				//Put the actual errors into a sub structure for backwards compatability
+				//with code which expected errors in the top level, and code which is going
+				//to need to use the action structure
+				if(!errors.keyExists("errors")){
+					errors.errors = {};
+				}
+				errors.errors.insert(arguments.name, arguments.value);
 			}
 
 		}
@@ -1319,96 +1326,6 @@ component extends="one" {
     	}
     }
 
-    public function flattenDataStructureForCookies(required any data, prefix="", ignore=[]){
-    	var prefix = arguments.prefix;
-		var pile = {};
-    	var recurseData = function(data, currentPath="", pile){
-    		if(isArray(data)){
-
-    			var index = 0;
-    			for(var item in data){
-    				index++;
-					if(currentPath == ""){
-						var path = currentPath & "#index#";
-					} else {
-						var path = currentPath & "." & "#index#";
-					}
-
-    				if(isStruct(item) or isArray(item)){
-    					recurseData(data=item, currentPath=path, pile=pile);
-    				} else {
-    					pile.insert(path, item);
-    				}
-    			}
-
-			} else if(isStruct(data)) {
-				loopStruct: for(var key in data){
-
-					for(var ignoreItem in ignore){
-						if(lcase(key) == lcase(ignoreItem)){
-							continue loopStruct;
-						}
-					}
-
-					if(currentPath == ""){
-						var path = currentPath & key;
-					} else {
-						var path = currentPath & "." & key;
-					}
-
-					if(isStruct(data[key]) or isArray(data[key])){
-						recurseData(data = data[key], currentPath=path, pile=pile)
-					} else {
-						pile.insert(path, data[key], true);
-					}
-				}
-
-			} else {
-				throw("json data was not an array or struct, cannot convert");
-			}
-
-    		return pile;
-    	}
-    	recurseData(data=arguments.data, pile=pile);
-
-    	if(prefix != ""){
-    		for(var key in pile){
-    			pile["#prefix#.#key#"] = pile[key];
-    			pile.delete(key);
-    		}
-    	}
-
-    	return pile;
-    }
-
-    public function expandFlattenedData(data){
-    	var out = duplicate(data);
-    	structKeyTranslate(out, true);
-    	var recurseStructs = function(str){
-    		// writeDump(str);
-    		if(isArray(str)){
-    			for(var item in str){
-    				recurseStructs(item);
-    			}
-			} else if(isStruct(str)){
-
-				for(var key in str){
-					if(isStruct(str[key])){
-						if(structIsReallyArray(str[key])){
-							str[key] = convertStructArrayToArray(str[key]);
-						}
-						recurseStructs(str[key]);
-					}
-				}
-
-	    	} else {
-				//Do nothing, it is a simple value
-			}
-    	}
-    	recurseStructs(out);
-    	return out;
-    }
-
     public function getCSRFToken(){
     	if(!request.keyExists("CSRF_TOKEN")){
     		request.CSRF_TOKEN = createUUID();
@@ -1451,33 +1368,6 @@ component extends="one" {
     	if(didCopy){
     		throw("Zero installed custom functions to Lucee, please restart Lucee to continue");
     	}
-    }
-
-    public function recurseConvertStructArrayToArrays(data){
-    	out = data
-    	var recurseStructs = function(str){
-    		// writeDump(str);
-    		if(isArray(str)){
-    			for(var item in str){
-    				recurseStructs(item);
-    			}
-			} else if(isStruct(str)){
-
-				for(var key in str){
-					if(isStruct(str[key])){
-						if(structIsReallyArray(str[key])){
-							str[key] = convertStructArrayToArray(str[key]);
-						}
-						recurseStructs(str[key]);
-					}
-				}
-
-	    	} else {
-				//Do nothing, it is a simple value
-			}
-    	}
-    	recurseStructs(out);
-    	return out;
     }
 
     public boolean function structIsReallyArray(required struct str){
@@ -1653,7 +1543,7 @@ component extends="one" {
 
 		for(var subsystem in subsystems){
 
-			subsystemName = listLast(subsystem, server.separator.file);
+			var subsystemName = listLast(subsystem, server.separator.file);
 
 			/**
 			 * Routes for the default subsystem must be defined without the
@@ -1663,11 +1553,12 @@ component extends="one" {
 				var controllers = directoryList(path="#subsystem#/controllers", filter="*.cfc");
 
 				for(var controller in controllers){
-					file = getFileFromPath(controller);
-					name = listFirst(file, ".");
+					var file = getFileFromPath(controller);
+					var name = listFirst(file, ".");
 					//Runscrit Routes
-
+					// writeDump(name);
 					var meta = getComponentMetaData("#variables.framework.base#.#subsystemName#.controllers.#name#");
+
 					var nested = listToArray(meta.nested?:"");
 					for(var nest in nested){
 						//Add nesting
@@ -1691,8 +1582,8 @@ component extends="one" {
 				var controllers = directoryList(path="#subsystem#/controllers", filter="*.cfc");
 
 				for(var controller in controllers){
-					file = getFileFromPath(controller);
-					name = listFirst(file, ".");
+					var file = getFileFromPath(controller);
+					var name = listFirst(file, ".");
 
 					//Runscrit Routes
 
@@ -1718,6 +1609,7 @@ component extends="one" {
 
 			}
 		}
+
 		return variables.framework.routes;
 	}
 
@@ -1820,8 +1712,10 @@ component extends="one" {
 		}
 
 		finalOutput = response(finalOutput);
-		if(variables.zero.csrfPRotect){
-			finalOutput = injectCSRFIntoForms(finalOutput);
+		if(variables.zero.csrfProtect){
+			if(request._zero.contentType == "html"){
+				finalOutput = injectCSRFIntoForms(finalOutput);
+			}
 		}
 
 		if(variables.zero.validateHTMLOutput){
@@ -2200,6 +2094,7 @@ component extends="one" {
 	}
 
 	function onRequestStart(){
+
 		/*
 		Global framework rewrite of the request scope. Allows mimicing HTML 5
 		nested form feature, which is not currently supported by Internet Explorer.
@@ -2279,6 +2174,7 @@ component extends="one" {
 				}
 			}
 		}
+
 
 		super.onRequestStart(argumentCollection=arguments);
 

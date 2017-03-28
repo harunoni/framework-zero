@@ -15,7 +15,7 @@ component {
     See the License for the specific language governing permissions and
     limitations under the License.
 */
-    
+
     this.name = hash( getBaseTemplatePath() );
     if ( !structKeyExists( request, '_fw1' ) ) {
         request._fw1 = {
@@ -888,7 +888,7 @@ component {
             } else {
                 writeOutput( out.output );
             }
-        }        
+        }
         setupResponseWrapper();
     }
 
@@ -2714,7 +2714,7 @@ component {
                 request._fw1.routeMethodsMatched.get = true;
                 request._fw1.routeMethodsMatched.post = true;
             }
-            
+
             try {
                 // we use .split() to handle empty items in pathInfo - we fallback to listToArray() on
                 // any system that doesn't support .split() just in case (empty items won't work there!)
