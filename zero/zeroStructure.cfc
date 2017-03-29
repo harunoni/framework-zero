@@ -11,7 +11,6 @@ component {
 		for(var key in arguments.data){
 			newStruct.insert(key, duplicate(arguments.data[key]));
 		}
-
 		var expandedData = expandFlattenedData(newStruct);
 		variables.originalClient = duplicate(expandedData);
 		variables.values = duplicate(expandedData);
@@ -92,10 +91,10 @@ component {
 
 	public function expandFlattenedData(data){
     	var out = duplicate(arguments.data);
-    	// writeDump(out);
+
     	// abort;
     	structKeyTranslate(out, true);
-    	// writeDump(out);
+
     	var recurseStructs = function(str){
     		// writeDump(str);
     		if(isArray(str)){
@@ -113,7 +112,11 @@ component {
 						recurseStructs(str[key]);
 					} else {
 						if(lcase(str[key]) == "true" or lcase(str[key]) == "false"){
-			    			if(str[key]){str[key] = true;} else {str[key] = false}
+							//Need to do an extra check on if the value is numeric.
+							//Lucee will equiviate 1,0 or "1","0" to true/false
+							if(!isNumeric(str[key])){
+			    				if(str[key]){str[key] = true;} else {str[key] = false}
+							}
 			    		} else if(str[key] == "{}"){
 			    			str[key] = {};
 			    		} else if(str[key] == "[]"){
@@ -129,13 +132,13 @@ component {
 
 	    	} else {
 	    		// writeDump(str);
-	    		if(isBoolean(str)){
+	    		if(isBoolean(str) and !isNumeric(str)){
 	    			if(str){str = true;} else {str = false}
 	    		}
 				//Do nothing, it is a simple value
 			}
+			// writeDump(str);
     	}
-    	// writeDump(out);
     	recurseStructs(out);
     	return out;
     }
@@ -234,7 +237,7 @@ component {
     	for(var key in keys){
 
     		if(isSimpleValue(str[key])){
-	    		if(isBoolean(str[key])){
+	    		if(isBoolean(str[key]) and !isNumeric(str[key])){
 	    			if(str[key]){out.append(true);} else {out.append(false)}
 	    		} else if(str[key] == "[]"){
 	    			out.append([]);
