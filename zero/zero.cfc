@@ -858,13 +858,14 @@ component extends="one" {
 			return left(type, len(type) - 2);
 		}
 
-		var addError = function(name, value, subErrors){
+		var addError = function(name, value, subErrors, originalError){
 
 			if(variables.zero.throwOnFirstArgumentError){
 				// writeDump(arguments);
 				// abort;
 				writeDump("Zero encountered an error in trying to popluate the values");
 				writeDump(arguments);
+				writeDump(arguments.originalError);
 				// writeDump(arguments.error);
 				// writeDump(componentPath);
 				writeDump(cfcName);
@@ -967,14 +968,7 @@ component extends="one" {
 					}
 
 				} catch(any e){
-					// writeDump(filePaths);
-					// writeDump(variables.zero.validationPaths);
-					// writeDump(e);
-					// writeDump(newArgs);
-					// writeDump(newCfc);
-					// abort;
-					addError(arguments.name, {message:e.message, original_value:arguments.data}, subErrors);
-
+					addError(arguments.name, {message:e.message, original_value:arguments.data}, subErrors, e);
 					return;
 				}
 			}
