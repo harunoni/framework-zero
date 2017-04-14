@@ -16,6 +16,7 @@ component accessors="true"{
 	property name="sortDescLink";
 	property name="edit" type="boolean";
 	property name="editable" type="boolean";
+	property name="sortable" type="boolean" default="true";
 	property name="columnType" type="struct" setter="false";
 	property name="isPrimary" type="boolean" setter="false";
 	property name="filter" type="array" setter="false";
@@ -27,7 +28,8 @@ component accessors="true"{
 						 struct columnType,
 						 boolean isPrimary=false,
 						 array filter,
-						 hidden = false
+						 hidden = false,
+						 sortable = true,
 
 						 ){
 		variables.columnName = arguments.columnName;
@@ -65,10 +67,12 @@ component accessors="true"{
 			variables.Wrap = "{{value}}";
 		}
 
+
 		variables.customOutput = "";
 
 		variables.isPrimary = arguments.isPrimary;
 		variables.editable = arguments.editable;
+		variables.sortable = arguments.sortable;
 		variables.isSorted = false;
 		variables.isSortedDesc = false;
 		variables.isSortedAsc = false;
@@ -174,6 +178,7 @@ component accessors="true"{
 			"is_primary":this.getisPrimary(),
 			"filter":this.getfilter(),
 			"filterable":this.getfilterable(),
+			"sortable":this.getSortable()
 		}
 		return out;
 	}

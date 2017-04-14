@@ -155,6 +155,7 @@ component extends="one" {
 	  { method = 'create', httpMethods = [ '$POST' ] },
 
 	  { method = 'read', httpMethods = [ '$GET' ], includeId = true },
+	  { method = 'read', httpMethods = [ '$GET' ], includeId = true , routeSuffix = '/read'},
 	  { method = 'read', httpMethods = [ '$POST' ], includeId = true, routeSuffix = '/read' },
 
 	  { method = 'update', httpMethods = [ '$PUT','$POST' ], includeId = true },
@@ -437,6 +438,7 @@ component extends="one" {
 					doTrace(FORM, "FORM after() redirect");
 					doTrace(cookie, "COOKIE after() redirect");
 					writeLog(file="zero_trace", text="do after() redirect");
+
 					// writeDump(now());
 					// abort;
 					request._zero.zeroClient.persist();
@@ -450,6 +452,8 @@ component extends="one" {
 				if(variables.zero.encodeResultForHTML ){
 					request._zero.controllerResult = encodeResultFor("HTML", request._zero.controllerResult);
 				}
+				// writeDump(request._zero.controllerResult);
+				// abort;
 
 				//Clear out the RC scope because only the result from the controller will be passed
 				//to the view
@@ -1040,6 +1044,11 @@ component extends="one" {
 				}
 			}
 
+		}
+
+		if(arrayLen(args) == 1 and args[1].name == "rc"){
+			out.rc = request.context;
+			return out;
 		}
 
 		if(arrayLen(args) == 1 and !forceArgumentCollection){

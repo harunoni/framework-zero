@@ -125,17 +125,19 @@
 			  			<thead>
 							{{#each columns}}
 								<th>{{friendly_name}}
-									{{#if is_sorted}}
-										{{#if is_sorted_asc}}
-											<span class="pull-right"><a href="{{sort_desc_link}}" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}><i class="fa fa-fw fa-sort-desc"></i></a></span>
+									{{#if sortable}}
+										{{#if is_sorted}}
+											{{#if is_sorted_asc}}
+												<span class="pull-right"><a href="{{sort_desc_link}}" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}><i class="fa fa-fw fa-sort-desc"></i></a></span>
+											{{else}}
+												<span class="pull-right"><a href="{{sort_asc_link}}" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}><i class="fa fa-fw fa-sort-asc"></i></a></span>
+											{{/if}}
 										{{else}}
-											<span class="pull-right"><a href="{{sort_asc_link}}" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}><i class="fa fa-fw fa-sort-asc"></i></a></span>
+											<span class="pull-right"><a href="{{sort_asc_link}}" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}><i class="fa fa-fw fa-sort"></i></a></span>
 										{{/if}}
-									{{else}}
-										<span class="pull-right"><a href="{{sort_asc_link}}" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}><i class="fa fa-fw fa-sort"></i></a></span>
+											<!--- <span class="pull-right"><a href=""><i class="fa fa-fw fa-filter"></i></a></span>
+											<span class="pull-right"><a href=""><i class="fa fa-fw fa-search"></i></a></span> --->
 									{{/if}}
-										<!--- <span class="pull-right"><a href=""><i class="fa fa-fw fa-filter"></i></a></span>
-										<span class="pull-right"><a href=""><i class="fa fa-fw fa-search"></i></a></span> --->
 								</th>
 							{{/each}}
 			  			</thead>
