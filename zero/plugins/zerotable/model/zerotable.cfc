@@ -510,7 +510,7 @@ component accessors="true" {
 		if(!variables.isSortedById){
 			var primaryColumn = getPrimaryColumn();
 			if(primaryColumn.exists()){
-				variables.Rows.sort(primaryColumn.get().getColumnName(), "asc");
+				variables.Rows.sort(primaryColumn.get().getDataName(), "asc");
 			}
 		}
 
