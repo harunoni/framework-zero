@@ -33,6 +33,7 @@ component accessors="true" {
 	property name="rowEditPanelColumn" setter="false";
 	property name="rowEditPanelId" setter="false";
 	property name="rowEditPanelContent" setter="false";
+	property name="style" type="struct" setter="false";
 
 	/**
 	 * [init description]
@@ -59,7 +60,17 @@ component accessors="true" {
 						 struct persistFields={},
 						 tableName,
 						 rowEditPanelColumn,
-						 rowEditPanelContent){
+						 rowEditPanelContent,
+						 style = {
+						 	table:{
+						 		striped:false,
+						 		hover:true,
+						 		bordered:true,
+						 		condensed:false,
+						 	}
+
+						 }
+						 ){
 
 		variables.Rows = arguments.Rows;
 		variables.max = arguments.max;
@@ -74,6 +85,7 @@ component accessors="true" {
 		variables.serializerIncludes = arguments.serializerIncludes;
 		variables.persistFields = arguments.persistFields;
 		variables.siblingTables = [];
+		variables.style = arguments.style;
 
 		if(arguments.keyExists("rowEditPanelColumn")){
 			variables.hasRowEditPanel = true;
@@ -635,6 +647,7 @@ component accessors="true" {
 		zeroTableOut["use_zero_ajax"] = this.getuseZeroAjax();
 		zeroTableOut["ajax_target"] = this.getAjaxTarget();
 		zeroTableOut["persist_fields"] = this.getPersistFields();
+		zeroTableOut["style"] = new serializer().serializeEntity(this.getStyle());
 
 		if(variables.keyExists("tableName")){
 			zeroTableOut["table_name"] = variables.tableName;

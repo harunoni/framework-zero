@@ -27,13 +27,13 @@ td {
 </style>
 <div class="row" id="zero-grid{{table_name}}">
 	<div class="col-lg-12">
-		<div class="row" style="margin-bottom:10px;">
+		<div class="row">
 			<div class="col-lg-12">
 
 			</div>
 		</div>
-		<div class="row" style="margin-bottom:10px;">
-			<div class="col-lg-8">
+		<div class="row">
+			<div class="col-lg-6">
 				<form id="max_items{{table_name}}" action="{{base_path}}" method="get" class="form-inline" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}>
 					{{#each current_params}}
 						{{#unless is_max}}
@@ -57,7 +57,7 @@ td {
 					<button id="max_select_button" class="btn btn-primary">Go</button>
 				</form>
 			</div>
-			<div class="col-lg-4 text-right">
+			<div class="col-lg-6 text-right">
 				<div class="form-group" class="pull-right" style="display:inline;">
 					<form id="search-form" method="GET" action="{{base_path}}" class="form-inline" style="display:inline;" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}>
 						{{#each current_params}}
@@ -120,12 +120,30 @@ td {
 				</div>
 			</div>
 		</div>
+		{{#each action_rows}}
+		<div class="row">
+			<div class="col-lg-12">
+				<div style="display:inline; float:right">
+					<button class="btn btn-default"><i class="glyphicon glyphicon-trash"></i> View Deleted</button>
+				</div>
+			</div>
+		</div>
+		{{/each}}
+		<div style="margin-bottom:10px;">
+
+		</div>
 		<div>
 			<div class="row">
 				<div class="col-lg-12">
 
 					<div class="table-responsive">
-					<table id="zerotable{{table_name}}" class="table table-bordered" >
+					<table id="zerotable{{table_name}}"
+						   class="table
+						   {{#if style.table.bordered}}table-bordered{{/if}}
+						   {{#if style.table.striped}}table-striped{{/if}}
+						   {{#if style.table.hover}}table-hover{{/if}}
+						   {{#if style.table.condensed}}table-condensed{{/if}}
+						   " >
 			  			<thead>
 							{{#each columns}}
 								<th {{#if width}}width="{{width}}"{{/if}} {{#if text_align}}style="text-align:{{text_align}};"{{/if}}>{{friendly_name}}
@@ -151,7 +169,7 @@ td {
 				  				<tr>
 									{{#each columns}}
 										<td id="cell-{{column_name}}-{{id}}"
-										style="vertical-align: middle; padding:0px; height:1px; {{#if text_align}}text-align:{{text_align}};{{/if}}"
+										style="vertical-align: middle; padding:5px; height:1px; {{#if text_align}}text-align:{{text_align}};{{/if}}"
 										>
 											<div
 												style="margin:0px; border-radius:0px; border:none; height:100%; width:100%; display:table;"
