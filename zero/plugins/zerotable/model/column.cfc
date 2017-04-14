@@ -21,6 +21,8 @@ component accessors="true"{
 	property name="isPrimary" type="boolean" setter="false";
 	property name="filter" type="array" setter="false";
 	property name="filterable" type="boolean" setter="false";
+	property name="width" type="string" setter="false";
+	property name="textAlign" type="string" setter="false";
 
 	public function init(required string columnName,
 						 string friendlyName,
@@ -30,6 +32,8 @@ component accessors="true"{
 						 array filter,
 						 hidden = false,
 						 sortable = true,
+						 width="",
+						 textAlign="left"
 
 						 ){
 		variables.columnName = arguments.columnName;
@@ -67,6 +71,8 @@ component accessors="true"{
 			variables.Wrap = "{{value}}";
 		}
 
+		variables.textAlign = arguments.textAlign;
+		variables.width = arguments.width;
 
 		variables.customOutput = "";
 
@@ -178,7 +184,9 @@ component accessors="true"{
 			"is_primary":this.getisPrimary(),
 			"filter":this.getfilter(),
 			"filterable":this.getfilterable(),
-			"sortable":this.getSortable()
+			"sortable":this.getSortable(),
+			"text_align":this.getTextAlign(),
+			"width":this.getWidth(),
 		}
 		return out;
 	}

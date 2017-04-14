@@ -20,6 +20,10 @@
 .innerx {
   /*float: left;*/
 }
+
+td {
+	padding:5px;
+}
 </style>
 <div class="row" id="zero-grid{{table_name}}">
 	<div class="col-lg-12">
@@ -124,7 +128,7 @@
 					<table id="zerotable{{table_name}}" class="table table-bordered" >
 			  			<thead>
 							{{#each columns}}
-								<th>{{friendly_name}}
+								<th {{#if width}}width="{{width}}"{{/if}} {{#if text_align}}style="text-align:{{text_align}};"{{/if}}>{{friendly_name}}
 									{{#if sortable}}
 										{{#if is_sorted}}
 											{{#if is_sorted_asc}}
@@ -147,7 +151,7 @@
 				  				<tr>
 									{{#each columns}}
 										<td id="cell-{{column_name}}-{{id}}"
-										style="vertical-align: middle; padding:0px; height:1px;"
+										style="vertical-align: middle; padding:0px; height:1px; {{#if text_align}}text-align:{{text_align}};{{/if}}"
 										>
 											<div
 												style="margin:0px; border-radius:0px; border:none; height:100%; width:100%; display:table;"
@@ -189,6 +193,8 @@
 															#data-grid-form-{{column_name}}-{{../id}} {
 																display:none;
 															}
+
+
 
 															.hidden-{{column_name}}-{{id}} {
 																display:none;
@@ -233,7 +239,7 @@
 															  		 {{/if}}"
 															 {{#if use_zero_ajax}}zero-target="#cell-{{column_name}}-{{id}}"{{/if}}>
 
-															<div class="" style="padding:2% 0; width:100%">
+															<div class="" style="padding:5px; width:100%">
 																<input type="hidden" name="goto" value="{{pagination.current_page.link}}" />
 																<input type="hidden" name="goto_fail" value="{{pagination.current_page.link}}" />
 																<input type="hidden" name="edit_col" value="{{column_name}}">
@@ -252,7 +258,7 @@
 																		value="{'clear_form':true}"
 																		formaction="{{pagination.current_page.link}}"
 																		class="btn btn-default btn-sm cancel-button"
-																		style="
+																		style=""
 																	href="{{clear_edit_link}}"
 																	onClick="$('#data-grid-form-{{column_name}}-{{../id}}').hide(); $('#enable-edit-{{column_name}}-{{id}}').show(); return false;"
 																	>cancel</button>
@@ -281,10 +287,10 @@
 																<input type="hidden" name="edit_col" value="{{column_name}}">
 																<input type="hidden" name="edit_id" value="{{id}}">
 																<button class="text"
-																		style="display:block; text-align:left; width:100%; height:100%; position:absolute;"
+																		style="display:block; width:100%; height:100%; position:absolute; {{#if text_align}}text-align:{{text_align}};{{/if}} "
 																		onClick="$('#data-grid-form-{{column_name}}-{{../id}}').show(); $('#enable-edit-{{column_name}}-{{id}}').hide(); return false;"
 																		>
-																		<span style="padding-left:5px;">
+																		<span style="padding:5px;">
 																			{{#if (lookup ../this.wrap column_name)}}
 																				{{{lookup ../this.wrap column_name}}}
 																			{{else}}
@@ -412,7 +418,7 @@
 															<input type="hidden" name="edit_col" value="{{column_name}}">
 															<input type="hidden" name="edit_id" value="{{id}}">
 															<button class="text"
-																	style="display:block; text-align:left; width:100%; height:100%; position:absolute;"
+																	style="display:block; {{#if text_align}}text-align:{{text_align}};{{/if}} width:100%; height:100%; position:absolute;"
 																	<!--- onClick="$('#data-grid-form-name{{../id}}').show(); $('#enable-edit-{{column_name}}-{{id}}').hide(); return false;" --->
 																	>
 																	<span style="padding-left:5px;">
