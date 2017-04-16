@@ -15,6 +15,7 @@ component accessors="true"{
 	property name="edit_col" setter="false";
 	property name="edit_id" setter="false";
 	property name="table_name" setter="false";
+	property name="filters" setter="false";
 
 	public function init(
 							numeric offset = 0,
@@ -28,7 +29,8 @@ component accessors="true"{
 							string edit_col,
 							numeric edit_id,
 							string row_edit_panel,
-							string table_name
+							string table_name,
+							struct filters
 		){
 
 		if(arguments.keyExists("offset")) { variables.offset = arguments.offset; }
@@ -43,6 +45,7 @@ component accessors="true"{
 		if(arguments.keyExists("edit_id")) { variables.edit_id = arguments.edit_id; }
 		if(arguments.keyExists("table_name")) { variables.table_name = arguments.table_name; }
 		if(arguments.keyExists("row_edit_panel")) { variables.row_edit_panel = arguments.row_edit_panel; }
+		if(arguments.keyExists("filters")) { variables.filters = arguments.filters; }
 		return this;
 	}
 
@@ -86,7 +89,8 @@ component accessors="true"{
 			"edit_col",
 			"edit_id",
 			"row_edit_panel",
-			"table_name"
+			"table_name",
+			"filters"
 		];
 		var out = {}
 		for(var key in keys){

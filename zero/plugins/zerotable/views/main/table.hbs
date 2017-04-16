@@ -24,6 +24,32 @@
 td {
 	padding:5px;
 }
+
+button.text {
+     background:none!important;
+     border:none;
+     padding:0!important;
+     font: inherit;
+     /*border is optional*/
+     border-bottom:none;
+     cursor: pointer;
+}
+
+/*
+Bootstrap does not appear to suport buttons
+in an addon group, so we make this supportable
+by setting the padding of the addon to 0, and
+making the button a sufficient width. This gives us a
+good hitbox for the click
+ */
+.input-group-addon-btn {
+	padding:0;
+}
+
+.input-group-addon-btn > button {
+	min-width:35px;
+}
+
 </style>
 <div class="row" id="zero-grid{{table_name}}">
 	<div class="col-lg-12">
@@ -34,7 +60,7 @@ td {
 		</div>
 		<div class="row">
 			<div class="col-lg-6">
-				<form id="max_items{{table_name}}" action="{{base_path}}" method="get" class="form-inline" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}>
+				<form id="max_items{{table_name}}" action="{{base_path}}" method="get" class="form-inline" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}} style="display:inline;">
 					{{#each current_params}}
 						{{#unless is_max}}
 							{{#unless is_more}}
@@ -56,6 +82,18 @@ td {
 					</div>
 					<button id="max_select_button" class="btn btn-primary">Go</button>
 				</form>
+
+				{{#if has_filterable_columns}}
+					<form action="{{base_path}}" method="get" class="form-inline" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}} style="display:inline;">
+						{{#each current_params}}
+							{{#unless is_filter}}
+								<input type="hidden" name="{{name}}" value="{{value}}">
+							{{/unless}}
+						{{/each}}
+						<button class="btn btn-default" {{#if has_filters}}{{else}}disabled="true"{{/if}}>Clear Filters <i class="glyphicon glyphicon-filter"></i></button>
+					</form>
+				{{/if}}
+
 			</div>
 			<div class="col-lg-6 text-right">
 				<div class="form-group" class="pull-right" style="display:inline;">
@@ -136,7 +174,7 @@ td {
 			<div class="row">
 				<div class="col-lg-12">
 
-					<div class="table-responsive">
+					<div class="zerotable-table-container table-responsive">
 					<table id="zerotable{{table_name}}"
 						   class="table
 						   {{#if style.table.bordered}}table-bordered{{/if}}
@@ -165,8 +203,68 @@ td {
 			  			</thead>
 
 			  			<tbody>
+							{{#if has_filterable_columns}}
+								<tr>
+									{{#each columns}}
+										{{!-- Making the input widths not expand their container cell:
+											  http://stackoverflow.com/questions/13856955/i-need-to-make-an-input-element-adjust-to-table-cell-width
+										--}}
+
+										<td {{#if width}}width="{{width}}"{{/if}}>
+											{{#if filterable}}
+												<form style="display:inline;" action="{{base_path}}" class="horizontal" method="GET">
+														{{#each current_params}}
+															<input type="hidden" name="{{name}}" value="{{value}}">
+														{{/each}}
+														{{#if filter.type.text}}
+															{{#if filter.value}}
+																<div class="input-group">
+																	<input type="input" class="form-control input input-sm" name="filters.{{column_name}}" style="min-width: 10px; max-width: 100%; width: 100%;" {{#if filter.value}}value="{{filter.value}}"{{/if}} placeholder="filter {{friendly_name}}"/>
+																	<div class="input-group-addon input-group-addon-btn">
+																		<button class="text" name="submit_overload" value="{'filters.{{column_name}}':''}"><i class="glyphicon glyphicon-remove-circle"></i></button>
+																	</div>
+																</div>
+															{{else}}
+																<div class="input-group">
+																	<input type="input" class="form-control input input-sm" name="filters.{{column_name}}" style="min-width: 10px; max-width: 100%; width: 100%;" {{#if filter.value}}value="{{filter.value}}"{{/if}} placeholder="filter {{friendly_name}}"/>
+																	<div class="input-group-addon input-group-addon-btn">
+																		<button class="text"><i class="glyphicon glyphicon-filter"></i></button>
+																	</div>
+																</div>
+															{{/if}}
+														{{/if}}
+
+														{{#if filter.type.select}}
+															<div class="input-group">
+																<select name="filters.{{column_name}}" class="form-control input input-sm">
+																	{{#each filter.data}}
+																		{{#select filter.value}}<option value="{{id}}">{{name}}</option>{{/select}}
+																	{{/each}}
+																</select>
+																<div class="input-group-addon input-group-addon-btn">
+																	{{#if filter.value}}
+																		<button class="text" name="submit_overload" value="{'filters.{{column_name}}':''}"><i class="glyphicon glyphicon-remove-circle"></i></button>
+																	{{else}}
+																		<button class="text"><i class="glyphicon glyphicon-filter"></i></button>
+																	{{/if}}
+
+																</div>
+															</div>
+														{{/if}}
+												</form>
+											{{/if}}
+										</td>
+									{{/each}}
+								</tr>
+							{{/if}}
+
 			  				{{#each rows}}
-				  				<tr>
+				  				<tr
+									{{#if row_on_click}}
+										class="zerotable-row-on-click"
+										data-onClick="{{row_on_click}}"
+									{{/if}}
+				  				>
 									{{#each columns}}
 										<td id="cell-{{column_name}}-{{id}}"
 										style="vertical-align: middle; padding:5px; height:1px; {{#if text_align}}text-align:{{text_align}};{{/if}}"
@@ -545,6 +643,28 @@ td {
 		</div>
 	</div>
 </div>
+
+<!---
+Work on a row click functionality, but not finished
+because need to determine how to detect if the
+row has editable items or other buttons
+<script>
+	$(function() {
+	    $(".zerotable-row-on-click").click(function(e) {
+	    	console.log(e);
+	    	var onClick = $(e.currentTarget).attr('data-onClick');
+	    	eval(onClick);
+
+	        // if (e.target.id == "myDiv" || $(e.target).parents("#myDiv").size()) {
+	        //     alert("Inside div");
+	        // } else {
+	        //    alert("Outside div");
+	        // }
+	    });
+	})
+
+</script>
+--->
 
 {{#if use_zero_ajax}}
 	<script>

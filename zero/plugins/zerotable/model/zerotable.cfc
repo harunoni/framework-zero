@@ -10,6 +10,7 @@ component accessors="true" {
 	property name="columnCount" setter="false";
 	property name="primaryColumn" setter="false";
 	property name="pagination" setter="false";
+	property name="filters" setter="false";
 	property name="max";
 	property name="offset";
 	property name="sort";
@@ -34,6 +35,8 @@ component accessors="true" {
 	property name="rowEditPanelId" setter="false";
 	property name="rowEditPanelContent" setter="false";
 	property name="style" type="struct" setter="false";
+	property name="rowOnClick" type="any" setter="false";
+	property name="hasFilterableColumns" setter="false";
 
 	/**
 	 * [init description]
@@ -86,6 +89,7 @@ component accessors="true" {
 		variables.persistFields = arguments.persistFields;
 		variables.siblingTables = [];
 		variables.style = arguments.style;
+		variables.hasFilterableColumns = false;
 
 		if(arguments.keyExists("rowEditPanelColumn")){
 			variables.hasRowEditPanel = true;
@@ -112,6 +116,10 @@ component accessors="true" {
 		// variables.searchString = "";
 		variables.customColumns = [];
 
+
+		if(arguments.keyExists("rowOnClick")){
+			variables.rowOnClick = arguments.rowOnClick;
+		}
 
 		variables.qs = new queryString(cgi.query_string);
 		variables.qs.delete(getFieldNameWithTablePrefix("search"))
@@ -179,6 +187,7 @@ component accessors="true" {
 		});
 		if(!found){
 
+
 			if(column.getIsPrimary()){
 				variables.primaryColumn = new optional(Column);
 			}
@@ -190,6 +199,10 @@ component accessors="true" {
 
 		} else {
 			throw("column already exists");
+		}
+
+		if(column.getFilterable()){
+			variables.hasFilterableColumns = true;
 		}
 	}
 
@@ -261,6 +274,21 @@ component accessors="true" {
 		}
 	}
 
+	private void function decorateRowsWithRowOnClick(required array rows){
+		var rows = arguments.rows;
+		if(getHasRowOnClick()){
+
+			for(var row in rows){
+				if(isClosure(getRowOnClick())){
+					var onClick = getRowOnClick();
+					row["row_on_click"] = evaluate('onClick(row)');
+				} else {
+					row["row_on_click"] = getRowOnClick();
+				}
+			}
+		}
+	}
+
 	public function edit(required string columnName, required string rowId, string errorMessage){
 
 
@@ -286,6 +314,16 @@ component accessors="true" {
 				row.edit = false;
 			}
 		}
+	}
+
+	/*
+	Takes a column to filter, updates the column class and updates
+	the data class to perform the filtering
+	 */
+	public function filter(required string columnName, required any value){
+		var column = findColumnByName(arguments.columnName).elseThrow("Could not find the column #arguments.columnName#");
+		column.setFilteredValue(arguments.value);
+		variables.rows.filter(column.getDataName(), arguments.value);
 	}
 
 	public Optional function findColumnByName(required string columnName){
@@ -342,6 +380,10 @@ component accessors="true" {
 		return out;
 	}
 
+	public function getHasFilters(){
+		return variables.keyExists("filters") and !variables.filters.isEmpty();
+	}
+
 	public function getHasRowEditPanel(){
 		return variables.hasRowEditPanel;
 	}
@@ -352,6 +394,10 @@ component accessors="true" {
 
 	public boolean function getHasRowEditPanelContent(){
 		return variables.keyExists("rowEditPanelContent");
+	}
+
+	public boolean function getHasRowOnClick(){
+		return variables.keyExists("rowOnClick");
 	}
 
 	public string function getShowMoreLink(){
@@ -408,6 +454,25 @@ component accessors="true" {
 				}
 			}
 		}
+
+		if(getHasFilters()){
+
+			var filters = getFilters();
+			for(var filter in filters){
+
+				var data = {
+					"name":"filters.#filter#",
+					"value":filters[filter],
+					"is_filter":true,
+					"column":{
+						"#filter#":true
+					}
+				}
+				out.append(data);
+			}
+		}
+		// writeDump(out);
+		// abort;
 
 		if(getHasRowEditPanel()){
 			if(getHasRowEditPanelId()){
@@ -635,6 +700,8 @@ component accessors="true" {
 		zeroTableOut["direction"] = this.getdirection();
 		zeroTableOut["current_page_id"] = this.getcurrentPageId();
 		zeroTableOut["column_count"] = this.getColumnCount();
+		zeroTableOut["has_filterable_columns"] = this.getHasFilterableColumns();
+		zeroTableOut["has_filters"] = this.getHasFilters();
 		zeroTableOut["search"] = this.getsearch().else("");
 		zeroTableOut["show_more_link"] = this.getshowMoreLink();
 		zeroTableOut["more"] = this.getmore();
@@ -680,6 +747,7 @@ component accessors="true" {
 		decorateRowsWithCustomColumns(zeroTableOut.rows);
 		decorateRowsWithWrapColumns(zeroTableOut.rows);
 		decorateRowsWithRowEditPanel(zeroTableOut.rows);
+		decorateRowsWithRowOnClick(zeroTableOut.rows);
 
 		return zeroTableOut;
 	}
@@ -694,7 +762,8 @@ component accessors="true" {
 							edit_col,
 							edit_id,
 							row_edit_panel,
-							edit_message){
+							edit_message,
+							filters){
 
 		// writeDump(arguments);
 		// writeDump(callStackGet());
@@ -707,6 +776,14 @@ component accessors="true" {
 			var dir = "asc";
 			if(arguments.keyExists("direction") and trim(arguments.direction) != ""){dir = arguments.direction}
 			this.sort(arguments.sort, dir);
+		}
+
+		//FILTERING
+		if(arguments.keyExists("filters")){
+			variables.filters = arguments.filters;
+			for(var filter in filters){
+				this.filter(columnName=filter, value=filters[filter]);
+			}
 		}
 
 

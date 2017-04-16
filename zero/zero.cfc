@@ -594,7 +594,7 @@ component extends="one" {
 			if(!isJson(rc.submit_overload)){
 				throw("The data in a form submit_overload must be json");
 			}
-			var json = deserializeJson(form.submit_overload);
+			var json = deserializeJson(rc.submit_overload);
 			for(var key in json){
 				form[key] = json[key];
 				rc[key] = json[key];

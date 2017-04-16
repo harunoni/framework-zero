@@ -9,6 +9,7 @@ component accessors="true"{
 	property name="friendlyName" setter="false";
 	property name="hidden" setter="false";
 	property name="hasWrap" setter="false";
+	property name="isFiltered" type="boolean";
 	property name="isSorted" type="boolean";
 	property name="isSortedDesc" type="boolean";
 	property name="isSortedAsc" type="boolean";
@@ -29,7 +30,7 @@ component accessors="true"{
 						 boolean editable=false,
 						 struct columnType,
 						 boolean isPrimary=false,
-						 array filter,
+						 struct filter,
 						 hidden = false,
 						 sortable = true,
 						 width="",
@@ -59,6 +60,10 @@ component accessors="true"{
 		if(arguments.keyExists("filter")){
 			variables.filter = arguments.filter;
 			variables.filterable = true;
+			if(arguments.filter.keyExists("value")){
+				setFilteredValue(arguments.filter.value);
+			}
+
 		} else {
 			variables.filterable = false;
 		}
@@ -144,6 +149,11 @@ component accessors="true"{
 		return variables.zeroTable.getQueryString().getNew().delete(variables.zeroTable.getFieldNameWithTablePrefix("direction")).setValues({"#variables.zeroTable.getFieldNameWithTablePrefix("sort")#":getColumnName(), "#variables.zeroTable.getFieldNameWithTablePrefix("direction")#":"desc"}).get();
 	}
 
+	public function setFilteredValue(required any value){
+		variables.filter.value = arguments.value;
+		variables.isFiltered = true;
+	}
+
 	public function setIsSortedAsc(){
 		variables.isSortedAsc = true;
 		variables.isSortedDesc = false;
@@ -182,6 +192,7 @@ component accessors="true"{
 			"editable":this.geteditable(),
 			"column_type":this.getcolumnType(),
 			"is_primary":this.getisPrimary(),
+			"is_filtered":this.getIsFiltered(),
 			"filter":this.getfilter(),
 			"filterable":this.getfilterable(),
 			"sortable":this.getSortable(),
