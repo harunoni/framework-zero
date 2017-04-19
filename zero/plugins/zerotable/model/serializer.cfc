@@ -8,6 +8,10 @@
 
 component output="false" displayname=""  {
 
+	public function init(){
+		variables.mode.includesAll = true;
+	}
+
 	/**
 	* Takes a fprm structure and deserializes it back to keys for an entity (removes underscores)
 	*/
@@ -25,8 +29,26 @@ component output="false" displayname=""  {
 		return keysOut;
 	}
 
-	public function serializeEntity(required entity, includes=""){
-		
+	private boolean function excludesKey(key){
+
+		if(variables.mode.includesAll == false){
+			if(variables.inclusions.keyExists(arguments.key)){
+				return false; //Return false because we are flipping the bit of excludesKey (doesn't exclude because its included!)
+			} else {
+				return true;
+			}
+		} else {
+			if(variables.exclusions.keyExists(arguments.key)){
+				return true;
+			} else {
+				return false;
+			}
+		}
+	}
+
+	public function serializeEntity(required entity, includes={}){
+
+
 		if(isSimpleValue(arguments.includes)){
 			var includesArray = listToArray(arguments.includes);
 			var includes = {};
@@ -34,7 +56,41 @@ component output="false" displayname=""  {
 				includes[include] = {};
 			}
 			// writeDump(includes);
+		} else {
+			var includes = arguments.includes;
 		}
+
+		//Build exclusion keys. This allows a particular invocation
+		//of the serializer to exclude certain keys which may need to be
+		//ignored for performance or security reasons.
+		variables.exclusions = {};
+		if(includes.keyExists("@exclude")){
+			var exclusionFields = arguments.includes["@exclude"];
+
+			for(var exclusion in exclusionFields){
+				if(exclusionFields[exclusion] == true){
+					variables.exclusions[exclusion] = true;
+				}
+			}
+		}
+
+		variables.inclusions = {};
+
+		if(includes.keyExists("@include")){
+			variables.mode.includesAll = false;
+			var inclusionFields = arguments.includes["@include"];
+
+			for(var include in inclusionFields){
+				if(!isStruct(inclusionFields[include])){
+					throw("the key #include# must be a structure");
+				}
+
+				variables.inclusions[include] = true;
+				includes[include] = inclusionFields[include];
+
+			}
+		}
+
 
 		if(isSimpleValue(arguments.entity)){
 			return arguments.entity;
@@ -51,25 +107,32 @@ component output="false" displayname=""  {
 				//writeDump(entity);abort;
 				if(!structIsEmpty(entity)){
 					for(key IN entity){
+
+						if(excludesKey(key)){
+							continue;
+						}
+
 						//writeDump(entity[key]);abort;
 						if(isNull(entity[key])){
 							out[camelToUnderscore(key)] = convertNullToEmptyString(entity[key]);
 						}
 						else {
-							out[camelToUnderscore(key)] = serializeEntity(entity[key], includes);					
-						}					
-	
+
+							out[camelToUnderscore(key)] = new serializer().serializeEntity(entity[key], includes[key]?:{});
+						}
+
 					};
-				}				
+				}
 			} else {
 				local.out = [];
 				for(ent IN entity){
 					if(isNull(ent)){
 						out.append(convertNullToEmptyString(ent?:nullValue()));
 					} else {
-						out.append(serializeEntity(ent, includes));							
+						// writeDump(includes);
+						out.append(serializeEntity(ent, includes));
 					}
-				};				
+				};
 			}
 
 		}
@@ -78,20 +141,25 @@ component output="false" displayname=""  {
 			// writeDump(entity);
 			if(!structIsEmpty(entity)){
 				for(key IN entity){
-					if(isNull(entity[key])){				
+
+					if(excludesKey(key)){
+						continue;
+					}
+
+					if(isNull(entity[key])){
 						out[camelToUnderscore(key)] = convertNullToEmptyString(entity[key]?:nullValue());
 						// out[camelToUnderscore(key)] = "";
 					} else {
-						out[camelToUnderscore(key)] = serializeEntity(entity[key], includes);						
+						out[camelToUnderscore(key)] = new serializer().serializeEntity(entity[key], includes[key]?:{});
 					}
 				};
-			}			
+			}
 		}
 		else{
 
 			if(isInstanceOf(arguments.entity, "valueObject")){
 				try{
-					return arguments.entity.toString();										
+					return arguments.entity.toString();
 				}catch(any e){
 					writeDump(arguments.entity);
 					abort;
@@ -106,18 +174,24 @@ component output="false" displayname=""  {
 				}
 			} else {
 				local.entity = arguments.entity;
-				// writeDump(local.entity);				
+				// writeDump(local.entity);
 			}
-
 			local.prop = getAllProperties(local.entity);
 			local.out = {};
 			local.prop.each(function(prop){
+
+				if(excludesKey(prop.name)){
+					return; //Moveon to the next property
+				}
+
 				if(structKeyExists(prop,"cfc")){
 					if(includes.keyExists(prop.name) OR (structKeyExists(prop,"fetch") AND prop.fetch CONTAINS "join"))
 					{
+						// writeDump(prop);
 						try{
 
 							local.getRelation = evaluate('entity.get#prop.name#()');
+
 
 							/*Check for nulls on the relation. If it is null, then we need to determine if the
 							data type of the relation would normally be a struct or an array
@@ -163,17 +237,16 @@ component output="false" displayname=""  {
 						}catch (any e){
 
 							writeDump(evaluate('entity.get#prop.name#()'));
-							writeDump(e);							
+							writeDump(e);
 							abort;
 
 						}
 					}
 				} else {
-
-					if(!structKeyExists(prop,"serializeJson") OR (structKeyExists(prop,"serializeJson") AND prop.serializeJson IS NOT false)){	
+					if(!structKeyExists(prop,"serializeJson") OR (structKeyExists(prop,"serializeJson") AND prop.serializeJson IS NOT false)){
 
 						try {
-							local.getValue = evaluate('entity.get#prop.name#()');				
+							local.getValue = evaluate('entity.get#prop.name#()');
 						} catch(any e){
 							throw(e);
 							// // writeDump(entity);
@@ -198,7 +271,7 @@ component output="false" displayname=""  {
 						} else if(isInstanceOf(local.getValue,"valueObject")){
 							out[camelToUnderscore(prop.name)] = local.getValue.toString();
 						}
-						else if(isInstanceOf(local.getValue, "component")){							
+						else if(isInstanceOf(local.getValue, "component")){
 							if(includes.keyExists(prop.name)){
 								out[camelToUnderscore(prop.name)] = new serializer().serializeEntity(local.getValue, includes[prop.name]);
 							}
@@ -208,13 +281,13 @@ component output="false" displayname=""  {
 							if(includes.keyExists(prop.name)){
 								out[camelToUnderscore(prop.name)] = [];
 								for(var item in local.getValue){
-									
+
 									out[camelToUnderscore(prop.name)].append(new serializer().serializeEntity(item, includes[prop.name]));
-								}								
+								}
 							}
 
 						}
-						else {							
+						else {
 							out[camelToUnderscore(prop.name)] = local.getValue;
 						}
 					}
@@ -224,7 +297,6 @@ component output="false" displayname=""  {
 
 		return local.out;
 	}
-
 	/**
 	 * Breaks a camelCased string into separate words
 	 * 8-mar-2010 added option to capitalize parsed words Brian Meloche brianmeloche@gmail.com
@@ -265,13 +337,28 @@ component output="false" displayname=""  {
 				try {
 
 					if(meta.persistent == true){
-						var entity = entityNew(meta.extends.fullName);
+						//Try the entity both by its fully qualified name
+						//and its root name. This is because the extension
+						//can used both paths and this may impact where the
+						//entity can be loaded from
+						try {
+							var entity = entityNew(meta.extends.fullName);
+						}catch(any e){
+
+							var entityName = listLast(meta.extends.fullName, ".");
+							var entity = entityNew(entityName);
+							// writeDump(entity);
+							// writeDump(entityNew("users"));
+							// abort;
+						}
 						var parent.meta = getMetaData(entity);
 					} else {
-						var parent.meta = getComponentMetaData(meta.extends.fullName);									
+
+						var parent.meta = getComponentMetaData(meta.extends.fullName);
 					}
 
 				} catch(any e){
+					writeDump(e);
 					writeDump(meta.extends.fullName);
 					writeDump(meta);
 					abort;
@@ -279,7 +366,7 @@ component output="false" displayname=""  {
 
 				// writeDump(parent.meta);
 				// abort;
-				if(structKeyExists(parent.meta,"persistent") AND parent.meta.persistent IS true){				
+				if(structKeyExists(parent.meta,"persistent") AND parent.meta.persistent IS true){
 					allProperties = allProperties.merge(parent.meta.properties);
 				}
 			} else {

@@ -461,7 +461,7 @@ component accessors="true" {
 			for(var filter in filters){
 
 				var data = {
-					"name":"filters.#filter#",
+					"name":getFieldNameWithTablePrefix("filters.#filter#"),
 					"value":filters[filter],
 					"is_filter":true,
 					"column":{
@@ -716,7 +716,7 @@ component accessors="true" {
 		zeroTableOut["persist_fields"] = this.getPersistFields();
 		zeroTableOut["style"] = new serializer().serializeEntity(this.getStyle());
 
-		if(variables.keyExists("tableName")){
+		if(variables.keyExists("tableName") and len(trim(variables.tableName)) gt 0){
 			zeroTableOut["table_name"] = variables.tableName;
 			zeroTableOut["table_name_prefix"] = "#variables.tableName#."
 		} else {

@@ -19,7 +19,11 @@ component implements="data"{
 		// throw("not implemented");
 	}
 
-	public function sort(required string column, required string direction){		
+	public function sort(required string column, required string direction){
 		return variables.data;
+	}
+
+	public void function filter(required string column, required string value){
+
 	}
 }

@@ -24,9 +24,11 @@ component accessors="true"{
 	property name="filterable" type="boolean" setter="false";
 	property name="width" type="string" setter="false";
 	property name="textAlign" type="string" setter="false";
+	property name="columnRowDataPath" type="string" hint="The json path to the column data from the row" setter="false";
 
 	public function init(required string columnName,
 						 string friendlyName,
+						 string columnRowDataPath,
 						 boolean editable=false,
 						 struct columnType,
 						 boolean isPrimary=false,
@@ -34,8 +36,7 @@ component accessors="true"{
 						 hidden = false,
 						 sortable = true,
 						 width="",
-						 textAlign="left"
-
+						 textAlign="left",
 						 ){
 		variables.columnName = arguments.columnName;
 
@@ -74,6 +75,12 @@ component accessors="true"{
 		} else {
 			variables.hasWrap = false;
 			variables.Wrap = "{{value}}";
+		}
+
+		if(arguments.keyExists("columnRowDataPath")){
+			variables.columnRowDataPath = arguments.columnRowDataPath;
+		} else {
+			variables.columnRowDataPath = arguments.columnName;
 		}
 
 		variables.textAlign = arguments.textAlign;
@@ -136,6 +143,10 @@ component accessors="true"{
 		return out;
 	}
 
+	public function getInputName(){
+		return zeroTable.getFieldNameWithTablePrefix(this.getColumnName());
+	}
+
 	public function getWrapOutput(required string value){
 		var out = replaceNoCase(variables.Wrap, "{{value}}", arguments.value, "all");
 		return out;
@@ -178,6 +189,7 @@ component accessors="true"{
 	public function toJson(){
 		var out = {
 			"column_name":this.getcolumnName(),
+			"column_row_data_path":this.getColumnRowDataPath(),
 			"data_name":this.getdataName(),
 			"error_message":this.geterrorMessage(),
 			"friendly_name":this.getfriendlyName(),
@@ -198,6 +210,8 @@ component accessors="true"{
 			"sortable":this.getSortable(),
 			"text_align":this.getTextAlign(),
 			"width":this.getWidth(),
+			"input_name":this.getInputName()
+
 		}
 		return out;
 	}

@@ -58,6 +58,19 @@ good hitbox for the click
 
 			</div>
 		</div>
+		<div class="row" style="margin-bottom:10px;">
+			<div class="col-lg-12">
+				<div class="form form-inline pull-right">
+					<div class="form-group">
+						copy link <input type="text" class="form-control input-sm" value="{{current_link}}">
+						<button class="btn btn-default btn-sm" data-toggle="tooltip" data-placement="top" title="Show Filter History"><i class="glyphicon glyphicon-list-alt"></i></button>
+						<button class="btn btn-default btn-sm" data-toggle="tooltip" data-placement="top" title="Share View"><i class="glyphicon glyphicon-share-alt"></i></button>
+						<button class="btn btn-default btn-sm" data-toggle="tooltip" data-placement="top" title="Download CSV"><i class="glyphicon glyphicon-download-alt"></i></button>
+						<button class="btn btn-default btn-sm" data-toggle="tooltip" data-placement="top" title="Customize Table"><i class="glyphicon glyphicon-th-list"></i></button>
+					</div>
+				</div>
+			</div>
+		</div>
 		<div class="row">
 			<div class="col-lg-6">
 				<form id="max_items{{table_name}}" action="{{base_path}}" method="get" class="form-inline" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}} style="display:inline;">
@@ -155,6 +168,7 @@ good hitbox for the click
 						</script>
 					{{/if}}
 					<a class="btn btn-default btn-sm" href="{{clear_search_link}}" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}>Clear</a>
+
 				</div>
 			</div>
 		</div>
@@ -172,8 +186,32 @@ good hitbox for the click
 		</div>
 		<div>
 			<div class="row">
+				{{!-- <div class="col-lg-3">
+					<div class="panel panel-default">
+						<div class="panel-heading">
+							<h3 class="panel-title">Customize Columns</h3>
+						</div>
+						<div class="panel-body" style="padding:0">
+							<div class="list-group" style="margin:0; padding:0;">
+								{{#each columns}}
+								<div class="list-group-item">
+									<form id="data-grid-form-name{{../id}}" action="{{base_path}}/{{../id}}" method="post" class="form-inline" style="display:inline;" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}>
+										<div class="form-group">
+											<!--- {{../is_active}} --->
+											<input type="hidden" name="goto" value="{{current_link}}" />
+											<input type="hidden" name="is_active" value="{{#if ../is_active}}false{{else}}true{{/if}}">
+											<!--- <input type="submit" name="{{column_name}}" id="data-grid-input-name{{id}}" class="form-control input-sm" value="{{lookup ../this column_row_data_path}}" data-initial-value="{{lookup ../this column_row_data_path}}" {{#if zero_is_checked}}checked{{/if}}/> --->
+											<button id="data-grid-input-name{{id}}" class="" style="border:none; margin:0px;" value="" data-initial-value="{{lookup ../this column_row_data_path}}">{{#if ../is_active}}&#9745;{{else}}&#9744;{{/if}}</button>
+										</div>
+									</form>
+									{{friendly_name}}
+								</div>
+								{{/each}}
+							</div>
+						</div>
+					</div>
+				</div> --}}
 				<div class="col-lg-12">
-
 					<div class="zerotable-table-container table-responsive">
 					<table id="zerotable{{table_name}}"
 						   class="table
@@ -219,14 +257,14 @@ good hitbox for the click
 														{{#if filter.type.text}}
 															{{#if filter.value}}
 																<div class="input-group">
-																	<input type="input" class="form-control input input-sm" name="filters.{{column_name}}" style="min-width: 10px; max-width: 100%; width: 100%;" {{#if filter.value}}value="{{filter.value}}"{{/if}} placeholder="filter {{friendly_name}}"/>
+																	<input type="input" class="form-control input input-sm" name="{{table_name_prefix}}filters.{{column_name}}" style="min-width: 10px; max-width: 100%; width: 100%;" {{#if filter.value}}value="{{filter.value}}"{{/if}} placeholder="filter {{friendly_name}}"/>
 																	<div class="input-group-addon input-group-addon-btn">
-																		<button class="text" name="submit_overload" value="{'filters.{{column_name}}':''}"><i class="glyphicon glyphicon-remove-circle"></i></button>
+																		<button class="text" name="submit_overload" value="{'{{table_name_prefix}}filters.{{column_name}}':''}"><i class="glyphicon glyphicon-remove-circle"></i></button>
 																	</div>
 																</div>
 															{{else}}
 																<div class="input-group">
-																	<input type="input" class="form-control input input-sm" name="filters.{{column_name}}" style="min-width: 10px; max-width: 100%; width: 100%;" {{#if filter.value}}value="{{filter.value}}"{{/if}} placeholder="filter {{friendly_name}}"/>
+																	<input type="input" class="form-control input input-sm" name="{{table_name_prefix}}filters.{{column_name}}" style="min-width: 10px; max-width: 100%; width: 100%;" {{#if filter.value}}value="{{filter.value}}"{{/if}} placeholder="filter {{friendly_name}}"/>
 																	<div class="input-group-addon input-group-addon-btn">
 																		<button class="text"><i class="glyphicon glyphicon-filter"></i></button>
 																	</div>
@@ -236,14 +274,15 @@ good hitbox for the click
 
 														{{#if filter.type.select}}
 															<div class="input-group">
-																<select name="filters.{{column_name}}" class="form-control input input-sm">
+																<select name="{{table_name_prefix}}filters.{{column_name}}" class="form-control input input-sm" >
+																	<option>Select {{friendly_name}}</option>
 																	{{#each filter.data}}
 																		{{#select filter.value}}<option value="{{id}}">{{name}}</option>{{/select}}
 																	{{/each}}
 																</select>
 																<div class="input-group-addon input-group-addon-btn">
 																	{{#if filter.value}}
-																		<button class="text" name="submit_overload" value="{'filters.{{column_name}}':''}"><i class="glyphicon glyphicon-remove-circle"></i></button>
+																		<button class="text" name="submit_overload" value="{'{{table_name_prefix}}filters.{{column_name}}':''}"><i class="glyphicon glyphicon-remove-circle"></i></button>
 																	{{else}}
 																		<button class="text"><i class="glyphicon glyphicon-filter"></i></button>
 																	{{/if}}
@@ -366,8 +405,8 @@ good hitbox for the click
 																	   id="data-grid-input-name{{id}}"
 																	   class="form-control input-sm"
 																	   style="width:60%; height:32px;"
-																	   value="{{lookup ../this column_name}}"
-																	   data-initial-value="{{lookup ../this column_name}}"/>
+																	   value="{{lookup ../this column_row_data_path}}"
+																	   data-initial-value="{{lookup ../this column_row_data_path}}"/>
 
 																<button class="btn btn-primary btn-sm" style="">save</button>
 																<button name="submit_overload"
@@ -407,10 +446,10 @@ good hitbox for the click
 																		onClick="$('#data-grid-form-{{column_name}}-{{../id}}').show(); $('#enable-edit-{{column_name}}-{{id}}').hide(); return false;"
 																		>
 																		<span style="padding:5px;">
-																			{{#if (lookup ../this.wrap column_name)}}
-																				{{{lookup ../this.wrap column_name}}}
+																			{{#if (lookup ../this.wrap column_row_data_path)}}
+																				{{{lookup ../this.wrap column_row_data_path}}}
 																			{{else}}
-																				{{lookup ../this column_name}}
+																				{{lookup ../this column_row_data_path}}
 																			{{/if}}
 																		</span>
 																</button>
@@ -420,10 +459,10 @@ good hitbox for the click
 
 													{{else}} <!--- NOT editable --->
 														<div style="display:table-cell; vertical-align:middle;">
-															{{#if (lookup ../this.wrap column_name)}}
-																<span id="data-grid-edit-name{{id}}" style="padding-left:5px;">{{{lookup ../this.wrap column_name}}}</span>
+															{{#if (lookup ../this.wrap column_row_data_path)}}
+																<span id="data-grid-edit-name{{id}}" style="padding-left:5px;">{{{lookup ../this.wrap column_row_data_path}}}</span>
 															{{else}}
-																<span id="data-grid-edit-name{{id}}" style="padding-left:5px;">{{lookup ../this column_name}}</span>
+																<span id="data-grid-edit-name{{id}}" style="padding-left:5px;">{{lookup ../this column_row_data_path}}</span>
 															{{/if}}
 														</div>
 													{{/if}}
@@ -431,9 +470,9 @@ good hitbox for the click
 
 												{{#if column_type.custom}}
 													<div style="display:table-cell; vertical-align:middle; padding-left:5px;">
-														{{{lookup ../this column_name}}}
+														{{{lookup ../this column_row_data_path}}}
 													</div>
-													<!--- {{{lookup ../this column_name}}} --->
+													<!--- {{{lookup ../this column_row_data_path}}} --->
 												{{/if}}
 
 												{{#if column_type.checkbox}}
@@ -442,8 +481,8 @@ good hitbox for the click
 															<!--- {{../is_active}} --->
 															<input type="hidden" name="goto" value="{{current_link}}" />
 															<input type="hidden" name="is_active" value="{{#if ../is_active}}false{{else}}true{{/if}}">
-															<!--- <input type="submit" name="{{column_name}}" id="data-grid-input-name{{id}}" class="form-control input-sm" value="{{lookup ../this column_name}}" data-initial-value="{{lookup ../this column_name}}" {{#if zero_is_checked}}checked{{/if}}/> --->
-															<button id="data-grid-input-name{{id}}" class="form-control" style="border:none;" value="" data-initial-value="{{lookup ../this column_name}}">{{#if ../is_active}}&#9745;{{else}}&#9744;{{/if}}</button>
+															<!--- <input type="submit" name="{{column_name}}" id="data-grid-input-name{{id}}" class="form-control input-sm" value="{{lookup ../this column_row_data_path}}" data-initial-value="{{lookup ../this column_row_data_path}}" {{#if zero_is_checked}}checked{{/if}}/> --->
+															<button id="data-grid-input-name{{id}}" class="form-control" style="border:none;" value="" data-initial-value="{{lookup ../this column_row_data_path}}">{{#if ../is_active}}&#9745;{{else}}&#9744;{{/if}}</button>
 														</div>
 													</form>
 												{{/if}}
@@ -538,10 +577,10 @@ good hitbox for the click
 																	<!--- onClick="$('#data-grid-form-name{{../id}}').show(); $('#enable-edit-{{column_name}}-{{id}}').hide(); return false;" --->
 																	>
 																	<span style="padding-left:5px;">
-																		{{#if (lookup ../this.wrap column_name)}}
-																			{{{lookup ../this.wrap column_name}}}
+																		{{#if (lookup ../this.wrap column_row_data_path)}}
+																			{{{lookup ../this.wrap column_row_data_path}}}
 																		{{else}}
-																			{{lookup ../this column_name}}
+																			{{lookup ../this column_row_data_path}}
 																		{{/if}}
 																	</span>
 															</button>
