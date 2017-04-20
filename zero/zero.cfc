@@ -804,9 +804,27 @@ component extends="one" {
 		return trim(rtnStr);
 	}
 
+	private function getAllExtendedFunctions(required struct metaData){
+		var getFunctions = function(metaData){
+			return arguments.metaData.functions?:[];
+		}
+
+		var recurseGetFunctions = function(metaData){
+
+			var functions = [];
+			if(metaData.keyExists("extends")){
+				var functions = functions.merge(recurseGetFunctions(arguments.metaData.extends));
+			}
+			functions = functions.merge(getFunctions(arguments.metaData));
+			return functions;
+		}
+		return recurseGetFunctions(arguments.metaData);
+	}
+
 	private boolean function controllerHasFunction(cfc, funcName){
 
-		var functions = getMetaData(cfc).functions;
+		var meta = getMetaData(cfc);
+		var functions = getAllExtendedFunctions(meta);
 		for(var func in functions){
 			if(func.name == funcName){
 				return true;
@@ -1413,9 +1431,9 @@ component extends="one" {
     	var cfc = arguments.cfc;
     	var method = arguments.method;
     	var metaData = getMetaData(cfc);
-    	// writeDump(metaData);
-    	// abort;
-    	for(var func in metaData.functions){
+    	var functions = getAllExtendedFunctions(metaData);
+
+    	for(var func in functions){
     		if(func.name == method){
     			return func.parameters;
     		}

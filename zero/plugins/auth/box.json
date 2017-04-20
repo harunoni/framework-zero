@@ -1,0 +1,16 @@
+{
+    "dependencies":{
+        "testbox":"2.2.0",
+        "cfml_value_object":"https://github.com/roryl/cfml_value_object/archive/master.zip",
+        "cfml_optional":"https://github.com/roryl/cfml_optional/archive/master.zip"
+    },
+    "installPaths":{
+        "testbox":"vendor\\testbox",
+        "cfml_value_object":"vendor\\cfml_value_object",
+        "cfml_optional":"vendor\\cfml_optional",
+        "docbox":"vendor\\docbox"
+    },
+    "devDependencies":{
+        "docbox":"2.0.7+00005"
+    }
+}

@@ -730,7 +730,7 @@ component accessors="true" {
 			zeroTableOut["columns"].append(column.toJson())
 		}
 
-		zeroTableOut["primary_column"] = this.getPrimaryColumn().get().toJson();
+		zeroTableOut["primary_column"] = this.getPrimaryColumn().elseThrow("Table must have one primary column").toJson();
 		zeroTableOut["current_params"] = this.getCurrentParams();
 
 		for(var param in zeroTableOut["current_params"]){
