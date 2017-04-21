@@ -66,6 +66,9 @@
 								<span class="input-group-btn">
 									<button class="btn btn-default" name="submit_overload" formaction="/auth/users/{{data.user.id}}/read" value="{'view_state.reset_password':true, 'goto_before':'/auth/users/{{data.user.id}}', 'preserve_form':'true'}">Reset Password</button>
 								</span>
+								<span class="input-group-btn">
+									<button class="btn btn-default" name="submit_overload" formaction="/auth/users/{{data.user.id}}/send_login" value="{}">Send Password Reset</button>
+								</span>
 							</div>
 						{{/if}}
 					</div>

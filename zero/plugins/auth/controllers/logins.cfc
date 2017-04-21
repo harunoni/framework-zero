@@ -47,7 +47,6 @@ component accessors="true" extends="base"{
 		var passcode = listLast(arguments.id,":");
 		var tempLogin = ZeroAuth.findTempLogin(userHash, passcode).elseThrow("Could not find that login");
 		var User = tempLogin.getUser();
-
 		var out = {
 			"success":true,
 			"message":"Please complete your signup",
@@ -69,35 +68,32 @@ component accessors="true" extends="base"{
 		return arguments.controllerResult;
 	}
 
-	public function update(rc){
-		//Check if the user is trying to update the password for the user
-		if(structKeyExists(rc,"password") AND structKeyExists(rc,"confirmpassword")){
+	public struct function update(	required string id,
+							required password255 password,
+							required password255 confirmPassword){
 
-			if(compare(rc.password,rc.confirmpassword) IS 0){
-				var userHash = listFirst(rc.id,":");
-				var passcode = listLast(rc.id,":");
-				var login = entityLoad("tempLogins",{userHash:userHash, passcode:new saltedHash(userHash, passcode)}, true);
-
-				if(isNull(login)){
-					writeOutput("There is no login with those credentials");
-					abort;
-				} else {
-					rc.user = login.getUser();
-					rc.user.setPassword(rc.password);
-					rc.user.removeLogin(login);
-					entityDelete(login);
-					entitySave(rc.user);
-					ORMFlush();
-					rc.email = rc.user.getEmail();
-					rc.message = "You have successfully set your password, for security purposes please sign in with your password now";
-					variables.fw.redirect(action="logins.default", preserve="message,email");
-				}
-
-			} else {
-				rc.message = "Your passwords do not match"
-			}
+		if(!(password.equals(confirmPassword))){
+			throw("Passwords were not identical");
 		}
+
+		var zeroAuth = variables.fw.getZeroAuth();
+		var userHash = listFirst(arguments.id,":");
+		var passcode = listLast(arguments.id,":");
+		var tempLogin = ZeroAuth.findTempLogin(userHash, passcode).elseThrow("Could not find that login");
+		var User = tempLogin.getUser();
+		transaction {
+			ZeroAuth.updateUserTempPassword(User: User, TempLogin: TempLogin, Password: arguments.Password)
+			ORMFlush();
+			transaction action="commit";
+		}
+
+		var out = {
+			"success":true,
+			"message":"The password has been successfully updated"
+		}
+		return out;
 	}
+
 
 	private function updatePassword(rc){
 

@@ -49,6 +49,7 @@
 </head>
 
 <body>
+    <cfdump var="#rc#">
     <cf_handlebars context="#rc#">
     <div class="container">
         <div class="row">
@@ -58,27 +59,34 @@
                 </div>
                 <div class="panel panel-default">
                     <div class="panel-heading">
-                        <cfif structKeyExists(rc,"id")>
+                        {{##if data.id}}
                             <div class="alert alert-success" style="margin-bottom:0px;">
                                 Welcome to #CGI.server_name#, please create a password to complete the setup of your account.
                             </div>
-                        <cfelse>
-                            <cfif structKeyExists(rc,"message")>
-                                <div class="alert alert-success" style="margin-bottom:0px;">
-                                #rc.message#
-                                </div>
-                            <cfelse>
-                                <h3 class="panel-title">Please Sign In</h3>
-                            </cfif>
-                        </cfif>
+                        {{else}}
+                            <h3 class="panel-title">Please Sign In</h3>
+                        {{/if}}
                     </div>
                     <div class="panel-body">
-                        <form role="form" method="POST" action="{{##if data.user.id}}/auth/logins/{{data.user.id}}{{else}}/auth/logins{{/if}}">
+                        <form role="form" method="POST" action="{{##if data.id}}/auth/logins/{{data.id}}{{else}}/auth/logins{{/if}}">
+                            <input type="hidden" name="goto" value="{{data.goto}}">
                             <fieldset>
-                                {{##if data.user.id}}
+                                {{##if data.id}}
                                     <input value="{{data.id}}" type="hidden" name="id">
+                                    <input type="hidden" name="goto_fail" value="/auth/logins/{{data.id}}">
+                                    <input type="hidden" name="preserve_response" value="view_state.confirm_password">
+                                    {{##if view_state.confirm_password.errors}}
+                                        <div class="alert alert-warning">
+                                            There were errors with your password:
+                                            <ul>
+                                                {{##each view_state.confirm_password.errors}}
+                                                    <li>{{message}}</li>
+                                                {{/each}}
+                                            </ul>
+                                        </div>
+                                    {{/if}}
                                     <div class="form-group">
-                                        <input class="form-control" placeholder="E-mail" name="email_address" type="email" value="{{data.user.email}}" disabled="true">
+                                        <input class="form-control" placeholder="E-mail" name="email_address" type="email" value="{{data.user.email_address}}" disabled="true">
                                     </div>
                                     <div class="form-group">
                                         <input class="form-control" placeholder="Password" name="password" type="password" value="">
@@ -87,6 +95,8 @@
                                         <input class="form-control" placeholder="Confirm Password" name="confirmpassword" type="password" value="">
                                     </div>
                                 {{else}}
+                                    <input value="{{data.user.id}}" type="hidden" name="id">
+                                    <input type="hidden" name="goto_fail" value="/auth/logins/">
                                     <div class="form-group">
                                         <input class="form-control" placeholder="E-mail" name="email_address" type="email" autofocus value="">
                                     </div>
@@ -109,11 +119,8 @@
                                     </div>
                                 {{/if}}
 
-
                                 <!-- Change this to a button or input when using this as a form -->
                                 <button name="login" class="btn btn-lg btn-info btn-block">Login</button>
-                                <input name="goto" type="hidden" value="{{data.goto}}"/>
-                                <input type="hidden" name="goto_fail" value="/auth/logins" />
                             </fieldset>
                         </form>
                     </div>

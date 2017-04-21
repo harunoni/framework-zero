@@ -64,12 +64,22 @@ component persistent="true" table="auth" output="false" accessors="true" discrim
 										required string emailUseTLS = variables.emailUseTLS,
 										required string emailPassword = variables.emailPassword,
 										required string emailPort = variables.emailPort,
-										required string emailUsername = variables.emailUsername){
+										required string emailUsername = variables.emailUsername,
+										required string plainContent,
+										required string htmlContent
+
+										){
 
 		var Email = entityNew("email");
-
-
-
+		Email.setServer(arguments.emailServer);
+		Email.setUseTLS(arguments.emailUseTLS);
+		Email.setPassword(arguments.emailPassword);
+		Email.setPort(arguments.emailPort);
+		Email.setUsername(arguments.emailUsername);
+		Email.setPlainContent(arguments.plainContent);
+		Email.setHTMLContent(arguments.htmlContent);
+		entitySave(Email);
+		return Email;
 	}
 
 	public User function createUser(required emailAddress emailAddress,
@@ -110,6 +120,21 @@ component persistent="true" table="auth" output="false" accessors="true" discrim
 		if(arguments.keyExists("password")){ User.setPassword(arguments.password); }
 	}
 
+	/*
+	Takes a user, tempLogin and password and updates the user,
+	then deletes the tempLogin. Once a password has been updated,
+	the tempLogin should be deleted for security purposes
+	 */
+	public void function updateUserTempPassword(required User User,
+												required tempLogins TempLogin,
+												required password255 password){
+
+		updateUser(User: arguments.User, password: arguments.password);
+		User.removeLogin(arguments.TempLogin);
+		TempLogin.setUser(nullValue());
+		entityDelete(tempLogin);
+	}
+
 	public Optional function findLogin(required string token, required string authentication){
 		var Login = entityLoad("logins", {userHash:arguments.token, passcode:new saltedHash(arguments.token, arguments.authentication)}, true);
 		if(isNull(Login)){
@@ -120,6 +145,15 @@ component persistent="true" table="auth" output="false" accessors="true" discrim
 			} else {
 				return new Optional();
 			}
+		}
+	}
+
+	public Optional function findTempLogin(required string token, required string authentication){
+		var Login = entityLoad("tempLogins", {userHash:arguments.token, passcode:new saltedHash(arguments.token, arguments.authentication)}, true);
+		if(isNull(Login)){
+			return new Optional();
+		} else {
+			return new Optional(Login);
 		}
 	}
 

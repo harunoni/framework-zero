@@ -23,12 +23,7 @@ component accessors="true" extends="base" {
     	return out;
 	}
 
-	public function sendLogin(rc){
-		writeDump(rc);
-		abort;
-	}
-
-	public struct function new( ){
+	public struct function new(){
 		return {}
 	}
 
@@ -50,12 +45,21 @@ component accessors="true" extends="base" {
 	public struct function send_login(required numeric id){
 		var ZeroAuth = variables.fw.getZeroAuth();
 		var User = ZeroAuth.findUserById(arguments.id).elseThrow("Could not locate that user");
+		var credentials = User.createTemporaryLogin();
 		transaction {
-			var Email = ZeroAuth.createEmail();
+
+			var message = "Hello, please go to the link #cgi.server_name#/auth/logins/#credentials.token#:#credentials.authentication# to set your password;"
+
+			var Email = ZeroAuth.createEmail(plainContent=message, htmlContent=message);
 			User.sendLogin(Email);
 			ORMFlush();
 			transaction action="commit";
 		}
+		var out = {
+			"success":true,
+			"message":"The login email was successfully sent"
+		}
+		return out;
 	}
 
 	public struct function create(	required emailAddress emailAddress,

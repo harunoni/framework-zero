@@ -17,6 +17,7 @@ component persistent="true" table="emails" accessors="true" discriminatorColumn=
 	property name="plainContent" column="emails_plain_content" type="string" sqltype="text" isExportSensitive="true" exportValue="Plain Text Email";
 	property name="isSent" column="emails_is_sent" type="boolean";
 	property name="failMessage" column="emails_failure_message" type="string" sqltype="text";
+	property name="user" fieldtype="many-to-one" cfc="user" fkcolumn="user_id";
 
 	//Used to connect to the server to send the email but we do not save these
 	property name="server" persistent="false" default="";
@@ -31,6 +32,24 @@ component persistent="true" table="emails" accessors="true" discriminatorColumn=
 	}
 
 	public function send(){
+
+		//attributeCollection does not appear to be working
+		//so for now, all of the values are required
+		// var args = {};
+		// if(variables.server != ""){args.server = variables.server; }
+		// if(variables.useTLS != ""){args.useTLS = variables.useTLS; }
+		// if(variables.password != ""){args.password = variables.password; }
+		// if(variables.port != ""){args.port = variables.port; }
+		// if(variables.username != ""){args.username = variables.username; }
+		// args.to = variables.to;
+		// args.subject = variables.subject;
+		// args.async = false;
+		// args.from = variables.from;
+
+		// mail attributeCollection="args" {
+
+		// }
+
 		mail from="#variables.from#"
 						async="false"
 						to="#variables.to#"
@@ -40,8 +59,8 @@ component persistent="true" table="emails" accessors="true" discriminatorColumn=
 						server="#variables.server#"
 						port="#variables.port#"
 						subject="#variables.subject#"{
-						mailpart type="text/plain"{echo("#variables.plaincontent#");}
-						mailpart type="text/html"{echo("#variables.htmlcontent#");}
+							mailpart type="text/plain"{echo("#variables.plaincontent#");}
+							mailpart type="text/html"{echo("#variables.htmlcontent#");}
 						}
 	}
 

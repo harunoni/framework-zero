@@ -66,22 +66,10 @@ component persistent="true" table="user" output="false" accessors="true" discrim
 			email.setTemplate("signup");
 		}
 
-		email.setTo(this.getEmailAddress());
-
-		email.sendEmail(
-			data = {
-			appName = this.getAccount().getName(),
-			userToken = loginCredentials.token,
-			passcode = loginCredentials.authentication,
-			firstName = this.getFirstName(),
-			adminServer = this.getAccount().getAdminServer()
-		});
-
+		email.setTo(this.getEmailAddress().toString());
+		email.send();
 		email.setUser(this);
-		entitySave(email);
 		this.addEmail(email);
-		entitySave(this);
-
 	}
 
 	public function setPassword(required password255 password)
