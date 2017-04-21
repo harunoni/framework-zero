@@ -16,8 +16,8 @@ component persistent="true" table="accounts" output="false" accessors="true" dis
 	property name="adminPath" column="accounts_admin_path" type="string" length="256" default="/" specTestValue="/testvalue/";
 
 	property name="users" fieldtype="one-to-many" cfc="user" fkcolumn="user_accounts_id" lazy="false" inverse="true" singularname="user" cascade="all";
-	property name="resources" fieldtype="many-to-many" cfc="resources" linktable="resources_accounts" fkcolumn="accounts_id" type="struct" structkeycolumn="resources_name" notnull="true" singularname="resource" cascade="none";
-	property name="roles" fieldtype="many-to-many" cfc="roles" linktable="accounts_roles" singularname="role";
+	property name="resources" fieldtype="many-to-many" cfc="resource" linktable="resources_accounts" fkcolumn="accounts_id" type="struct" structkeycolumn="resources_name" notnull="true" singularname="resource" cascade="none";
+	property name="roles" fieldtype="many-to-many" cfc="role" linktable="accounts_roles" singularname="role";
 	property name="auth" fieldtype="many-to-one" cfc="auth" fkcolumn="auth_id" inverse="true";
 
 }

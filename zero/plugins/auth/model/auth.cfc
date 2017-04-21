@@ -7,8 +7,8 @@ component persistent="true" table="auth" output="false" accessors="true" discrim
 
 	property name="accounts" fieldtype="one-to-many" cfc="accounts" fkcolumn="auth_id" singularname="account";
 	property name="users" fieldtype="one-to-many" cfc="user" fkcolumn="auth_id" singularname="user";
-	property name="roles" fieldtype="one-to-many" cfc="roles" fkcolumn="auth_id" singularname="role";
-	property name="resources" fieldtype="one-to-many" cfc="resources" fkcolumn="auth_id" singularname="resource";
+	property name="roles" fieldtype="one-to-many" cfc="role" fkcolumn="auth_id" singularname="role";
+	property name="resources" fieldtype="one-to-many" cfc="resource" fkcolumn="auth_id" singularname="resource";
 
 	//Default emailer properties that apply to the whole auth domain
 	property name="emailServer" column="email_server" default="" sqltype="varchar(255)" dbdefault="";
@@ -20,7 +20,7 @@ component persistent="true" table="auth" output="false" accessors="true" discrim
 	variables.users = variables.users?:[];
 	variables.accounts = variables.accounts?:[];
 	variables.roles = variables.roles?:[];
-	variables.roles = variables.roles?:[];
+	variables.resources = variables.resources?:[];
 
 	public array function getExtendedAccountTypes(){
 		var result = new extendedEntityMetaData("accounts").getChildEntityNames();
@@ -45,19 +45,27 @@ component persistent="true" table="auth" output="false" accessors="true" discrim
 		}
 	}
 
-	public Roles function newRole(required string roleName){
+	public Role function createRole(required roleName name, required roleDescription description){
 
-		var role = entityNew("roles", {name:lcase(arguments.roleName)});
+		var RoleOptional = findRoleByName(arguments.name);
+		if(RoleOptional.exists()){
+			throw("Role already exists. Check before create a role or use the function createOrLoadRole()");
+		}
+
+		var Role = entityNew("role", {name:arguments.name, description:arguments.description});
 		entitySave(role);
 		this.addRole(role);
 		role.setAuth(this);
 		return role;
 	}
 
-	public function getRoleByName(required string name){
-
-		var role = ORMExecuteQuery("select r from roles r join r.auth a where r.name = '#lcase(arguments.name)#' and a.id = #this.getId()#", true);
-		return role;
+	public Role function createOrLoadRole(required roleName name, required roleDescription description){
+		var RoleOptional = findRoleByName(arguments.name);
+		if(RoleOptional.exists()){
+			return RoleOptional.get();
+		} else {
+			return createRole(argumentCollection=arguments);
+		}
 	}
 
 	public Email function createEmail(	required string emailServer = variables.emailServer,
@@ -101,10 +109,45 @@ component persistent="true" table="auth" output="false" accessors="true" discrim
 		return User;
 	}
 
+	public Resource function createOrLoadResource(required string name, required string description, resource parent){
+		var ResourceOptional = findResourceByName(arguments.name);
+		if(ResourceOptional.exists()){
+			return ResourceOptional.get();
+		} else {
+			return createResource(argumentCollection=arguments);
+		}
+	}
+
+	public Resource function createResource(required string name, required string description, resource parent){
+
+		var ResourceOptional = findResourceByName(arguments.name);
+		if(ResourceOptional.exists()){
+			throw("Resource already exists. Check for the resource before creating or call createOrLoadResource");
+		}
+
+		var Resource = entityNew("resource");
+		Resource.setName(lcase(arguments.name));
+		Resource.setDescription(arguments.description);
+		if(arguments.keyExists("parent")){
+			Resource.setParent(arguments.parent);
+			arguments.parent.addChild(Resource);
+		}
+		this.addResource(Resource);
+		Resource.setAuth(this);
+		entitySave(Resource);
+		return Resource;
+	}
+
 	public void function deleteUser(required User User){
 		if(this.hasUser(User)){
 			User.setIsDeleted(true);
 		}
+	}
+
+	public void function updateRole(required Role Role, roleName name, roleDescription description){
+		var Role = arguments.role;
+		if(arguments.keyExists("name")){ Role.setName(arguments.name); }
+		if(arguments.keyExists("description")){ Role.setDescription(arguments.description); }
 	}
 
 	public void function updateUser(required User User,
@@ -126,7 +169,7 @@ component persistent="true" table="auth" output="false" accessors="true" discrim
 	the tempLogin should be deleted for security purposes
 	 */
 	public void function updateUserTempPassword(required User User,
-												required tempLogins TempLogin,
+												required tempLogin TempLogin,
 												required password255 password){
 
 		updateUser(User: arguments.User, password: arguments.password);
@@ -136,7 +179,7 @@ component persistent="true" table="auth" output="false" accessors="true" discrim
 	}
 
 	public Optional function findLogin(required string token, required string authentication){
-		var Login = entityLoad("logins", {userHash:arguments.token, passcode:new saltedHash(arguments.token, arguments.authentication)}, true);
+		var Login = entityLoad("login", {userHash:arguments.token, passcode:new saltedHash(arguments.token, arguments.authentication)}, true);
 		if(isNull(Login)){
 			return new Optional();
 		} else {
@@ -148,9 +191,45 @@ component persistent="true" table="auth" output="false" accessors="true" discrim
 		}
 	}
 
+	public Optional function findResourceByName(required string name){
+		var Resource = entityLoad("resource", {name:lcase(arguments.name)}, true);
+		if(isNull(Resource)){
+			return new Optional();
+		} else {
+			return new Optional(Resource);
+		}
+	}
+
+	public Optional function findResourceById(required numeric id){
+		var Resource = entityLoad("resource", {id:arguments.id}, true);
+		if(isNull(Resource)){
+			return new Optional();
+		} else {
+			return new Optional(Resource);
+		}
+	}
+
+	public Optional function findRoleById(required numeric id){
+		var Role = entityLoad("role", {id:arguments.id}, true);
+		if(isNull(Role)){
+			return new Optional();
+		} else {
+			return new Optional(Role);
+		}
+	}
+
+	public Optional function findRoleByName(required roleName name){
+		var Role = entityLoad("role", {name:lcase(arguments.name.toString())}, true);
+		if(isNull(Role)){
+			return new Optional();
+		} else {
+			return new Optional(Role);
+		}
+	}
+
 	public Optional function findTempLogin(publicKey){
 		var saltedKey = new saltedHash("publictemplogin", arguments.publicKey);
-		var Login = entityLoad("tempLogins", {publicKey:saltedKey}, true);
+		var Login = entityLoad("tempLogin", {publicKey:saltedKey}, true);
 		if(isNull(Login)){
 			return new Optional();
 		} else {
@@ -158,7 +237,7 @@ component persistent="true" table="auth" output="false" accessors="true" discrim
 		}
 	}
 
-	public void function deleteLogin(required Logins Login){
+	public void function deleteLogin(required Login Login){
 		transaction {
 			var User = Login.getUser();
 			User.removeLogin(Login);

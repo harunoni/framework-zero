@@ -1,7 +1,7 @@
 /**
 *
 * @file  /C/websites/portal.itr8group.com/home/controllers/apps.cfc
-* @author  Rory Laitila	
+* @author  Rory Laitila
 * @description Controller
 *
 */
@@ -9,13 +9,69 @@
 component output="false" displayname=""  {
 
 	public function init( fw ){
-		variables.fw = arguments.fw;		
+		variables.fw = arguments.fw;
 		return this;
 	}
 
-	public function default( rc ){
+	public struct function list( ){
 
+		var ZeroAuth = variables.fw.getZeroAuth();
+		var Resources = ZeroAuth.getResources();
+		var resourcesTable = new zerotables.resources.table();
+
+		var out = {
+			"success":true,
+			"message":"The resources were successfully loaded",
+			"data":{
+				"resources":resourcesTable.toJson()
+			}
+
+		}
+		return out;
 	}
+
+	public struct function link(numeric roles_id, numeric id){
+
+		var ZeroAuth = variables.fw.getZeroAuth();
+		var Resource = ZeroAuth.findResourceById(arguments.id).elseThrow("Could not load that resource");
+
+		if(arguments.keyExists("roles_id")){
+			var Role = ZeroAuth.findRoleById(arguments.roles_id).elseThrow("Could not load that resource");
+			Role.addResource(Resource);
+			transaction {
+				ORMFlush();
+				transaction action="commit";
+			}
+
+			var out = {
+				"success":true,
+				"message":"The resource has been successfully added to the role",
+			}
+			return out;
+		}
+	}
+
+	public struct function unlink(numeric roles_id, numeric id){
+
+		var ZeroAuth = variables.fw.getZeroAuth();
+		var Resource = ZeroAuth.findResourceById(arguments.id).elseThrow("Could not load that resource");
+
+		if(arguments.keyExists("roles_id")){
+			var Role = ZeroAuth.findRoleById(arguments.roles_id).elseThrow("Could not load that resource");
+			Role.removeResource(Resource);
+			transaction {
+				ORMFlush();
+				transaction action="commit";
+			}
+
+			var out = {
+				"success":true,
+				"message":"The resource has been successfully removed from the role",
+			}
+			return out;
+		}
+	}
+
 
 	public function new( rc ){
 
@@ -34,9 +90,9 @@ component output="false" displayname=""  {
 	}
 
 	public function destroy( rc ){
-		
+
 		param name="rc.id";
-		
+
 
 		var resource = entityLoad("resources", {id:rc.id}, true);
 		transaction {
@@ -48,7 +104,7 @@ component output="false" displayname=""  {
 					var user = loadUserFromRC(rc);
 					if(isNull(user)){
 						throw("User now found");
-					} else {					
+					} else {
 						resource.removeUser(user);
 						ORMFlush();
 						rc.data = {
@@ -57,12 +113,12 @@ component output="false" displayname=""  {
 						}
 					}
 				}
-			}			
+			}
 		}
 		abort;
-	}	
+	}
 
-	private function requestHasUser(required struct rc){		
+	private function requestHasUser(required struct rc){
 		return structKeyExists(arguments.rc, "users_id");
 	}
 

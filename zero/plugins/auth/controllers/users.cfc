@@ -7,6 +7,7 @@ component accessors="true" extends="base" {
 	param name="request.extendAuthResource" default="resources";
 
 	public any function init( fw ) {
+
 		variables.fw = fw;
 		return this;
 	}

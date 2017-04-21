@@ -31,11 +31,14 @@ component accessors="true" extends="base"{
 		}
 	}
 
-	public struct function list(string goto){
+	public struct function list(string redirect_to="/"){
+		if(redirect_to == ""){
+			redirect_to = "/";
+		}
 		return {
 			"success":true,
 			"data":{
-				"goto":arguments.goto?:"/"
+				"redirect_to":arguments.redirect_to?:"/"
 			}
 		};
 	}
@@ -61,13 +64,18 @@ component accessors="true" extends="base"{
 	public struct function result(controllerResult){
 
 		if(request.action == "auth:logins.create"){
-			cookie.token = controllerResult.data.token;
-			cookie.authentication = controllerResult.data.authentication;
+
+			if(controllerResult.success){
+				cookie.token = controllerResult.data.token;
+				cookie.authentication = controllerResult.data.authentication;
+			}
 		}
 
 		if(request.action == "auth:logins.delete"){
-			if(cookie.keyExists("token")){structDelete(cookie, "token")}
-			if(cookie.keyExists("authentication")){structDelete(cookie, "authentication")}
+			if(controllerResult.success){
+				if(cookie.keyExists("token")){structDelete(cookie, "token")}
+				if(cookie.keyExists("authentication")){structDelete(cookie, "authentication")}
+			}
 		}
 
 		return arguments.controllerResult;
@@ -85,7 +93,6 @@ component accessors="true" extends="base"{
 			"success":true,
 			"message":"The login has been successfully deleted"
 		}
-
 		return out;
 	}
 

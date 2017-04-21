@@ -1,12 +1,12 @@
 /**
 *
 *
-* @author  Rory Laitila	
+* @author  Rory Laitila
 * @description Controller
 *
 */
 
-component output="false" displayname=""  {
+component output="false" displayname="" nested="resources"  {
 
 	public function init( fw ){
 		variables.fw = arguments.fw;
@@ -16,41 +16,85 @@ component output="false" displayname=""  {
 		return this;
 	}
 
-	public function default( rc ){
+	public function list(){
 
+		var ZeroAuth = variables.fw.getZeroAuth();
+		var Roles = ZeroAuth.getRoles();
+		var rolesTable = new zerotables.roles.table();
+
+		var out = {
+			"success":true,
+			"message":"The roles were successfully loaded",
+			"data":{
+				"roles":rolesTable.toJson()
+			}
+
+		}
+		return out;
 	}
 
-	public function new( rc ){
+	public struct function new(){
 
+		var out = {
+			"success":true
+		}
+		return out;
 	}
 
-	public function create( rc ){
-		
-	}
+	public function create(required roleName name, required roleDescription description){
 
-	public function show( rc ){
+		var ZeroAuth = variables.fw.getZeroAuth();
+		transaction {
+			var Role = ZeroAuth.createOrLoadRole(name=arguments.name, description=arguments.description);
+			ORMFlush();
+			transaction action="commit";
+		}
 
-	}
-
-	public function update( rc ){
-
-		var CurrentUser = request.user;
-		var Account = CurrentUser.getAccount();
-		var userId = rc.users_id;
-		var roleId = rc.id;
-
-
-		if(CurrentUser.isSuper()){
-			var Role = entityLoadByPK("roles", roleId);
-			var User = entityLoadByPK("users", userId);
-
-			transaction {
-				Role.addUser(User);
-				User.addRole(Role);
-				ORMFlush();
-				transaction action="commit";
+		var out = {
+			"success":true,
+			"message":"The role was successfully created or loaded",
+			"data":{
+				"role":variables.fw.serialize(Role)
 			}
 		}
+		return out;
+	}
+
+	public function read( id ){
+
+		var ZeroAuth = variables.fw.getZeroAuth();
+		var Role = ZeroAuth.findRoleById(arguments.id).elseThrow("Could not locate that role");
+		var out = {
+			"success":true,
+			"message":"The role was successfully loaded",
+			"data":{
+				"role":variables.fw.serialize(Role, {
+					resources:{},
+					availableResources:{}
+				}),
+			}
+		}
+		return out;
+	}
+
+	public function update( required id, roleName name, roleDescription description){
+
+		var ZeroAuth = variables.fw.getZeroAuth();
+		var Role = ZeroAuth.findRoleById(arguments.id).elseThrow("Could not locate that role");
+		arguments.role = Role;
+		transaction {
+			ZeroAuth.updateRole(argumentCollection=arguments);
+			ORMFlush();
+			transaction action="commit";
+		}
+		var out = {
+			"success":true,
+			"message":"The role was successfully updated",
+			"data":{
+				"role":variables.fw.serialize(Role)
+			}
+		}
+		return out;
 	}
 
 	public function destroy( rc ){
@@ -72,8 +116,8 @@ component output="false" displayname=""  {
 					User.removeRole(Role);
 					ORMFlush();
 					transaction action="commit";
-				}				
+				}
 			}
-		}		
+		}
 	}
 }

@@ -3,10 +3,9 @@ component extends="one" {
 
 
 
-	this.customTagPaths = ["./vendor/handlebars.lucee"];
-	this.mappings["/zeroauth"] = "/zero/plugins/auth";
-	writeDump(expandPath("/zeroauth"));
-	abort;
+	this.customTagPaths = ["./zero/_vendor/handlebars.lucee"];
+	this.mappings["/zeroauth"] = "./zero/plugins/auth";
+	this.mappings["/zerotable"] = "./zero/plugins/zerotable";
 	copyCGI = duplicate(CGI);
 
 	/*
@@ -949,6 +948,10 @@ component extends="one" {
 					file:expandPath("/validations/#arguments.type#.cfc"),
 					com:"validations.#arguments.type#"
 				},
+				{
+					file:expandPath("/zeroauth/model/#arguments.type#.cfc"),
+					com:"zeroauth.model.#arguments.type#"
+				},
 			];
 
 			// writeDump(filePaths);
@@ -992,7 +995,7 @@ component extends="one" {
 					}
 
 				} catch(any e){
-					addError(arguments.name, {message:e.message, original_value:arguments.data}, subErrors, e);
+					addError(arguments.name, {message:e.message, original_value:arguments.data}, subErrors?:{}, e);
 					return;
 				}
 			}
@@ -1527,6 +1530,9 @@ component extends="one" {
 		if(!isNull(this.setupRoutes)){
 			this.setupRoutes(variables.framework.routes);
 		}
+
+		//Add routes for zeroauth plugin
+		variables.framework.routes.prepend({'$POST/auth/users/:id/send_login*' = '/auth:users/send_login/id/:id' });
 		request.alreadyLoadedControllers = true;
 
 		//Add as the last item a universal route for the default subsystem to route anything

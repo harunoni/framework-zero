@@ -42,4 +42,21 @@ component {
 		return out;
 	}
 
+	public struct function createResources(){
+		var Auth = createAuth();
+		var res1 = auth.createOrLoadResource("res1", "test res1");
+		var res2 = auth.createOrLoadResource("res2", "test res2", res1);
+		var res3 = auth.createOrLoadResource("res3", "test res3", res1);
+		var res4 = auth.createOrLoadResource("res4", "test res4");
+		return Auth;
+	}
+
+	public struct function createRoles(){
+		var Auth = createAuth();
+		var role1 = Auth.createOrLoadRole(new roleName("role 1"), new roleDescription("A role 1"));
+		var role2 = Auth.createOrLoadRole(new roleName("role 2"), new roleDescription("A role 2"));
+		var role3 = Auth.createOrLoadRole(new roleName("role 3"), new roleDescription("A role 3"));
+		return Auth;
+	}
+
 }

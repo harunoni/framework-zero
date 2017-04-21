@@ -21,9 +21,9 @@ component persistent="true" table="user" output="false" accessors="true" discrim
 	property name="isDeleted" column="user_is_deleted" type="boolean" dbdefault="0" default="false";
 
 	property name="account" fieldtype="many-to-one" cfc="accounts" fkcolumn="user_accounts_id";
-	property name="roles" fieldtype="many-to-many" cfc="roles" linktable="user_roles" singularname="role" inverse="true";
-	property name="resources" fieldtype="many-to-many" cfc="resources" linktable="resources_user" fkcolumn="user_id" type="struct" structkeycolumn="resources_name" notnull="true" singularname="resource" cascade="none" lazy="false";
-	property name="logins" fieldtype="one-to-many" cfc="logins" fkcolumn="logins_user_id" singularname="login" cascade="all-delete-orphan";
+	property name="roles" fieldtype="many-to-many" cfc="role" linktable="user_roles" singularname="role" inverse="true";
+	property name="resources" fieldtype="many-to-many" cfc="resource" linktable="resources_user" fkcolumn="user_id" type="struct" structkeycolumn="resources_name" notnull="true" singularname="resource" cascade="none" lazy="false";
+	property name="logins" fieldtype="one-to-many" cfc="login" fkcolumn="logins_user_id" singularname="login" cascade="all-delete-orphan";
 	property name="email" fieldtype="one-to-many" cfc="email" fkcolumn="user_id" singularname="email";
 	property name="auth" fieldtype="many-to-one" cfc="auth" fkcolumn="auth_id" inverse="true";
 
@@ -94,7 +94,7 @@ component persistent="true" table="user" output="false" accessors="true" discrim
 	}
 
 	public function createTemporaryLogin(){
-		local.login = entityNew("tempLogins");
+		local.login = entityNew("tempLogin");
 		entitySave(local.login);
 		local.userHash = local.login.setUserHash(variables.emailAddress).getUserHash();
 		local.passcode = local.login.createNewLogin(10);
@@ -118,7 +118,7 @@ component persistent="true" table="user" output="false" accessors="true" discrim
 	* logins - The basic login type, used for browser logins
 	* tempLogins - One time logins used for initial signups
 	*/
-	private function createLogin(loginType="logins", numberOfDays){
+	private function createLogin(loginType="login", numberOfDays){
 		local.login = entityNew(arguments.loginType);
 		entitySave(local.login);
 		local.userHash = local.login.setUserHash(variables.emailAddress).getUserHash();

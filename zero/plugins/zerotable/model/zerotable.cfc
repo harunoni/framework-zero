@@ -152,7 +152,6 @@ component accessors="true" {
 		// });
 
 		variables.qs.setBasePath(arguments.basePath);
-
 		if(variables.useZeroAjax){
 			requiredAjaxFiles();
 		}

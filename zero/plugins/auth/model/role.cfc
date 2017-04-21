@@ -8,14 +8,23 @@ component persistent="true" table="roles" output="false" accessors="true" discri
 	/* properties */
 
 	property name="id" column="roles_id" type="numeric" ormtype="int" fieldtype="id" generator="identity";
-	property name="name" column="roles_name" type="string" specTestValue="test.*";
-	property name="description" column="roles_description" type="string" specTestValue="Category Manager";
+	property name="name" column="roles_name" type="string" specTestValue="test.*" sqltype="varchar(255)";
+	property name="description" column="roles_description" type="string" specTestValue="Category Manager" sqltype="varchar(1024)";
 	property name="type" column="roles_type" type="string" specTestValue="allow";
 
 	property name="accounts" fieldtype="many-to-many" cfc="accounts" linktable="accounts_roles" singularname="account" inverse="true";
 	property name="users" fieldtype="many-to-many" cfc="user" linktable="user_roles" singularname="user";
-	property name="resources" fieldtype="many-to-many" cfc="resources" linktable="roles_resources" singularname="resource";
+	property name="resources" fieldtype="many-to-many" cfc="resource" linktable="roles_resources" singularname="resource";
 	property name="auth" fieldtype="many-to-one" cfc="auth" fkcolumn="auth_id" inverse="true";
+
+	property name="availableResources" persistent="false" cfc="resource" setter="false";
+
+
+	public function getName(){return new roleName(variables.name?:"")}
+	public function getDescription(){return new roleDescription(variables.description?:"")}
+
+	public function setName(required roleName name){ variables.name = arguments.name.toString();}
+	public function setDescription(required roleDescription description){ variables.description = arguments.description.toString();}
 
 	public function init(){
 
@@ -95,6 +104,18 @@ component persistent="true" table="roles" output="false" accessors="true" discri
 			}
 		}
 
+	}
+
+	public function getAvailableResources(){
+
+		var allResources = this.getAuth().getResources();
+		var unassigned = [];
+		for(var Resource in allResources){
+			if(!this.hasResource(Resource)){
+				unassigned.append(Resource);
+			}
+		}
+		return unassigned;
 	}
 
 }

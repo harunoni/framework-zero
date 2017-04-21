@@ -12,12 +12,12 @@ component persistent="true" table="resources" output="false" accessors="true" di
 	property name="description" column="resources_description" type="string" specTestValue="Category Manager";
 	property name="type" column="resources_type" type="string" specTestValue="allow";
 
-	property name="parent" fieldtype="many-to-one" cfc="resources" fkcolumn="resources_parent_id";
-	property name="children" fieldtype="one-to-many" cfc="resources" fkcolumn="resources_parent_id" singularname="child" inverse="true";
+	property name="parent" fieldtype="many-to-one" cfc="resource" fkcolumn="resources_parent_id";
+	property name="children" fieldtype="one-to-many" cfc="resource" fkcolumn="resources_parent_id" singularname="child" inverse="true";
 
 	property name="users" fieldtype="many-to-many" cfc="user" linktable="resources_user" fkcolumn="permissions_resources_id" singularname="user" inverse="true";
 	property name="accounts" fieldtype="many-to-many" cfc="accounts" linktable="resources_accounts" fkcolumn="permissions_resources_id" singularname="account" inverse="true";
-	property name="roles" fieldtype="many-to-many" cfc="roles" linktable="roles_resources" singularname="role" inverse="true";
+	property name="roles" fieldtype="many-to-many" cfc="role" linktable="roles_resources" singularname="role" inverse="true";
 	property name="auth" fieldtype="many-to-one" cfc="auth" fkcolumn="auth_id" inverse="true";
 
 	/**

@@ -69,7 +69,7 @@
                     </div>
                     <div class="panel-body">
                         <form role="form" method="POST" action="{{##if data.id}}/auth/logins/{{data.id}}{{else}}/auth/logins{{/if}}">
-                            <input type="hidden" name="goto" value="{{data.goto}}">
+                            <input type="hidden" name="goto" value="{{data.redirect_to}}">
                             <fieldset>
                                 {{##if data.id}}
                                     <input value="{{data.id}}" type="hidden" name="id">
@@ -97,6 +97,16 @@
                                 {{else}}
                                     <input value="{{data.user.id}}" type="hidden" name="id">
                                     <input type="hidden" name="goto_fail" value="/auth/logins/">
+                                    <input type="hidden" name="preserve_response" value="view_state.login">
+
+                                    {{##if view_state.login.errors}}
+                                        <div class="alert alert-warning">
+                                            {{##each view_state.login.errors}}
+                                                {{this}}<br />
+                                            {{/each}}
+                                        </div>
+                                    {{/if}}
+
                                     <div class="form-group">
                                         <input class="form-control" placeholder="E-mail" name="email_address" type="email" autofocus value="">
                                     </div>
