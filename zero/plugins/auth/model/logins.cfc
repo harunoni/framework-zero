@@ -32,7 +32,6 @@ component output="false" table="logins" displayname="" persistent="true" discrim
 
 	public function createNewLogin(required numeric numberOfDays)
 	{
-
 		local.passcode = replace(createUUID(),"-","","all");
 		setExpireDateDays(arguments.numberOfDays);
 		setCreatedDate(createODBCDateTime(now()));

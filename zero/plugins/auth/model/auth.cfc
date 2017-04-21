@@ -148,8 +148,9 @@ component persistent="true" table="auth" output="false" accessors="true" discrim
 		}
 	}
 
-	public Optional function findTempLogin(required string token, required string authentication){
-		var Login = entityLoad("tempLogins", {userHash:arguments.token, passcode:new saltedHash(arguments.token, arguments.authentication)}, true);
+	public Optional function findTempLogin(publicKey){
+		var saltedKey = new saltedHash("publictemplogin", arguments.publicKey);
+		var Login = entityLoad("tempLogins", {publicKey:saltedKey}, true);
 		if(isNull(Login)){
 			return new Optional();
 		} else {
@@ -159,6 +160,9 @@ component persistent="true" table="auth" output="false" accessors="true" discrim
 
 	public void function deleteLogin(required Logins Login){
 		transaction {
+			var User = Login.getUser();
+			User.removeLogin(Login);
+			Login.setUser(nullValue());
 			entityDelete(Login);
 			ORMFlush();
 			transaction action="commit";

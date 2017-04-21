@@ -45,11 +45,10 @@ component accessors="true" extends="base" {
 	public struct function send_login(required numeric id){
 		var ZeroAuth = variables.fw.getZeroAuth();
 		var User = ZeroAuth.findUserById(arguments.id).elseThrow("Could not locate that user");
-		var credentials = User.createTemporaryLogin();
+		var publicKey = User.createTemporaryLogin();
 		transaction {
 
-			var message = "Hello, please go to the link #cgi.server_name#/auth/logins/#credentials.token#:#credentials.authentication# to set your password;"
-
+			var message = "Hello, please go to the link #cgi.server_name#/auth/logins/#publicKey# to set your password;"
 			var Email = ZeroAuth.createEmail(plainContent=message, htmlContent=message);
 			User.sendLogin(Email);
 			ORMFlush();

@@ -7,5 +7,12 @@
 */
 
 component persistent="true" extends="logins" discriminatorvalue="tempLogins" {
-	
+
+	property name="publicKey" column="logins_temp_public_key" hint="Used to send a one time use key to the user to access the temporary login for setting or resetting a password";
+
+	public function setPublicKey(required string key){
+		var saltedKey = new saltedHash("publictemplogin", arguments.key);
+		variables.publicKey = saltedKey;
+	}
+
 }

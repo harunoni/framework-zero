@@ -4,7 +4,9 @@ component extends="one" {
 
 
 	this.customTagPaths = ["./vendor/handlebars.lucee"];
-
+	this.mappings["/zeroauth"] = "/zero/plugins/auth";
+	writeDump(expandPath("/zeroauth"));
+	abort;
 	copyCGI = duplicate(CGI);
 
 	/*
@@ -1150,7 +1152,13 @@ component extends="one" {
     	var args = getMetaDataFunctionArguments(cfc, method);
 		argsToPass = {};
 
+		//Add headers to the request context as something that can be populated into controller arguments
 		request.context.headers = request._fw1.headers;
+
+		//Add each cookie to the request context so that they can be populated into controller arguments
+		for(var cook in cookie){
+			request.context[cook] = cookie[cook];
+		}
 
 		/*
 		Zero will allow controller arguments to be snake_case or camelCase. If Zero encounters
