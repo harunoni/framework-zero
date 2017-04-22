@@ -17,13 +17,18 @@ component output="false" displayname="" nested="users" {
 
 		var ZeroAuth = variables.fw.getZeroAuth();
 		var Resources = ZeroAuth.getResources();
-		var resourcesTable = new zerotables.resources.table();
+		var rootResources = ZeroAuth.getRootResources();
+		// var resourcesTable = new zerotables.resources.table();
 
 		var out = {
 			"success":true,
 			"message":"The resources were successfully loaded",
 			"data":{
-				"resources":resourcesTable.toJson()
+				"root_resources":variables.fw.serialize(rootResources, {
+					"@recurse":{
+						"children":{}
+					}
+				})
 			}
 
 		}

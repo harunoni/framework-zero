@@ -74,8 +74,12 @@ component output="false" displayname=""  {
 			}
 		}
 
+		/*
+		Build inclusion keys. When @include is present, it switches
+		the serialize from an includeAll by default, to a excludeAll
+		by default, except those items specifically included
+		 */
 		variables.inclusions = {};
-
 		if(includes.keyExists("@include")){
 			variables.mode.includesAll = false;
 			var inclusionFields = arguments.includes["@include"];
@@ -91,6 +95,18 @@ component output="false" displayname=""  {
 			}
 		}
 
+		/*
+		Allows for serializing idential recursive objects. This is handy
+		when an object can recursively have children or parents
+		 */
+		if(includes.keyExists("@recurse")){
+			for(var key in includes["@recurse"]){
+				variables.inclusions[key] = true;
+				includes[key] = {
+					"@recurse":includes["@recurse"]
+				}
+			}
+		}
 
 		if(isSimpleValue(arguments.entity)){
 			return arguments.entity;
@@ -201,21 +217,27 @@ component output="false" displayname=""  {
 							*/
 							if(isNull(local.getRelation) OR (isInstanceOf(local.getRelation,"Optional") AND !local.getRelation.Exists()))
 							{
-								if(prop.fieldType IS "one-to-one" OR prop.fieldType IS "many-to-one")
-								{
+
+								if(prop.keyExists("fieldType")){
+									if(prop.fieldType IS "one-to-one" OR prop.fieldType IS "many-to-one")
+									{
+										out[camelToUnderscore(prop.name)] = "";
+									} else if(prop.fieldType IS "many-to-many" OR prop.fieldType IS "one-to-many"){
+
+										if(structKeyExists(prop,"type") AND prop.type IS "struct")
+										{
+											out[camelToUnderscore(prop.name)] = {};
+										}
+										else
+										{
+											out[camelToUnderscore(prop.name)] = [];
+										}
+
+									}
+								} else {
 									out[camelToUnderscore(prop.name)] = "";
-								} else if(prop.fieldType IS "many-to-many" OR prop.fieldType IS "one-to-many"){
-
-									if(structKeyExists(prop,"type") AND prop.type IS "struct")
-									{
-										out[camelToUnderscore(prop.name)] = {};
-									}
-									else
-									{
-										out[camelToUnderscore(prop.name)] = [];
-									}
-
 								}
+
 							}
 							else
 							{
@@ -227,6 +249,7 @@ component output="false" displayname=""  {
 									// writeDump(includes[prop.name]);
 									out[camelToUnderscore(prop.name)] = new serializer().serializeEntity(local.getRelation, includes[prop.name]);
 								} else {
+
 									out[camelToUnderscore(prop.name)] = new serializer().serializeEntity(local.getRelation, {});
 								}
 								// writeDump(includes);

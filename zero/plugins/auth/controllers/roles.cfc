@@ -64,13 +64,15 @@ component output="false" displayname="" nested="resources,users"  {
 
 		var ZeroAuth = variables.fw.getZeroAuth();
 		var Role = ZeroAuth.findRoleById(arguments.id).elseThrow("Could not locate that role");
+		// writeDump(Role);
+		// abort;
 		var out = {
 			"success":true,
 			"message":"The role was successfully loaded",
 			"data":{
 				"role":variables.fw.serialize(Role, {
 					resources:{},
-					availableResources:{}
+					// availableResources:{}
 				}),
 			}
 		}

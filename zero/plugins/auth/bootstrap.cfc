@@ -1,9 +1,10 @@
 component {
 
-	public function init(fw, storage=session, required string subsystemScope, required array subsystems){
+	public function init(fw, storage=session, required string subsystemScope, required array subsystems, hasSuperUsers=false){
 		variables.fw = arguments.fw;
 		variables.storage = arguments.storage;
 		variables.subsystemScope = arguments.subsystemScope;
+		variables.hasSuperUsers = arguments.hasSuperUsers;
 
 		if(cgi.path_info IS "/logout"){
 			this.logoutUser();
@@ -54,6 +55,15 @@ component {
 	public function generateSubsystemResources(){
 		var subsystems = variables.fw.getSubsystemData();
 		var ZeroAuth = getZeroAuth();
+
+		if(variables.hasSuperUsers){
+			transaction {
+				ZeroAuth.setHasSuperUsers(true);
+				ORMFlush();
+				transaction action="commit";
+			}
+		}
+
 		transaction {
 			for(var subsystemName in subsystems){
 

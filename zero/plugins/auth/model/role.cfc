@@ -110,6 +110,9 @@ component persistent="true" table="roles" output="false" accessors="true" discri
 
 	public function getAvailableResources(){
 
+		writeDump(this.getAuth());
+		abort;
+
 		var allResources = this.getAuth().getResources();
 		var unassigned = [];
 		for(var Resource in allResources){

@@ -9,6 +9,7 @@ component persistent="true" table="auth" output="false" accessors="true" discrim
 	property name="users" fieldtype="one-to-many" cfc="user" fkcolumn="auth_id" singularname="user";
 	property name="roles" fieldtype="one-to-many" cfc="role" fkcolumn="auth_id" singularname="role";
 	property name="resources" fieldtype="one-to-many" cfc="resource" fkcolumn="auth_id" singularname="resource";
+	property name="hasSuperUsers" column="has_super_users" type="boolean" dbdefault="0" default="false";
 
 	//Default emailer properties that apply to the whole auth domain
 	property name="emailServer" column="email_server" default="" sqltype="varchar(255)" dbdefault="";
@@ -125,6 +126,7 @@ component persistent="true" table="auth" output="false" accessors="true" discrim
 			throw("Resource already exists. Check for the resource before creating or call createOrLoadResource");
 		}
 
+
 		var Resource = entityNew("resource");
 		Resource.setName(lcase(arguments.name));
 		Resource.setDescription(arguments.description);
@@ -135,6 +137,14 @@ component persistent="true" table="auth" output="false" accessors="true" discrim
 		this.addResource(Resource);
 		Resource.setAuth(this);
 		entitySave(Resource);
+
+		if(this.getHasSuperUsers()){
+			var SuperUserRole = createOrLoadRole(new roleName("Super Users"), new roleDescription("A role for users which should have access to all resources"));
+			if(!superUserRole.hasResource(Resource)){
+				SuperUserRole.addResource(Resource);
+			}
+		}
+
 		return Resource;
 	}
 
@@ -142,6 +152,11 @@ component persistent="true" table="auth" output="false" accessors="true" discrim
 		if(this.hasUser(User)){
 			User.setIsDeleted(true);
 		}
+	}
+
+	public Resource[] function getRootResources(){
+		var Resources = ORMExecuteQuery("select r from resource r where r.parent is null");
+		return Resources;
 	}
 
 	public void function updateRole(required Role Role, roleName name, roleDescription description){
