@@ -805,7 +805,13 @@ component extends="one" {
 		return trim(rtnStr);
 	}
 
-	private function getAllExtendedFunctions(required struct metaData){
+	/*
+	Takes a component metadata object and recurses through the extends
+	attribute and collects all of the base object functions together. This is
+	needed by code which wants to inspect controller functions which have
+	extended other controllers. (like the auth bootstrap)
+	 */
+	public function getAllExtendedFunctions(required struct metaData){
 		var getFunctions = function(metaData){
 			return arguments.metaData.functions?:[];
 		}
@@ -1503,6 +1509,34 @@ component extends="one" {
     	} while(pos);
 
     	return output;
+    }
+
+    /*
+    Returns the component meta data for all of the configured subsystems, sections (controllers) and
+    items (methods). This can be used by any code which needs to automate based on the structure
+    of the subsystems.
+     */
+    public function getSubsystemData(){
+    	var out = {};
+    	if(variables.framework.usingSubsystems){
+    		// variables.framework.routes = [];
+			var subsystems = directoryList(path=expandPath(variables.framework.base));
+
+			for(var subsystem in subsystems){
+
+				var subsystemName = listLast(subsystem, server.separator.file);
+
+				var controllers = directoryList(path="#subsystem#/controllers", filter="*.cfc");
+
+				for(var controller in controllers){
+					var file = getFileFromPath(controller);
+					var name = listFirst(file, ".");
+					var meta = getComponentMetaData("#variables.framework.base#.#subsystemName#.controllers.#name#");
+					out[subsystemName][name] = meta;
+				}
+			}
+    	}
+    	return out;
     }
 
 	/**

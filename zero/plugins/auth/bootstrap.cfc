@@ -51,6 +51,37 @@ component {
 		return this;
 	}
 
+	public function generateSubsystemResources(){
+		var subsystems = variables.fw.getSubsystemData();
+		var ZeroAuth = getZeroAuth();
+		transaction {
+			for(var subsystemName in subsystems){
+
+				var subsystemResource = ZeroAuth.createOrLoadResource(subsystemName, "#subsystemName# module");
+
+				for(var sectionName in subsystems[subsystemName]){
+					var sectionResource = ZeroAuth.createOrLoadResource("#subsystemName#:#sectionName#", "#subsystemName#:#sectionName# section", subsystemResource);
+
+					var funcs = variables.fw.getAllExtendedFunctions(subsystems[subsystemName][sectionName]);
+					for(var func in funcs){
+
+						if(func.access == "public"){
+							//Only public functions get resources
+							//because they are the only functions which could have
+							//routes
+							itemResource = ZeroAuth.createOrLoadResource("#subsystemName#:#sectionName#.#func.name#",
+																		 "#subsystemName#:#sectionName#.#func.name# item #func.description#",
+																		 sectionResource);
+						}
+
+					}
+				}
+			}
+			ORMFlush();
+			transaction action="commit";
+		}
+	}
+
 	public function getZeroAuth(){
 
 		if(structKeyExists(variables.fw, "getzeroauth")){
