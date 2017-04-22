@@ -156,10 +156,97 @@ component accessors="true" extends="base" {
 			"success":true,
 			"message":"The user was successfully loaded",
 			"data":{
-				"user":variables.fw.serialize(User, {logins:{}})
+				"user":variables.fw.serialize(User, {logins:{}, roles:{resources:{}}, availableRoles:{}})
 			}
 		}
+
+		//Decorate any Role resources which are not active on the user
+		for(var role in out.data.user.roles){
+
+			for(var resource in role.resources){
+
+				if(User.hasResource(resource.name)){
+					resource.user_active = true
+				} else {
+					resource.user_active = false;
+				}
+			}
+		}
+
 		return out;
+	}
+
+	public struct function link(numeric roles_id, numeric resources_id, numeric id){
+
+		var ZeroAuth = variables.fw.getZeroAuth();
+		var User = ZeroAuth.findUserById(arguments.id).elseThrow("Could not load that user");
+
+		if(arguments.keyExists("roles_id")){
+			var Role = ZeroAuth.findRoleById(arguments.roles_id).elseThrow("Could not load that user");
+			transaction {
+				Role.addUser(User);
+				ORMFlush();
+				transaction action="commit";
+			}
+
+			var out = {
+				"success":true,
+				"message":"The user has been successfully added to the role",
+			}
+			return out;
+		}
+
+		if(arguments.keyExists("resources_id")){
+			var Resource = ZeroAuth.findResourceById(arguments.resources_id).elseThrow("Could not load that user");
+			transaction {
+				Resource.addUser(User);
+				ORMFlush();
+				transaction action="commit";
+			}
+
+			var out = {
+				"success":true,
+				"message":"The user has been successfully added to the resource",
+			}
+			return out;
+		}
+	}
+
+	public struct function unlink(numeric roles_id, numeric resources_id, numeric id){
+
+		var ZeroAuth = variables.fw.getZeroAuth();
+		var User = ZeroAuth.findUserById(arguments.id).elseThrow("Could not load that user");
+
+		if(arguments.keyExists("roles_id")){
+			var Role = ZeroAuth.findRoleById(arguments.roles_id).elseThrow("Could not load that user");
+			Role.removeUser(User);
+			transaction {
+				ORMFlush();
+				transaction action="commit";
+			}
+
+			var out = {
+				"success":true,
+				"message":"The user has been successfully removed from the role",
+			}
+			return out;
+		}
+
+		if(arguments.keyExists("resources_id")){
+
+			var Resource = ZeroAuth.findResourceById(arguments.resources_id).elseThrow("Could not load that user");
+			transaction {
+				Resource.removeUser(User);
+				ORMFlush();
+				transaction action="commit";
+			}
+
+			var out = {
+				"success":true,
+				"message":"The user has been successfully removed from the resource",
+			}
+			return out;
+		}
 	}
 
 }

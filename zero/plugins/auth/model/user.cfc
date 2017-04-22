@@ -27,6 +27,9 @@ component persistent="true" table="user" output="false" accessors="true" discrim
 	property name="email" fieldtype="one-to-many" cfc="email" fkcolumn="user_id" singularname="email";
 	property name="auth" fieldtype="many-to-one" cfc="auth" fkcolumn="auth_id" inverse="true";
 
+	//COMPUTED PROPERTIES
+	property name="availableRoles" cfc="role" persistent="false" setter="false";
+
 
 	public function getEmailAddress(){ return new emailAddress(variables.emailAddress); }
 	public function getFirstName(){return new varchar255(variables.firstName?:"")}
@@ -130,6 +133,21 @@ component persistent="true" table="user" output="false" accessors="true" discrim
 
 	public boolean function isSuper(){
 		return variables.type IS "super";
+	}
+
+	/*
+	Returns the roles not yet assigned for this user
+	 */
+	public Role[] function getAvailableRoles(){
+
+		var allRoles = this.getAuth().getRoles();
+		var availableRoles = [];
+		for(var Role in allRoles){
+			if(!this.hasRole(Role)){
+				availableRoles.append(Role);
+			}
+		}
+		return availableRoles;
 	}
 
 	/**

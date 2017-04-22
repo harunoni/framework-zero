@@ -59,4 +59,18 @@ component {
 		return Auth;
 	}
 
+	public function createRolesWithResources(){
+
+		var Auth = createRoles();
+		var roles = Auth.getRoles();
+		var resources = createResources().getResources();
+		for(var Role in Roles){
+
+			for(var Resource in resources){
+				Role.addResource(Resource);
+			}
+		}
+		return Auth;
+	}
+
 }

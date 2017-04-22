@@ -6,7 +6,7 @@
 *
 */
 
-component output="false" displayname=""  {
+component output="false" displayname="" nested="users" {
 
 	public function init( fw ){
 		variables.fw = arguments.fw;

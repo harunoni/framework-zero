@@ -19,6 +19,8 @@ component persistent="true" table="roles" output="false" accessors="true" discri
 
 	property name="availableResources" persistent="false" cfc="resource" setter="false";
 
+	variables.users = variables.users?:[];
+	variables.resources = variables.resources?:[];
 
 	public function getName(){return new roleName(variables.name?:"")}
 	public function getDescription(){return new roleDescription(variables.description?:"")}
@@ -41,11 +43,10 @@ component persistent="true" table="roles" output="false" accessors="true" discri
 		var user = arguments.user;
 		var resources = this.getResources();
 
-		//Because properties can be null on creation, if it is we set it to an empty array so that we can append to this later
-		var user = ((isNull(variables.user)? []:variables.user));
+		user.addRole(this);
 
 		//Add the user to the role which was the original intent of addUser() generated method
-		arrayAppend(user, user);
+		arrayAppend(variables.users, user);
 
 		//Now perform custom functionality to apply the resources this role has to the user
 		for(var resource IN resources?:[]){
@@ -75,6 +76,7 @@ component persistent="true" table="roles" output="false" accessors="true" discri
 			}
 
 			variables.__removeUser(User);
+			User.removeRole(this);
 		}
 	}
 

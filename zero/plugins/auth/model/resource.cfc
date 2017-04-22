@@ -41,6 +41,8 @@ component persistent="true" table="resources" output="false" accessors="true" di
 
 		recurseAddChildren(user, this);
 		recurseAddParents(user, this);
+		variables.__addUser(User);
+		User.addResource(this.getName(), this);
 
 		entitySave(user);
 		entitySave(this);
