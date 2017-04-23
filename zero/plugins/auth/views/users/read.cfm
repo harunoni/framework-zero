@@ -129,7 +129,7 @@
 					{{#each data.user.available_roles}}
 						<li class="list-group-item">
 							<h4 class="list-group-item-heading"><a href="/auth/roles/{{id}}">{{name}}</a>
-								<form action="/auth/roles/{{id}}/users/{{data.user.id}}/link" method="post">
+								<form action="/auth/roles/{{id}}/users/{{data.user.id}}/link" method="post" style="display:inline;">
 									<input type="hidden" name="goto" value="/auth/users/{{data.user.id}}">
 									<input type="hidden" name="goto_fail" value="/auth/users/{{data.user.id}}">
 									<input type="hidden" name="preserve_response" value="view_state.assign_role">
@@ -183,16 +183,18 @@
 												<input type="hidden" name="goto" value="/auth/users/{{data.user.id}}">
 												<input type="hidden" name="goto_fail" value="/auth/users/{{data.user.id}}">
 												<input type="hidden" name="preserve_form" value="true">
+												<input type="hidden" name="view_state.show_role_resources" value="true">
 												<input type="hidden" name="preserve_response" value="view_state.remove_resource">
-												<button class="btn btn-xxs btn-warning pull-right">Remove Resource</button>
+												<button class="btn btn-xxs btn-warning pull-right">Disable for this user</button>
 											</form>
 										{{else}}
 											<form action="/auth/resources/{{id}}/users/{{data.user.id}}/link" method="post" style="display:inline">
 												<input type="hidden" name="goto" value="/auth/users/{{data.user.id}}">
 												<input type="hidden" name="goto_fail" value="/auth/users/{{data.user.id}}">
+												<input type="hidden" name="view_state.show_role_resources" value="true">
 												<input type="hidden" name="preserve_form" value="true">
 												<input type="hidden" name="preserve_response" value="view_state.add_resource">
-												<button class="btn btn-xxs btn-primary pull-right">Add Resource</button>
+												<button class="btn btn-xxs btn-primary pull-right">Enable for this user</button>
 											</form>
 											<br /><strong>This resource permission has been disabled</strong>
 										{{/if}}

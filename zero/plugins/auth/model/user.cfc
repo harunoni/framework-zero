@@ -140,7 +140,7 @@ component persistent="true" table="user" output="false" accessors="true" discrim
 	 */
 	public Role[] function getAvailableRoles(){
 
-		var allRoles = this.getAuth().getRoles();
+		var allRoles = this.getAuth().getRoles()?:[];
 		var availableRoles = [];
 		for(var Role in allRoles){
 			if(!this.hasRole(Role)){

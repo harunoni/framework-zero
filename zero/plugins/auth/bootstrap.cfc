@@ -1,10 +1,17 @@
 component {
 
-	public function init(fw, storage=session, required string subsystemScope, required array subsystems, hasSuperUsers=false){
+	public function init(fw,
+						 storage=session,
+						 required string subsystemScope,
+						 required array subsystems,
+						 hasSuperUsers=false,
+						 validateSubsystemResources=false){
+
 		variables.fw = arguments.fw;
 		variables.storage = arguments.storage;
 		variables.subsystemScope = arguments.subsystemScope;
 		variables.hasSuperUsers = arguments.hasSuperUsers;
+		variables.validateSubsystemResources = arguments.validateSubsystemResources;
 
 		if(cgi.path_info IS "/logout"){
 			this.logoutUser();
@@ -23,15 +30,16 @@ component {
 			if(arrayContains(subsystems, fw.getSubsystem())){
 				//Do nothing, authentication processing will continue
 			} else {
+
 				//Early return to skip authentication processing
 				return;
 			}
 		}
 
-
 		if(variables.fw.getSubsystem() == "auth" and variables.fw.getSection() == "logins"){
 			//User may be trying to login so we do not
 			//enforece authentication
+			return;
 		} else {
 
 			//User is not trying to login so we must enforce authentication
@@ -39,20 +47,50 @@ component {
 
 				var LoginOptional = this.tryLogin();
 				if(LoginOptional.exists()){
+					request.User = LoginOptional.get().getUser();
 					//Basic user is validated. You can do additional
 					//checks of the user resources and roles here
 				} else {
 					location url="/auth/logins" addtoken="false";
+					return;
 				}
 			} else {
 				location url="/auth/logins?redirect_to=#cgi.path_info#" addtoken="false";
+				return;
 			}
 		}
 
+		if(variables.validateSubsystemResources){
+
+			var ZeroAuth = this.getZeroAuth();
+			var resourceName = request.action;
+			writeDump(resourceName);
+			var Resource = ZeroAuth.findResourceByName(resourceName);
+			if(Resource.exists()){
+				var Resource = Resource.get();
+				writeDump(Resource.getName().toString());
+				var User = getLoggedInUser().elseThrow("Invalid user login");
+				writeDump(User.hasResource(Resource.getName().toString()));
+				if(!User.hasResource(Resource.getName().toString())){
+					throw("Unauthorized", 400);
+				}
+			}
+
+		}
 		return this;
 	}
 
+	public Optional function getLoggedInUser(){
+
+		if(request.keyExists("user")){
+			return new model.Optional(request.user);
+		} else {
+			return new model.Optional();
+		}
+	}
+
 	public function generateSubsystemResources(){
+
 		var subsystems = variables.fw.getSubsystemData();
 		var ZeroAuth = getZeroAuth();
 

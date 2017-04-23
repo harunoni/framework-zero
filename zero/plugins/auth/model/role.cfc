@@ -19,9 +19,6 @@ component persistent="true" table="roles" output="false" accessors="true" discri
 
 	property name="availableResources" persistent="false" cfc="resource" setter="false";
 
-	variables.users = variables.users?:[];
-	variables.resources = variables.resources?:[];
-
 	public function getName(){return new roleName(variables.name?:"")}
 	public function getDescription(){return new roleDescription(variables.description?:"")}
 
@@ -33,12 +30,15 @@ component persistent="true" table="roles" output="false" accessors="true" discri
 		//Swap methods that we are going to override to new private methods so that we can still use the ORM methods
 		variables.__removeUser = this.removeUser;
 		this.removeUser = variables._removeUser;
+
+		variables.__addUser = this.addUser;
+		this.addUser = variables._addUser;
 	}
 
 	/**
 	* Looks at the permissions related to this role and ensures that the user has all of them
 	*/
-	public function addUser(required component user){
+	public function _addUser(required component user){
 
 		var user = arguments.user;
 		var resources = this.getResources();
@@ -46,7 +46,7 @@ component persistent="true" table="roles" output="false" accessors="true" discri
 		user.addRole(this);
 
 		//Add the user to the role which was the original intent of addUser() generated method
-		arrayAppend(variables.users, user);
+		variables.__addUser(user);
 
 		//Now perform custom functionality to apply the resources this role has to the user
 		for(var resource IN resources?:[]){
@@ -62,7 +62,7 @@ component persistent="true" table="roles" output="false" accessors="true" discri
 	public void function _removeUser(required component User){
 
 		var User = arguments.user;
-		var resources = this.getResources();
+		var resources = this.getResources()?:[];
 
 		if(!this.hasUser(User)){
 			throw("Invalid call, this role does not have this user. Handle existence before trying to remove");
@@ -84,16 +84,19 @@ component persistent="true" table="roles" output="false" accessors="true" discri
 	* When adding a resource to a role, we need to apply this resource to all user for this role
 	*/
 	public function addResource(required component resource){
-
+		// writeDump(callStackGet());
+		// abort;
 		var resource = arguments.resource;
 		var user = this.getUsers();
-
+		// writeDump(user);
 		if(isNull(variables.resources)){
 			variables.resources = [];
 		}
 
-		arrayAppend(variables.resources,resource);
-		entitySave(resource);
+		if(!this.hasResource(resource)){
+			arrayAppend(variables.resources,resource);
+			entitySave(resource);
+		}
 
 		if(this.hasUser()){
 			for(var user IN user){
@@ -105,15 +108,11 @@ component persistent="true" table="roles" output="false" accessors="true" discri
 				}
 			}
 		}
-
 	}
 
 	public function getAvailableResources(){
 
-		writeDump(this.getAuth());
-		abort;
-
-		var allResources = this.getAuth().getResources();
+		var allResources = this.getAuth().getRootResources();
 		var unassigned = [];
 		for(var Resource in allResources){
 			if(!this.hasResource(Resource)){

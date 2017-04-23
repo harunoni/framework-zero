@@ -219,8 +219,8 @@ component accessors="true" extends="base" {
 
 		if(arguments.keyExists("roles_id")){
 			var Role = ZeroAuth.findRoleById(arguments.roles_id).elseThrow("Could not load that user");
-			Role.removeUser(User);
 			transaction {
+				Role.removeUser(User);
 				ORMFlush();
 				transaction action="commit";
 			}

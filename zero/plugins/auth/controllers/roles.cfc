@@ -72,7 +72,11 @@ component output="false" displayname="" nested="resources,users"  {
 			"data":{
 				"role":variables.fw.serialize(Role, {
 					resources:{},
-					// availableResources:{}
+					availableResources:{
+						"@recurse":{
+							children:{}
+						}
+					}
 				}),
 			}
 		}

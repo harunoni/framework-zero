@@ -18,10 +18,10 @@ component persistent="true" table="auth" output="false" accessors="true" discrim
 	property name="emailPort" column="email_port" default="" sqltype="varchar(255)" dbdefault="";
 	property name="emailUsername" column="email_username" default="" sqltype="varchar(255)" dbdefault="";
 
-	variables.users = variables.users?:[];
-	variables.accounts = variables.accounts?:[];
-	variables.roles = variables.roles?:[];
-	variables.resources = variables.resources?:[];
+	// variables.users = variables.users?:[];
+	// variables.accounts = variables.accounts?:[];
+	// variables.roles = variables.roles?:[];
+	// variables.resources = variables.resources?:[];
 
 	public array function getExtendedAccountTypes(){
 		var result = new extendedEntityMetaData("accounts").getChildEntityNames();
@@ -47,7 +47,6 @@ component persistent="true" table="auth" output="false" accessors="true" discrim
 	}
 
 	public Role function createRole(required roleName name, required roleDescription description){
-
 		var RoleOptional = findRoleByName(arguments.name);
 		if(RoleOptional.exists()){
 			throw("Role already exists. Check before create a role or use the function createOrLoadRole()");
@@ -55,8 +54,10 @@ component persistent="true" table="auth" output="false" accessors="true" discrim
 
 		var Role = entityNew("role", {name:arguments.name, description:arguments.description});
 		entitySave(role);
+
 		this.addRole(role);
 		role.setAuth(this);
+		// abort;
 		return role;
 	}
 
@@ -140,6 +141,7 @@ component persistent="true" table="auth" output="false" accessors="true" discrim
 
 		if(this.getHasSuperUsers()){
 			var SuperUserRole = createOrLoadRole(new roleName("Super Users"), new roleDescription("A role for users which should have access to all resources"));
+			// abort;
 			if(!superUserRole.hasResource(Resource)){
 				SuperUserRole.addResource(Resource);
 			}

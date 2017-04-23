@@ -35,11 +35,14 @@ component persistent="true" table="resources" output="false" accessors="true" di
 
 	}
 
-	public function _addUser(required component user){
+	public function _addUser(required component user, addChildren=true){
 
 		var user = arguments.user;
 
-		recurseAddChildren(user, this);
+		if(arguments.addChildren){
+			recurseAddChildren(user, this);
+		}
+
 		recurseAddParents(user, this);
 		variables.__addUser(User);
 		User.addResource(this.getName(), this);
@@ -53,28 +56,25 @@ component persistent="true" table="resources" output="false" accessors="true" di
 		var user = arguments.user;
 
 		recurseRemoveChildren(user, this);
-		__removeUser(user);
-
-		entitySave(user);
-		entitySave(this);
-
+		// entitySave(user);
+		// entitySave(this);
 		return this;
 	}
 
 	private function recurseRemoveChildren(required component user, required component resource){
 		var resource = arguments.resource;
 		var user = arguments.user;
+		__removeUser(user);
+		// user.removeResource(resource.getName().toString(), resource);
 
+		user.removeResource(resource.getName().toString());
 		if(resource.hasChild()){
-
 			var children = resource.getChildren();
 
 			for(var child IN children){
 				recurseRemoveChildren(user, child);
 			}
 		}
-
-		user.removeResource(resource.getName(), resource);
 	}
 
 	/**
@@ -117,8 +117,8 @@ component persistent="true" table="resources" output="false" accessors="true" di
 			var parent = resource.getParent();
 
 			if(!user.hasResource(parent.getName())){
-				user.addResource(parent.getName(), parent);
-				parent.addUser(user);
+				// user.addResource(parent.getName(), parent);
+				parent.addUser(user, false);
 			}
 
 			recurseAddParents(user, parent);
