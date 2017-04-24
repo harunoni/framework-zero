@@ -53,12 +53,49 @@ component persistent="true" table="resources" output="false" accessors="true" di
 	}
 
 	public function _removeUser(required component user){
-		var user = arguments.user;
+		var User = arguments.user;
 
-		recurseRemoveChildren(user, this);
+		recurseRemoveChildren(User, this);
+
+		var recurseCheckParents = function(required Resource Resource, required User User){
+
+			if(!userHasSiblingResources(arguments.Resource, arguments.User)){
+
+				if(arguments.Resource.hasParent()){
+					var Parent = arguments.Resource.getParent();
+					Parent.removeUser(arguments.user);
+					recurseCheckParents(Parent, arguments.User);
+				}
+			}
+
+		}
+		recurseCheckParents(this, User);
 		// entitySave(user);
 		// entitySave(this);
 		return this;
+	}
+
+	private boolean function userHasSiblingResources(required Resource Resource, required User User){
+		var Resource = arguments.Resource;
+		var User = arguments.User;
+
+		var hasSiblingResource = false;
+		if(Resource.hasParent()){
+			var potentialSiblings = Resource.getParent().getChildren();
+			for(var sibling in potentialSiblings){
+				if(sibling !== Resource)
+				{
+					//Don't check for the initial resource in case
+					//it hasn't been removed form the user yet
+					if(User.hasResource(sibling.getName().toString())){
+						hasSiblingResource = true;
+						return hasSiblingResource;
+					}
+				}
+			}
+		}
+
+		return hasSiblingResource;
 	}
 
 	private function recurseRemoveChildren(required component user, required component resource){
@@ -96,7 +133,6 @@ component persistent="true" table="resources" output="false" accessors="true" di
 				}
 
 				recurseAddChildren(user, child);
-
 			}
 
 		}

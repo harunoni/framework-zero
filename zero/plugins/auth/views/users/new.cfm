@@ -14,7 +14,7 @@
             </div>
             <div class="panel-body">
                 <form action="/auth/users" method="POST" role="form">
-                    <input type="hidden" name="goto" value="/auth/users" />
+                    <input type="hidden" name="goto" value="/auth/users/:data.user.id" />
                     <input type="hidden" name="goto_fail" value="/auth/users/new" />
                     <input type="hidden" name="preserve_response" value="view_state.create_user">
                     {{#if view_state.create_user.errors}}

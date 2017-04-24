@@ -1,4 +1,4 @@
-<cfdump var="#rc#">
+<!--- <cfdump var="#rc#"> --->
 <cf_handlebars context="#rc#">
 <div class="row">
     <div class="col-lg-12">
@@ -14,7 +14,7 @@
             </div>
             <div class="panel-body">
                 <form action="/auth/roles" method="POST" role="form">
-                    <input type="hidden" name="goto" value="/auth/roles" />
+                    <input type="hidden" name="goto" value="/auth/roles/:data.role.id" />
                     <input type="hidden" name="goto_fail" value="/auth/roles/new" />
                     <input type="hidden" name="preserve_response" value="view_state.create_role">
                     {{#if view_state.create_role.errors}}

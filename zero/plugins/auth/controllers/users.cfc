@@ -12,7 +12,9 @@ component accessors="true" extends="base" {
 		return this;
 	}
 
-	public struct function list(zeroTableFields users = new zero.validations.zeroTableFields(tableName="users")) {
+	public struct function list(zeroTableFields users = new zero.validations.zeroTableFields(tableName="users"))
+		description="Display, search and filter the users on the system"
+	{
 		var ZeroAuth = variables.fw.getZeroAuth();
 		var usersTable = new zerotables.users.table();
 		var usersTable.updateWithZeroTableFields(arguments.users);

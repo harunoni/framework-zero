@@ -54,7 +54,7 @@ component implements=".zero.plugins.zerotable.model.data" {
 				echo("select u ");
 			}
 
-			echo(" from user u ");
+			echo(" from user u where u.isDeleted = 0");
 
 			if(variables.keyExists("searchString")){
 				echo ("and ( ");

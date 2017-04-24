@@ -64,7 +64,7 @@ component output="false" displayname="" nested="resources,users"  {
 
 		var ZeroAuth = variables.fw.getZeroAuth();
 		var Role = ZeroAuth.findRoleById(arguments.id).elseThrow("Could not locate that role");
-		// writeDump(Role);
+		var allResources = ZeroAuth.getRootResources();
 		// abort;
 		var out = {
 			"success":true,
@@ -72,14 +72,54 @@ component output="false" displayname="" nested="resources,users"  {
 			"data":{
 				"role":variables.fw.serialize(Role, {
 					resources:{},
+					users:{},
 					availableResources:{
 						"@recurse":{
 							children:{}
 						}
 					}
 				}),
+				"all_resources":variables.fw.serialize(allResources, {
+					"@recurse":{
+						children:{}
+					}
+				}),
 			}
 		}
+
+		var recurseAddEnabledFlag = function(availableResources, existingResources, parent){
+			var availableResources = arguments.availableResources;
+			var existingResources = arguments.existingResources;
+
+			for(var resource in availableResources){
+
+				resource.is_disabled = false;
+				resource.is_enabled = false;
+
+				if(arguments.keyExists("parent")){
+
+					if(parent["is_enabled"] == true or parent.is_disabled == true){
+						resource.is_disabled = true;
+					} else {
+						resource.is_disabled = false;
+					}
+				}
+
+				for(var existingResource in existingResources){
+					if(existingResource.name == resource.name){
+						resource["is_enabled"] = true;
+						break;
+					}
+				}
+
+				if(arrayLen(resource.children) GT 0){
+					recurseAddEnabledFlag(resource.children, existingResources, resource);
+				}
+			}
+		}
+		// writeDump(out);
+		// abort;
+		recurseAddEnabledFlag(out.data.all_resources, out.data.role.resources);
 		return out;
 	}
 
@@ -103,27 +143,19 @@ component output="false" displayname="" nested="resources,users"  {
 		return out;
 	}
 
-	public function destroy( rc ){
+	public function delete(id){
 
-		var CurrentUser = request.user;
-		var Account = CurrentUser.getAccount();
-		var userId = rc.users_id;
-		var roleId = rc.id;
-
-		if(CurrentUser.isSuper()){
-			var Role = entityLoadByPK("roles", roleId);
-			var User = entityLoadByPK("users", userId);
-
-			if(!Role.hasUser(User)){
-				throw("This user did not have this role");
-			} else {
-				transaction {
-					Role.removeUser(User);
-					User.removeRole(Role);
-					ORMFlush();
-					transaction action="commit";
-				}
-			}
+		var ZeroAuth = variables.fw.getZeroAuth();
+		var Role = ZeroAuth.findRoleById(arguments.id).elseThrow("Could not locate that role");
+		transaction {
+			ZeroAuth.deleteRole(Role);
+			ORMFlush();
+			transaction action="commit";
 		}
+		var out = {
+			"success":true,
+			"message":"The role has been successfully deleted"
+		}
+		return out;
 	}
 }

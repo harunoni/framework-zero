@@ -3,7 +3,7 @@
 param name="rc.view_state.show_child_resources" default="0" hint="Whether to show the child resources for a resource, will be passed in";
 //Decorate resources if we should show its children
 //based on the value of view_state.show_child_resources
-for(var resource in rc.data.role.available_resources){
+for(var resource in rc.data.all_resources){
 
 	var recurseChildren = function(resource){
 
@@ -77,13 +77,21 @@ for(var resource in rc.data.role.available_resources){
 			</div>
 			<div class="panel-body">
 				<ul class="list-group">
-					{{#each data.role.available_resources}}
+					{{#each data.all_resources}}
 						<li class="list-group-item">
 							<h4 class="list-group-item-heading">{{name}}
-								<form action="/auth/roles/{{data.role.id}}/resources/{{id}}/link" method="post" style="display:inline;">
-									<input type="hidden" name="goto" value="/auth/roles/{{data.role.id}}">
-									<button class="btn btn-xs btn-primary pull-right">Add</button>
-								</form>
+
+								{{#if is_enabled}}
+									<form action="/auth/roles/{{data.role.id}}/resources/{{id}}/unlink" method="post" style="display:inline;">
+										<input type="hidden" name="goto" value="/auth/roles/{{data.role.id}}">
+										<button class="btn btn-xs btn-warning pull-right">Disable</button>
+									</form>
+								{{else}}
+									<form action="/auth/roles/{{data.role.id}}/resources/{{id}}/link" method="post" style="display:inline;">
+										<input type="hidden" name="goto" value="/auth/roles/{{data.role.id}}">
+										<button class="btn btn-xs btn-primary pull-right">Enable</button>
+									</form>
+								{{/if}}
 								<form action="/auth/roles/{{data.role.id}}/read" method="post" style="display:inline;">
 									{{#if show_child_resources}}
 										<button class="btn btn-xs btn-primary pull-right" style="margin-right:3px;">Hide Sub Resources</button>
@@ -99,10 +107,21 @@ for(var resource in rc.data.role.available_resources){
 										{{#each this}}
 									  	<li class="list-group-item">
 											<h4 class="list-group-item-heading">{{name}}
-												<form action="/auth/roles/{{data.role.id}}/resources/{{id}}/link" method="post" style="display:inline;">
-													<input type="hidden" name="goto" value="/auth/roles/{{data.role.id}}">
-													<button class="btn btn-xs btn-primary pull-right">Add</button>
-												</form>
+												{{#if is_enabled}}
+													<form action="/auth/roles/{{data.role.id}}/resources/{{id}}/unlink" method="post" style="display:inline;">
+														<input type="hidden" name="goto" value="/auth/roles/{{data.role.id}}">
+														<button class="btn btn-xs btn-warning pull-right">Disable</button>
+													</form>
+												{{else}}
+													{{#if is_disabled}}
+														<button class="btn btn-xs btn-default pull-right" data-toggle="tooltip" data-placement="top" title="A parent resource is already applied thus this is active. To enable only a sub resource, disable the parent resource first.">Active</button>
+													{{else}}
+														<form action="/auth/roles/{{data.role.id}}/resources/{{id}}/link" method="post" style="display:inline;">
+															<input type="hidden" name="goto" value="/auth/roles/{{data.role.id}}">
+															<button class="btn btn-xs btn-primary pull-right">Enable</button>
+														</form>
+													{{/if}}
+												{{/if}}
 											</h4>
 											<p class="list-group-item-text">{{description}}
 												{{#if show_child_resources}}
@@ -128,19 +147,19 @@ for(var resource in rc.data.role.available_resources){
 	<div class="col-lg-6">
 		<div class="panel panel-default">
 			<div class="panel-heading">
-				<h3 class="panel-title">Assigned Resources</h3>
+				<h3 class="panel-title">Users with <strong>{{capitalCase data.role.name}}</strong> Role</h3>
 			</div>
 			<div class="panel-body">
 				<ul class="list-group">
-					{{#each data.role.resources}}
+					{{#each data.role.users}}
 						<li class="list-group-item">
-							<h4 class="list-group-item-heading">{{name}}
-								<form action="/auth/roles/{{data.role.id}}/resources/{{id}}/unlink" method="post" style="display:inline;">
+							<h4 class="list-group-item-heading"><a href="/auth/users/{{id}}">{{email_address}}</a>
+								<form action="/auth/roles/{{data.role.id}}/users/{{id}}/unlink" method="post" style="display:inline;">
 									<input type="hidden" name="goto" value="/auth/roles/{{data.role.id}}">
-									<button class="btn btn-xs btn-primary pull-right">Remove</button>
+									<button class="btn btn-xs btn-primary pull-right" data-toggle="tooltip" data-placement="top" title="This will remove the role from this user, this cannot be undone.">Remove Role</button>
 								</form>
 							</h4>
-							<p class="list-group-item-text">{{description}}
+							<p class="list-group-item-text">{{first_name}} {{last_name}}
 							</p>
 						</li>
 					{{/each}}

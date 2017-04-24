@@ -70,8 +70,8 @@ component persistent="true" table="roles" output="false" accessors="true" discri
 
 			for(var Resource in resources){
 				if(user.hasResource(resource.getName())){
-					user.removeResource(resource.getName(), resource);
 					resource.removeUser(User);
+					user.removeResource(resource.getName(), resource);
 				}
 			}
 

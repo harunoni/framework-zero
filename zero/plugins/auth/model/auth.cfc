@@ -153,6 +153,25 @@ component persistent="true" table="auth" output="false" accessors="true" discrim
 	public void function deleteUser(required User User){
 		if(this.hasUser(User)){
 			User.setIsDeleted(true);
+			var logins = User.getLogins()?:[];
+			var toDelete = [];
+			for(var login in logins){
+				toDelete.append(login);
+			}
+
+			for(var login in toDelete){
+				deleteLogin(login);
+			}
+
+			var roles = User.getRoles()?:[];
+			var toDelete = [];
+			for(var Role in roles){
+				toDelete.append(Role);
+			}
+
+			for(var Role in toDelete){
+				Role.removeUser(User);
+			}
 		}
 	}
 
@@ -263,6 +282,28 @@ component persistent="true" table="auth" output="false" accessors="true" discrim
 			ORMFlush();
 			transaction action="commit";
 		}
+	}
+
+	/*
+	Deleting a role removes the role from all users
+	and removes all resources from the role
+	 */
+	public function deleteRole(required Role Role){
+
+		var Role = arguments.Role;
+		var Users = arrayMap(Role.getUsers()?:[],function(User){return User});
+		for(var User in Users){
+			Role.removeUser(User);
+		}
+
+		var resources = arrayMap(Role.getResources()?:[],function(Resource){return Resource});
+		for(var Resource in resources){
+			Role.removeResource(Resource);
+		}
+
+		this.removeRole(Role);
+		Role.setAuth(nullValue());
+		entityDelete(Role);
 	}
 
 	public Optional function findUser(required string email){

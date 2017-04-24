@@ -1,7 +1,8 @@
 <cf_handlebars context="#rc#">
 <div class="row">
     <div class="col-lg-12">
-        <h1 class="page-header">Resources</h1>
+        <h1 class="page-header">Resources <small>These are the resources available to this app</small></h1>
+
     </div>
 </div>
 
@@ -9,11 +10,15 @@
 	<ul class="list-group">
 		{{#each this}}
 			<li class="list-group-item">
-				<h4 class="list-group-item-heading">{{name}}
+				<h4 class="list-group-item-heading">{{name}} <small>{{description}}</small>
 				</h4>
-				<p class="list-group-item-text">{{description}}
+				<p class="list-group-item-text">
 					{{#if children}}
-						<!--- {{> parent children}} --->
+						<ul style="list-style:none;">
+						{{#each children}}
+							<li><strong>{{sentenceCase name}} - </strong> <i>{{description}}</i></li>
+						{{/each}}
+						</ul>
 					{{/if}}
 				</p>
 			</li>

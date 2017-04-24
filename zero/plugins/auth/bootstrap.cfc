@@ -64,13 +64,10 @@ component {
 
 			var ZeroAuth = this.getZeroAuth();
 			var resourceName = request.action;
-			writeDump(resourceName);
 			var Resource = ZeroAuth.findResourceByName(resourceName);
 			if(Resource.exists()){
 				var Resource = Resource.get();
-				writeDump(Resource.getName().toString());
 				var User = getLoggedInUser().elseThrow("Invalid user login");
-				writeDump(User.hasResource(Resource.getName().toString()));
 				if(!User.hasResource(Resource.getName().toString())){
 					throw("Unauthorized", 400);
 				}
@@ -108,7 +105,10 @@ component {
 				var subsystemResource = ZeroAuth.createOrLoadResource(subsystemName, "#subsystemName# module");
 
 				for(var sectionName in subsystems[subsystemName]){
-					var sectionResource = ZeroAuth.createOrLoadResource("#subsystemName#:#sectionName#", "#subsystemName#:#sectionName# section", subsystemResource);
+
+					var controllerMeta = subsystems[subsystemName][sectionName];
+					var description = controllerMeta.description?:"#subsystemName#:#sectionName# section"
+					var sectionResource = ZeroAuth.createOrLoadResource("#subsystemName#:#sectionName#", description, subsystemResource);
 
 					var funcs = variables.fw.getAllExtendedFunctions(subsystems[subsystemName][sectionName]);
 					for(var func in funcs){
@@ -117,8 +117,17 @@ component {
 							//Only public functions get resources
 							//because they are the only functions which could have
 							//routes
+
+							//Igrnoe these methods which are either Lucee built in methods
+							//or are Framework Zero methods
+							var ignore=["init", "request", "result", "onMissingMethod"];
+							if(ignore.containsNoCase(func.name)){
+								continue;
+							}
+
+							var description = func.description?:"#subsystemName#:#sectionName#.#func.name# item #func.description#"
 							itemResource = ZeroAuth.createOrLoadResource("#subsystemName#:#sectionName#.#func.name#",
-																		 "#subsystemName#:#sectionName#.#func.name# item #func.description#",
+																		 description,
 																		 sectionResource);
 						}
 
