@@ -47,7 +47,7 @@ good hitbox for the click
 }
 
 .input-group-addon-btn > button {
-	min-width:35px;
+	min-width:25px;
 }
 
 </style>
@@ -58,19 +58,31 @@ good hitbox for the click
 
 			</div>
 		</div>
+		{{#if toolbar.show}}
 		<div class="row" style="margin-bottom:10px;">
 			<div class="col-lg-12">
 				<div class="form form-inline pull-right">
 					<div class="form-group">
+						{{#if toolbar.tools.copy}}
 						copy link <input type="text" class="form-control input-sm" value="{{current_link}}">
+						{{/if}}
+						{{#if toolbar.tools.history}}
 						<button class="btn btn-default btn-sm" data-toggle="tooltip" data-placement="top" title="Show Filter History"><i class="glyphicon glyphicon-list-alt"></i></button>
+						{{/if}}
+						{{#if toolbar.tools.share}}
 						<button class="btn btn-default btn-sm" data-toggle="tooltip" data-placement="top" title="Share View"><i class="glyphicon glyphicon-share-alt"></i></button>
+						{{/if}}
+						{{#if toolbar.tools.download}}
 						<button class="btn btn-default btn-sm" data-toggle="tooltip" data-placement="top" title="Download CSV"><i class="glyphicon glyphicon-download-alt"></i></button>
+						{{/if}}
+						{{#if toolbar.tools.customize}}
 						<button class="btn btn-default btn-sm" data-toggle="tooltip" data-placement="top" title="Customize Table"><i class="glyphicon glyphicon-th-list"></i></button>
+						{{/if}}
 					</div>
 				</div>
 			</div>
 		</div>
+		{{/if}}
 		<div class="row">
 			<div class="col-lg-6">
 				<form id="max_items{{table_name}}" action="{{base_path}}" method="get" class="form-inline" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}} style="display:inline;">
@@ -247,18 +259,59 @@ good hitbox for the click
 										{{!-- Making the input widths not expand their container cell:
 											  http://stackoverflow.com/questions/13856955/i-need-to-make-an-input-element-adjust-to-table-cell-width
 										--}}
-
 										<td {{#if width}}width="{{width}}"{{/if}}>
 											{{#if filterable}}
 												<form style="display:inline;" action="{{base_path}}" class="horizontal" method="GET">
+														{{!-- This next section outputs the parameters for the form EXCEPT:
+															- Paramters which represent a filter column AND the current looped column is
+															being filters. For clarity with the lookup() expression I am using if/else
+															instead of unless which can be hard to mentally parse in a complex situation --}}
 														{{#each current_params}}
-															<input type="hidden" name="{{name}}" value="{{value}}">
+
+															{{#if is_filter}}
+
+
+																{{lookup column ../this.column_name}}<br />
+
+																{{!-- Filter params will have the name of the column which is being
+																filtered within the structure like below:
+
+																{
+																	is_filter: true,
+																	column: {
+																		a_columns_name: true
+																	},
+																	name: "filters.name",
+																	value: "shoes"
+																},
+
+																We can therefore lookup the column name (a_columns_name) to return true
+																if we are on the current column being looped over in the outer loop
+																  --}}
+
+
+																{{!-- {{column}} --}}
+																{{!-- {{lookup this.column ../column_name}} --}}
+																{{#if (lookup column column_name)}}
+																	{{!-- The current column we are looping matches the current_param
+																	that we are looping, as such, do not output any hidden variable because
+																	the form input will handle passing this value back --}}
+																{{else}}
+																	<input type="hidden" name="{{name}}" value="{{value}}">
+																{{/if}}
+
+															{{else}}
+																<input type="hidden" name="{{name}}" value="{{value}}">
+															{{/if}}
+
 														{{/each}}
+
 														{{#if filter.type.text}}
 															{{#if filter.value}}
 																<div class="input-group">
 																	<input type="input" class="form-control input input-sm" name="{{table_name_prefix}}filters.{{column_name}}" style="min-width: 10px; max-width: 100%; width: 100%;" {{#if filter.value}}value="{{filter.value}}"{{/if}} placeholder="filter {{friendly_name}}"/>
 																	<div class="input-group-addon input-group-addon-btn">
+																		<button class="text"><i class="glyphicon glyphicon-filter"></i></button>
 																		<button class="text" name="submit_overload" value="{'{{table_name_prefix}}filters.{{column_name}}':''}"><i class="glyphicon glyphicon-remove-circle"></i></button>
 																	</div>
 																</div>
@@ -683,27 +736,24 @@ good hitbox for the click
 	</div>
 </div>
 
-<!---
-Work on a row click functionality, but not finished
+
+{{!-- Work on a row click functionality, but not finished
 because need to determine how to detect if the
-row has editable items or other buttons
+row has editable items or other buttons --}}
 <script>
 	$(function() {
 	    $(".zerotable-row-on-click").click(function(e) {
 	    	console.log(e);
-	    	var onClick = $(e.currentTarget).attr('data-onClick');
-	    	eval(onClick);
-
-	        // if (e.target.id == "myDiv" || $(e.target).parents("#myDiv").size()) {
-	        //     alert("Inside div");
-	        // } else {
-	        //    alert("Outside div");
-	        // }
+	    	var target = $(e.target);
+	    	if(target.is('button,a,input,select')){
+	    		//Do nothing because something other than a row click was made
+	    	} else {
+		    	var onClick = $(e.currentTarget).attr('data-onClick');
+		    	eval(onClick);
+	    	}
 	    });
 	})
-
 </script>
---->
 
 {{#if use_zero_ajax}}
 	<script>

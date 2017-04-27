@@ -72,7 +72,8 @@ component accessors="true" {
 						 		condensed:false,
 						 	}
 
-						 }
+						 },
+						 struct toolbar
 						 ){
 
 		variables.Rows = arguments.Rows;
@@ -119,6 +120,10 @@ component accessors="true" {
 
 		if(arguments.keyExists("rowOnClick")){
 			variables.rowOnClick = arguments.rowOnClick;
+		}
+
+		if(arguments.keyExists("toolbar")){
+			variables.toolbar = arguments.toolbar;
 		}
 
 		variables.qs = new queryString(cgi.query_string);
@@ -448,7 +453,11 @@ component accessors="true" {
 					out.append({
 						"name":getFieldNameWithTablePrefix(param),
 						"value":evaluate("this.get#param#()"),
-						"is_#param#":true
+						"is_#param#":true,
+						"column":{
+							"rack_rate":false,
+							"name":false
+						}
 					});
 				}
 			}
@@ -490,7 +499,11 @@ component accessors="true" {
 				"name":getFieldNameWithTablePrefix("table_name"),
 				"value":variables.tableName,
 				"is_table_name":true,
-				"is_#variables.tableName#":true
+				"is_#variables.tableName#":true,
+				"column":{
+					"rack_rate":false,
+					"name":false
+				}
 			})
 		}
 
@@ -532,7 +545,11 @@ component accessors="true" {
 			out.append({
 				"name":key,
 				"value":persistFields[key],
-				"is_#key#":true
+				"is_#key#":true,
+				"column":{
+					"rack_rate":false,
+					"name":false
+				}
 			});
 		}
 
@@ -714,6 +731,8 @@ component accessors="true" {
 		zeroTableOut["ajax_target"] = this.getAjaxTarget();
 		zeroTableOut["persist_fields"] = this.getPersistFields();
 		zeroTableOut["style"] = new serializer().serializeEntity(this.getStyle());
+		zeroTableOut["toolbar"] = new serializer().serializeEntity(variables.toolbar?:{});
+
 
 		if(variables.keyExists("tableName") and len(trim(variables.tableName)) gt 0){
 			zeroTableOut["table_name"] = variables.tableName;
