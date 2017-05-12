@@ -20,11 +20,11 @@ component output="false" displayname="" accessors="true"  {
 	 * @param  {Boolean} manualinstall Override the automatic install for systems that Handlebars.lucee is not aware of
 	 * @return {Handlebars}            An instance of the Handlebars.cfc
 	 */
-	public Handlebars function init(useCache=false, 
-									cacheKey="handlebarslucee", 
-									helperpath="helpers", 
+	public Handlebars function init(useCache=false,
+									cacheKey="handlebarslucee",
+									helperpath="helpers",
 									manualinstall=false){
-		
+
 		variables.useCache = arguments.useCache;
 		variables.cacheKey = arguments.cacheKey;
 		variables.helperPath = arguments.helperPath;
@@ -45,17 +45,17 @@ component output="false" displayname="" accessors="true"  {
 	 *
 	 * compileInLine - Compiles a handlebars template string
 	 * compile - compiles a file
-	 * 
+	 *
 	 ***************************************************************/
  	public any function compileInLine(required string template){
 
  		var hash = hash(template);
  		if(application.keyExists(hash)){
- 			var template = application[hash]; 			
- 		} else { 			
+ 			var template = application[hash];
+ 		} else {
  			var template = getJava().compileInLine(arguments.template);
  			application[hash] = template;
- 		} 		
+ 		}
 
  		var result = function(context){
  			var result = template.apply(arguments.context);
@@ -72,7 +72,7 @@ component output="false" displayname="" accessors="true"  {
  		}
 
  		var templateSource = fileRead(arguments.templatePath);
- 		var template = compileInLine(templateSource); 		
+ 		var template = compileInLine(templateSource);
  		return template;
  	}
 
@@ -82,7 +82,7 @@ component output="false" displayname="" accessors="true"  {
 			return cacheGetHandlebars();
 		} else {
 			return newHandlebars();
-		}		
+		}
 	}
 
  	/****************************************************************
@@ -99,12 +99,12 @@ component output="false" displayname="" accessors="true"  {
 			return true;
 		} else {
 			return false;
-		}		
+		}
 	}
 
-	public void function install(){		
+	public void function install(){
 		try {
-			
+
 			var servletPath = getRhinoServletPath();
             var currentPath = getCurrentTemplatePath();
             var basePath = getDirectoryFromPath(currentPath);
@@ -122,15 +122,15 @@ component output="false" displayname="" accessors="true"  {
 		if(handlebarsIsCached()){
 			structDelete(application, getCacheKey());
 		}
-	}	
+	}
 
 	public boolean function handlebarsIsCached(){
 		var result = structKeyExists(application, getCacheKey());
 		return result;
-	}	
+	}
 
 	/********************************************************************
-	 * PRIVATE METHODS  
+	 * PRIVATE METHODS
 	 ********************************************************************/
 
 	private string function getHelperPath(){
@@ -148,7 +148,7 @@ component output="false" displayname="" accessors="true"  {
 	private void function cacheHandlebars(required Object Handlebars){
 		application[getCacheKey()] = arguments.handlebars;
 	}
-	
+
 
 	private object function newHandlebars(){
 
@@ -157,12 +157,12 @@ component output="false" displayname="" accessors="true"  {
 		var helpers = directoryList(getHelperPath());
 		for(helper in helpers){
 			var jsFile = createObject("java", "java.io.File").init(helper);
-			Handlebars.registerHelpers(jsFile);			
-		}		
+			Handlebars.registerHelpers(jsFile);
+		}
 
 		if(getUseCache()){
 			cacheHandlebars(Handlebars);
-		}		
+		}
 
 		return Handlebars;
 	}
@@ -192,7 +192,7 @@ component output="false" displayname="" accessors="true"  {
 
 
 	/**********************************************************************
-	 * CUSTOM TAG METHODS 
+	 * CUSTOM TAG METHODS
 	 * onStartTag() and onEndTag are used when handlebars is invoked as a customtag
 	 *********************************************************************/
 

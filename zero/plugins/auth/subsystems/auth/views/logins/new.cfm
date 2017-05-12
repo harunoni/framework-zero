@@ -1,0 +1,1 @@
+<cfinclude template="/zeroauth/views/users/new.cfm" />

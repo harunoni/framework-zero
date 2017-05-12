@@ -67,7 +67,8 @@ component accessors="true" extends="base" {
 	public struct function create(	required emailAddress emailAddress,
 							required varchar255 firstName,
 							required varchar255 lastName,
-							required password255 password
+							required password255 password,
+							userType="user"
 
 						  ){
 		var ZeroAuth = variables.fw.getZeroAuth();
@@ -79,7 +80,8 @@ component accessors="true" extends="base" {
 			var User = ZeroAuth.createUser(emailAddress = arguments.emailAddress,
 										   firstName = arguments.firstName,
 										   lastName = arguments.lastName,
-										   password = arguments.password);
+										   password = arguments.password,
+										   userType = arguments.userType);
 			ORMFlush();
 			transaction action="commit";
 		}

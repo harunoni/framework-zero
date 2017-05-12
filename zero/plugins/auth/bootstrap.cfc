@@ -5,75 +5,30 @@ component {
 						 required string subsystemScope,
 						 required array subsystems,
 						 hasSuperUsers=false,
-						 validateSubsystemResources=false){
+						 loginFormRoute,
+						 ){
 
+		variables.subsystems = arguments.subsystems;
 		variables.fw = arguments.fw;
 		variables.storage = arguments.storage;
 		variables.subsystemScope = arguments.subsystemScope;
 		variables.hasSuperUsers = arguments.hasSuperUsers;
-		variables.validateSubsystemResources = arguments.validateSubsystemResources;
+		variables.loginFormRoute = arguments.loginFormRoute?:"/auth/logins";
 
-		if(cgi.path_info IS "/logout"){
-			this.logoutUser();
-			location url="/" addtoken="false";
-		}
 
-		if(subsystemScope == "denyAllExcept"){
-			if(arrayContains(subsystems, fw.getSubsystem())){
-				//Early return to skip authentication processing
-				return;
-			}
-		}
-
-		if(subsystemScope == "allowAllExcept"){
-
-			if(arrayContains(subsystems, fw.getSubsystem())){
-				//Do nothing, authentication processing will continue
-			} else {
-
-				//Early return to skip authentication processing
-				return;
-			}
-		}
-
-		if(variables.fw.getSubsystem() == "auth" and variables.fw.getSection() == "logins"){
-			//User may be trying to login so we do not
-			//enforece authentication
-			return;
-		} else {
-
-			//User is not trying to login so we must enforce authentication
-			if(this.hasLoginCredentials()){
-
-				var LoginOptional = this.tryLogin();
-				if(LoginOptional.exists()){
-					request.User = LoginOptional.get().getUser();
-					//Basic user is validated. You can do additional
-					//checks of the user resources and roles here
-				} else {
-					location url="/auth/logins" addtoken="false";
-					return;
-				}
-			} else {
-				location url="/auth/logins?redirect_to=#cgi.path_info#" addtoken="false";
-				return;
-			}
-		}
-
-		if(variables.validateSubsystemResources){
-
-			var ZeroAuth = this.getZeroAuth();
-			var resourceName = request.action;
-			var Resource = ZeroAuth.findResourceByName(resourceName);
-			if(Resource.exists()){
-				var Resource = Resource.get();
-				var User = getLoggedInUser().elseThrow("Invalid user login");
-				if(!User.hasResource(Resource.getName().toString())){
-					throw("Unauthorized", 400);
+		if(variables.hasSuperUsers){
+			if(getZeroAuth().getHasSuperUsers() == false){
+				transaction {
+					getZeroAuth().setHasSuperUsers(true);
+					ORMFlush();
+					transaction action="commit";
 				}
 			}
-
 		}
+
+		/*Call getZeroAuth to setup getZeroAuth if it does
+		not exist on the Zero passed in*/
+		getZeroAuth();
 		return this;
 	}
 
@@ -84,6 +39,88 @@ component {
 		} else {
 			return new model.Optional();
 		}
+	}
+
+	public void function authenticateWithSubsystemResources(){
+		if(authenticate() == false){
+
+			return;
+		}
+
+		var ZeroAuth = this.getZeroAuth();
+		var resourceName = request.action;
+		var Resource = ZeroAuth.findResourceByName(resourceName);
+		if(Resource.exists()){
+			var Resource = Resource.get();
+			var User = getLoggedInUser().elseThrow("Invalid user login");
+			if(!User.hasResource(Resource.getName().toString())){
+				throw("Unauthorized", 400);
+			}
+		}
+	}
+
+	public boolean function authenticate() {
+		var result = false;
+		if (cgi.path_info IS "/logout") {
+			this.logoutUser();
+			location url="/" addtoken="false";
+			return false;
+		}
+		if (variables.subsystemScope == "denyAllExcept") {
+
+			if (arrayContains(variables.subsystems, variables.fw.getSubsystem())) {
+				//Early return to skip authentication processing
+				result = true;
+			}
+		}
+
+		if (variables.subsystemScope == "allowAllExcept") {
+			if (arrayContains(variables.subsystems, variables.fw.getSubsystem())) {
+				//Do nothing, authentication processing will continue
+			} else {
+				//Early return to skip authentication processing
+				result = true;
+			}
+		}
+		// writeDump(cgi);
+		// abort;
+		// if (variables.fw.getSubsystem() == "auth" and variables.fw.getSection() == "logins") {
+		var currentPath = cgi.path_info;
+		if(trim(currentPath) == ""){
+			currentPath = "/"
+		}
+		if (currentPath == variables.loginFormRoute or (variables.fw.getSubsystem() == "auth" and variables.fw.getSection() == "logins")) {
+			//User may be trying to login so we do not
+			//enforece authentication
+			result = false;
+		} else {
+
+			if(variables.fw.getSubsystem() == "auth" and variables.fw.getSection() == "super_users"){
+
+				if(variables.hasSuperUsers){
+					result = false;
+				} else {
+					result = true;
+				}
+			} else {
+				//User is not trying to login so we must enforce authentication
+				if (this.hasLoginCredentials()) {
+					var LoginOptional = this.tryLogin();
+					if (LoginOptional.exists()) {
+						request.User = LoginOptional.get().getUser();
+						//Basic user is validated. You can do additional
+						//checks of the user resources and roles here
+					} else {
+						location url="#variables.loginFormRoute#" addtoken="false";
+						result = false;
+					}
+				} else {
+					location url="#variables.loginFormRoute#?redirect_to=#cgi.path_info#" addtoken="false";
+					result = false;
+				}
+			}
+		}
+		return result;
 	}
 
 	public function generateSubsystemResources(){
@@ -101,6 +138,23 @@ component {
 
 		transaction {
 			for(var subsystemName in subsystems){
+
+				if(variables.subsystemScope == "denyAllExcept"){
+					if(arrayContains(variables.subsystems, subsystemName)){
+						//Do not protect this subsystem because it has been excepted
+						continue;
+					}
+				}
+
+				if(variables.subsystemScope == "allowAllExcept"){
+
+					if(arrayContains(variables.subsystems, subsystemName)){
+						//Do nothing, authentication processing will continue
+					} else {
+						//Allow this subsystem because it has been accepted
+						continue;
+					}
+				}
 
 				var subsystemResource = ZeroAuth.createOrLoadResource(subsystemName, "#subsystemName# module");
 
@@ -144,19 +198,22 @@ component {
 		if(structKeyExists(variables.fw, "getzeroauth")){
 			return variables.fw.getZeroAuth();
 		} else {
-			var auth = entityLoad("auth");
-			if(arrayLen(auth) == 0){
-				transaction {
-					var auth = entityNew("auth");
-					entitySave(auth);
-					ORMFlush();
-					transaction action="commit";
-				}
+			variables.fw.getZeroAuth = function(){
+				var auth = entityLoad("auth");
+				if(arrayLen(auth) == 0){
+					transaction {
+						var auth = entityNew("auth");
+						entitySave(auth);
+						ORMFlush();
+						transaction action="commit";
+					}
 
-			} else {
-				var auth = auth[1];
+				} else {
+					var auth = auth[1];
+				}
+				return auth;
 			}
-			return auth;
+			return variables.fw.getZeroAuth();
 		}
 	}
 

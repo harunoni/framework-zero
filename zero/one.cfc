@@ -907,6 +907,7 @@ component {
      * super.onRequestStart() first
      */
     public any function onRequestStart( string targetPath ) {
+
         setupRequestDefaults();
 
         if ( !isFrameworkInitialized() || isFrameworkReloadRequest() ) {

@@ -352,53 +352,59 @@ component output="false" displayname=""  {
 	}
 
 	private array function getAllProperties(required component entity){
+
 		var meta = getMetaData(arguments.entity);
-		var allProperties = meta.properties;
-		// writeDump(allProperties);
-		if(structKeyExists(meta,"extends")){
-			if(meta.extends.name != "lucee.Component"){
-				try {
+		var cacheName = hash(meta.path);
+		param name="application._zero.serializerMetaDataCache" default="#{}#";
+		if(application._zero.serializerMetaDataCache.keyExists(cacheName)){
+			return application._zero.serializerMetaDataCache[cacheName];
+		} else {
+			var allProperties = meta.properties;
+			// writeDump(allProperties);
+			if(structKeyExists(meta,"extends")){
+				if(meta.extends.name != "lucee.Component"){
+					try {
 
-					if(meta.persistent == true){
-						//Try the entity both by its fully qualified name
-						//and its root name. This is because the extension
-						//can used both paths and this may impact where the
-						//entity can be loaded from
-						try {
-							var entity = entityNew(meta.extends.fullName);
-						}catch(any e){
+						if(meta.persistent == true){
+							//Try the entity both by its fully qualified name
+							//and its root name. This is because the extension
+							//can used both paths and this may impact where the
+							//entity can be loaded from
+							try {
+								var entity = entityNew(meta.extends.fullName);
+							}catch(any e){
 
-							var entityName = listLast(meta.extends.fullName, ".");
-							var entity = entityNew(entityName);
-							// writeDump(entity);
-							// writeDump(entityNew("users"));
-							// abort;
+								var entityName = listLast(meta.extends.fullName, ".");
+								var entity = entityNew(entityName);
+								// writeDump(entity);
+								// writeDump(entityNew("users"));
+								// abort;
+							}
+							var parent.meta = getMetaData(entity);
+						} else {
+
+							var parent.meta = getComponentMetaData(meta.extends.fullName);
 						}
-						var parent.meta = getMetaData(entity);
-					} else {
 
-						var parent.meta = getComponentMetaData(meta.extends.fullName);
+					} catch(any e){
+						writeDump(e);
+						writeDump(meta.extends.fullName);
+						writeDump(meta);
+						abort;
 					}
 
-				} catch(any e){
-					writeDump(e);
-					writeDump(meta.extends.fullName);
-					writeDump(meta);
-					abort;
-				}
+					// writeDump(parent.meta);
+					// abort;
+					if(structKeyExists(parent.meta,"persistent") AND parent.meta.persistent IS true){
+						allProperties = allProperties.merge(parent.meta.properties);
+					}
+				} else {
 
-				// writeDump(parent.meta);
-				// abort;
-				if(structKeyExists(parent.meta,"persistent") AND parent.meta.persistent IS true){
-					allProperties = allProperties.merge(parent.meta.properties);
 				}
-			} else {
-
 			}
+			application._zero.serializerMetaDataCache[cacheName] = allProperties;
+			return allProperties;
 		}
-		// writeDump(allProperties);
-
-		return allProperties;
 	}
 
 }

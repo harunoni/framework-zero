@@ -73,7 +73,16 @@ component accessors="true" {
 						 	}
 
 						 },
-						 struct toolbar
+						 struct toolbar = {
+						  	show:true,
+						  	tools:{
+							  	copy:true,
+							  	history:true,
+							  	share:true,
+							  	download:true,
+							  	customize:true,
+						  	}
+						  }
 						 ){
 
 		variables.Rows = arguments.Rows;
@@ -609,6 +618,12 @@ component accessors="true" {
 
 		if(isNull(variables.serializedRows)){
 			var rows = variables.Rows.list(max=variables.max + variables.more, offset=variables.offset);
+
+			/*
+			An optimization to check if the user has passed in serializerIncludes, if they have
+			then we need to use the generic serializer. If they haven't then we can just return the
+			rows as they are from the data.
+			 */
 			var rows = new serializer().serializeEntity(rows, variables.serializerIncludes);
 			variables.serializedRows = rows;
 		}
@@ -730,8 +745,8 @@ component accessors="true" {
 		zeroTableOut["use_zero_ajax"] = this.getuseZeroAjax();
 		zeroTableOut["ajax_target"] = this.getAjaxTarget();
 		zeroTableOut["persist_fields"] = this.getPersistFields();
-		zeroTableOut["style"] = new serializer().serializeEntity(this.getStyle());
-		zeroTableOut["toolbar"] = new serializer().serializeEntity(variables.toolbar?:{});
+		zeroTableOut["style"] = this.getStyle();
+		zeroTableOut["toolbar"] = variables.toolbar?:{};
 
 
 		if(variables.keyExists("tableName") and len(trim(variables.tableName)) gt 0){

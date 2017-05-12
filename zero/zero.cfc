@@ -817,12 +817,26 @@ component extends="one" {
 		}
 
 		var recurseGetFunctions = function(metaData){
-
-			var functions = [];
+			var functions = getFunctions(arguments.metaData);
 			if(metaData.keyExists("extends")){
-				var functions = functions.merge(recurseGetFunctions(arguments.metaData.extends));
+
+				var parentFuncs = recurseGetFunctions(arguments.metaData.extends);
+				for(var parent in parentFuncs){
+
+					var parentMatches = false;
+					for(var func in functions){
+
+						if(func.name == parent.name){
+							parentMatches = true;
+							break;
+						}
+					}
+
+					if(!parentMatches){
+						functions.append(parent);
+					}
+				}
 			}
-			functions = functions.merge(getFunctions(arguments.metaData));
 			return functions;
 		}
 		return recurseGetFunctions(arguments.metaData);
@@ -960,6 +974,7 @@ component extends="one" {
 				},
 			];
 
+
 			// writeDump(filePaths);
 			if(variables.zero.keyExists("validationPaths")){
 				for(var path in duplicate(variables.zero.validationPaths)){
@@ -971,9 +986,19 @@ component extends="one" {
 
 			var componentPath = nullValue();
 			for(var path in filePaths){
-				if(fileExists(path.file)){
+				try {
+					//Guard assertion to load the meta data for the component. If the component
+					//doesn't exist (or can't be parsed) this will fail. If it succeeds it will
+					//set componentPath which is used later and break out of the loop
+					getComponentMetaData(path.com);
 					componentPath = path.com;
 					break;
+				} catch(any e){
+					if(e.message contains "invalid component definition, can't find component"){
+						continue;
+					} else {
+						throw(e);
+					}
 				}
 			}
 
@@ -2162,7 +2187,28 @@ component extends="one" {
 		return new lib.print(arguments.value);
 	}
 
+	/*
+	Will reload the serializer meta data cache. The serializerMetaDataCache
+	holds copies of the CFC meta data objects which have been serialized. Loading
+	and parsing the meta data is expensive (can be as much as seconds for a complex
+	graph).
+	 */
+	function serializerReload(){
+		application._zero.serializerMetaDataCache = {};
+	}
+
 	function onRequestStart(){
+
+		/*
+		Have zero change the location of the subsystem path dynamically based on the URL.
+		This allows us to have subsystems which are not in the default application's
+		subsystems.
+		 */
+		// if(cgi.path_info contains "/auth/"){
+		// 	if(!getSubsystemData().keyExists("auth")){
+		// 		variables.framework.base = "/zero/plugins";
+		// 	}
+		// }
 
 		/*
 		Global framework rewrite of the request scope. Allows mimicing HTML 5
@@ -2215,8 +2261,6 @@ component extends="one" {
 			loadAvailableControllers();
 			application.zero.routes = variables.framework.routes;
 		}
-
-
 
 		if(!application.keyExists('preloadCache')){
 			application.preloadCache = {};

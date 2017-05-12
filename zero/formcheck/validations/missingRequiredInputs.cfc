@@ -55,7 +55,7 @@ component implements="validation,formElement,cfc,cfcMethod,urlArguments" {
 						var camelInputName = replaceNoCase(inputName, "_", "", "all");
 						if(allRequiredParams.keyExists(inputName) or allRequiredParams.keyExists(camelInputName)){
 							if(!input.hasAttr('value')){
-								// throw("Required input '#param.name#' for #metaData.fullName#:#cfcMethod#() was missing a value attribute", "requiredInputMissingValue");
+								throw("Required input '#param.name#' for #metaData.fullName#:#cfcMethod#() was missing a value attribute", "requiredInputMissingValue");
 							}
 						}
 					}

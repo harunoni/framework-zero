@@ -269,10 +269,6 @@ good hitbox for the click
 														{{#each current_params}}
 
 															{{#if is_filter}}
-
-
-																{{lookup column ../this.column_name}}<br />
-
 																{{!-- Filter params will have the name of the column which is being
 																filtered within the structure like below:
 
@@ -286,20 +282,20 @@ good hitbox for the click
 																},
 
 																We can therefore lookup the column name (a_columns_name) to return true
-																if we are on the current column being looped over in the outer loop
+																if we are on the current column being looped over in the outer loop.
+
+																Need to use the ifLookup helper which will properly test the lookup for a
+																truthy value (true or "true"). If doing a normal 'if (lookup column ../this.column_name' then handlebars may conflict on columns named 'name' and
+																find keys in some parent structure, which will also return true under a normal
+																#if (strings return true).
 																  --}}
-
-
-																{{!-- {{column}} --}}
-																{{!-- {{lookup this.column ../column_name}} --}}
-																{{#if (lookup column column_name)}}
+																{{#ifLookup (lookup column ../this.column_name)}}
 																	{{!-- The current column we are looping matches the current_param
 																	that we are looping, as such, do not output any hidden variable because
 																	the form input will handle passing this value back --}}
 																{{else}}
 																	<input type="hidden" name="{{name}}" value="{{value}}">
-																{{/if}}
-
+																{{/ifLookup}}
 															{{else}}
 																<input type="hidden" name="{{name}}" value="{{value}}">
 															{{/if}}

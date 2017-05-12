@@ -49,7 +49,6 @@
 </head>
 
 <body>
-    <cfdump var="#rc#">
     <cf_handlebars context="#rc#">
     <div class="container">
         <div class="row">
