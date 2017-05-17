@@ -24,6 +24,10 @@
   /*float: left;*/
 }
 </style>
+<!--- <cfdump var="#rc#"> --->
+<cfif rc.keyExists("view_state")>
+	<cfset rc.data["view_state"] = rc.view_state>
+</cfif>
 
 <cfset zeroTableContext = request.zeroTableContext?:rc.data>
 <cf_handlebars context="#zeroTableContext#">

@@ -8,13 +8,15 @@ component accessors="true" {
 	property name="startIndex" setter="false";
 	property name="endIndex" setter="false";
 	property name="isCurrentPage";
+	property name="offset";
 
-	public function init(required numeric id, required string link, required numeric startIndex, required numeric endIndex, required boolean isCurrentPage){
+	public function init(required numeric id, required string link, required numeric startIndex, required numeric endIndex, required boolean isCurrentPage, numeric offset){
 		variables.id = arguments.id;
 		variables.link = arguments.link;
 		variables.startIndex = arguments.startIndex;
 		variables.endIndex = arguments.endIndex;
 		variables.isCurrentPage = arguments.isCurrentPage;
+		variables.offset = arguments.offset;
 		return this;
 	}
 

@@ -74,8 +74,12 @@ component output="false" displayname=""  {
 			}
 		}
 
+		/*
+		Build inclusion keys. When @include is present, it switches
+		the serialize from an includeAll by default, to a excludeAll
+		by default, except those items specifically included
+		 */
 		variables.inclusions = {};
-
 		if(includes.keyExists("@include")){
 			variables.mode.includesAll = false;
 			var inclusionFields = arguments.includes["@include"];
@@ -91,6 +95,18 @@ component output="false" displayname=""  {
 			}
 		}
 
+		/*
+		Allows for serializing idential recursive objects. This is handy
+		when an object can recursively have children or parents
+		 */
+		if(includes.keyExists("@recurse")){
+			for(var key in includes["@recurse"]){
+				variables.inclusions[key] = true;
+				includes[key] = {
+					"@recurse":includes["@recurse"]
+				}
+			}
+		}
 
 		if(isSimpleValue(arguments.entity)){
 			return arguments.entity;
@@ -187,7 +203,6 @@ component output="false" displayname=""  {
 				if(structKeyExists(prop,"cfc")){
 					if(includes.keyExists(prop.name) OR (structKeyExists(prop,"fetch") AND prop.fetch CONTAINS "join"))
 					{
-						// writeDump(prop);
 						try{
 
 							local.getRelation = evaluate('entity.get#prop.name#()');
@@ -201,21 +216,27 @@ component output="false" displayname=""  {
 							*/
 							if(isNull(local.getRelation) OR (isInstanceOf(local.getRelation,"Optional") AND !local.getRelation.Exists()))
 							{
-								if(prop.fieldType IS "one-to-one" OR prop.fieldType IS "many-to-one")
-								{
+
+								if(prop.keyExists("fieldType")){
+									if(prop.fieldType IS "one-to-one" OR prop.fieldType IS "many-to-one")
+									{
+										out[camelToUnderscore(prop.name)] = "";
+									} else if(prop.fieldType IS "many-to-many" OR prop.fieldType IS "one-to-many"){
+
+										if(structKeyExists(prop,"type") AND prop.type IS "struct")
+										{
+											out[camelToUnderscore(prop.name)] = {};
+										}
+										else
+										{
+											out[camelToUnderscore(prop.name)] = [];
+										}
+
+									}
+								} else {
 									out[camelToUnderscore(prop.name)] = "";
-								} else if(prop.fieldType IS "many-to-many" OR prop.fieldType IS "one-to-many"){
-
-									if(structKeyExists(prop,"type") AND prop.type IS "struct")
-									{
-										out[camelToUnderscore(prop.name)] = {};
-									}
-									else
-									{
-										out[camelToUnderscore(prop.name)] = [];
-									}
-
 								}
+
 							}
 							else
 							{
@@ -227,6 +248,7 @@ component output="false" displayname=""  {
 									// writeDump(includes[prop.name]);
 									out[camelToUnderscore(prop.name)] = new serializer().serializeEntity(local.getRelation, includes[prop.name]);
 								} else {
+
 									out[camelToUnderscore(prop.name)] = new serializer().serializeEntity(local.getRelation, {});
 								}
 								// writeDump(includes);
@@ -329,53 +351,59 @@ component output="false" displayname=""  {
 	}
 
 	private array function getAllProperties(required component entity){
+
 		var meta = getMetaData(arguments.entity);
-		var allProperties = meta.properties;
-		// writeDump(allProperties);
-		if(structKeyExists(meta,"extends")){
-			if(meta.extends.name != "lucee.Component"){
-				try {
+		var cacheName = hash(meta.path);
+		param name="application._zero.serializerMetaDataCache" default="#{}#";
+		if(application._zero.serializerMetaDataCache.keyExists(cacheName)){
+			return application._zero.serializerMetaDataCache[cacheName];
+		} else {
+			var allProperties = meta.properties;
+			// writeDump(allProperties);
+			if(structKeyExists(meta,"extends")){
+				if(meta.extends.name != "lucee.Component"){
+					try {
 
-					if(meta.persistent == true){
-						//Try the entity both by its fully qualified name
-						//and its root name. This is because the extension
-						//can used both paths and this may impact where the
-						//entity can be loaded from
-						try {
-							var entity = entityNew(meta.extends.fullName);
-						}catch(any e){
+						if(meta.persistent == true){
+							//Try the entity both by its fully qualified name
+							//and its root name. This is because the extension
+							//can used both paths and this may impact where the
+							//entity can be loaded from
+							try {
+								var entity = entityNew(meta.extends.fullName);
+							}catch(any e){
 
-							var entityName = listLast(meta.extends.fullName, ".");
-							var entity = entityNew(entityName);
-							// writeDump(entity);
-							// writeDump(entityNew("users"));
-							// abort;
+								var entityName = listLast(meta.extends.fullName, ".");
+								var entity = entityNew(entityName);
+								// writeDump(entity);
+								// writeDump(entityNew("users"));
+								// abort;
+							}
+							var parent.meta = getMetaData(entity);
+						} else {
+
+							var parent.meta = getComponentMetaData(meta.extends.fullName);
 						}
-						var parent.meta = getMetaData(entity);
-					} else {
 
-						var parent.meta = getComponentMetaData(meta.extends.fullName);
+					} catch(any e){
+						writeDump(e);
+						writeDump(meta.extends.fullName);
+						writeDump(meta);
+						abort;
 					}
 
-				} catch(any e){
-					writeDump(e);
-					writeDump(meta.extends.fullName);
-					writeDump(meta);
-					abort;
-				}
+					// writeDump(parent.meta);
+					// abort;
+					if(structKeyExists(parent.meta,"persistent") AND parent.meta.persistent IS true){
+						allProperties = allProperties.merge(parent.meta.properties);
+					}
+				} else {
 
-				// writeDump(parent.meta);
-				// abort;
-				if(structKeyExists(parent.meta,"persistent") AND parent.meta.persistent IS true){
-					allProperties = allProperties.merge(parent.meta.properties);
 				}
-			} else {
-
 			}
+			application._zero.serializerMetaDataCache[cacheName] = allProperties;
+			return allProperties;
 		}
-		// writeDump(allProperties);
-
-		return allProperties;
 	}
 
 }

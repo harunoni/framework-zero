@@ -34,27 +34,36 @@ component accessors="true" {
 	}
 
 	public optional function findPageById(required numeric id){
-		var pages = this.getPages();
-		if(arguments.id > pages.len()){
+		if(arguments.id > getTotalPages()){
 			return new Optional();
 		} else {
-			return new optional(pages[arguments.id]);
+			return new optional(getPage(arguments.id));
 		}
 	}
 
 	public page function getFirstPage(){
-		return getPages()[1];
+		return getPage(1);
 	}
 
-	public page function getCurrentPage(){
-		var pages = getPages();
+	public page function getCurrentPage(offset=variables.offset,
+										max=variables.max){
 
-		for(var page in pages){
-			if(page.getIsCurrentPage()){
-				return page;
-			}
+		if(offset <= 0){
+			var pageId = 1;
 		}
-		throw("no page was the current page, this was not expected");
+
+		if(offset > getTotalItems()){
+			var pageId = getTotalPages();
+		}
+
+		var pageId = (variables.offset + variables.max) / variables.max;
+		if(pageId < 1){
+			pageId = 1
+		} else {
+			pageId = int(pageId);
+		}
+		return getPage(pageId);
+
 	}
 
 	public function getHasLastPage(){return hasLastPage();}
@@ -64,19 +73,12 @@ component accessors="true" {
 	public function getIsFirstPage(){return isFirstPage();}
 
 	public page function getLastPage(){
-		return getPages().last();
+		return getPage(getTotalPages());
 	}
 
 	public void function setCurrentPage(required page page){
 		// abort;
-		variables.offset = arguments.page.getStartIndex();
-		for(var tryPage in getPages()){
-			if(tryPage.equals(arguments.page)){
-				tryPage.setIsCurrentPage(true);
-			} else {
-				tryPage.setIsCurrentPage(false);
-			}
-		}
+		variables.offset = arguments.page.getOffset();
 	}
 
 	// public function setCurrentPage(){
@@ -88,7 +90,7 @@ component accessors="true" {
 		if(getCurrentPage().equals(getLastPage())){
 			return new optional();
 		} else {
-			return new optional(getPages()[getCurrentPage().getId() + 1]);
+			return new optional(getPage(getCurrentPage().getId() + 1));
 		}
 	}
 
@@ -127,7 +129,8 @@ component accessors="true" {
 									link=getCleanedPaginationQueryString().getNew().setValues({"#zeroTable.getFieldNameWithTablePrefix("offset")#":pageOffset}).get(),
 									startIndex=startIndex,
 									endIndex=endIndex,
-									isCurrentPage=isCurrentPage)
+									isCurrentPage=isCurrentPage,
+									offset=pageOffset)
 				);
 			}
 			// writeDump(out);
@@ -136,9 +139,50 @@ component accessors="true" {
 		}
 	}
 
-	private queryString function getCleanedPaginationQueryString(){
+	private Page function getPage(pageId,
+								  max=variables.max,
+								  offset=variables.offset
+								  ){
 
-		//Remove variables from the query string which are never used in pagination
+		if(pageId == 1){
+			var pageOffset = 0;
+		} else {
+			var pageOffset = (pageId - 1) * max;
+		}
+
+
+		if(pageId == 1){
+			var startIndex = 1;
+		} else {
+			var startIndex = ((pageId - 1) * max) + 1
+		}
+
+		if(pageId == 1){
+			var endIndex = 10;
+		} else {
+			var endIndex = pageId * max;
+		}
+
+		if(offset >= pageOffset and offset < pageOffset + max){
+			isCurrentPage = true;
+		} else {
+			isCurrentPage = false;
+		}
+
+		var page = new page(id=arguments.pageId,
+									link=getCleanedPaginationQueryString().getNew().setValues({"#zeroTable.getFieldNameWithTablePrefix("offset")#":pageOffset}).get(),
+									startIndex=startIndex,
+									endIndex=endIndex,
+									isCurrentPage=isCurrentPage,
+									offset=pageOffset);
+
+		return page;
+	}
+
+	/*
+	Removes variables from the query string which are never used in pagination
+	 */
+	private queryString function getCleanedPaginationQueryString(){
 		var qs = variables.zeroTable.getQueryString().getNew().delete(zeroTable.getFieldNameWithTablePrefix("edit_col"))
 							 .delete(zeroTable.getFieldNameWithTablePrefix("edit_id"));
 
@@ -151,7 +195,7 @@ component accessors="true" {
 	 * @return {[type]} [description]
 	 */
 	public page[] function getSummaryPages(){
-		var pages = getPages();
+		// var pages = getPages();
 		var out = [];
 		if(variables.showMaxPages > 0){
 			var half = int(variables.showMaxPages / 2);
@@ -168,9 +212,9 @@ component accessors="true" {
 			// writeDump(min);
 			var max = getCurrentPage().getId() + half + diff;
 			// writeDump(max);
-			if(max > pages.len()){
-				var diff = abs(max - pages.len());
-				max = pages.len();
+			if(max > getTotalPages()){
+				var diff = abs(max - getTotalPages());
+				max = getTotalPages();
 
 
 				min = min - half;
@@ -186,14 +230,14 @@ component accessors="true" {
 					if(out.len() == variables.showMaxPages){
 						break;
 					}
-					out.append(pages[i]);
+					out.append(getPage(i));
 				}
 
 			}catch(any e){
 
 				writeDump(min);
 				writeDump(max);
-				writeDump(pages.len());
+				writeDump(getTotalPages());
 				writeDump(pages);
 				writeDump(e);
 				abort;
@@ -203,10 +247,11 @@ component accessors="true" {
 	}
 
 	public optional function getPreviousPage(){
+
 		if(getCurrentPage().equals(getFirstPage())){
 			return new optional();
 		} else {
-			return new optional(getPages()[getCurrentPage().getId() - 1]);
+			return new optional(getPage(getCurrentPage().getId() - 1));
 		}
 	}
 
@@ -245,8 +290,7 @@ component accessors="true" {
 	 */
 	public void function next(){
 		if(getNextPage().exists()){
-			// writeDump(getNextPage().get());
-			this.setCurrentPage(getNextPage().get());
+			setCurrentPage(getNextPage().get());
 		}
 	}
 

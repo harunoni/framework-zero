@@ -261,7 +261,7 @@ good hitbox for the click
 										--}}
 										<td {{#if width}}width="{{width}}"{{/if}}>
 											{{#if filterable}}
-												<form style="display:inline;" action="{{base_path}}" class="horizontal" method="GET">
+												<form style="display:inline;" action="{{base_path}}" class="horizontal" method="GET" {{#if use_zero_ajax}}zero-target="{{ajax_target}}"{{/if}}>
 														{{!-- This next section outputs the parameters for the form EXCEPT:
 															- Paramters which represent a filter column AND the current looped column is
 															being filters. For clarity with the lookup() expression I am using if/else
@@ -360,16 +360,24 @@ good hitbox for the click
 											<div
 												style="margin:0px; border-radius:0px; border:none; height:100%; width:100%; display:table;"
 												class="cell-wrapper-{{column_name}}-{{id}}
-													{{#if error_message}}
-														{{#if ../error_message}}
+													{{#if view_state.edit_result.errors}}
+														{{#if ../edit}}
+															{{#if edit}}
 															alert alert-danger
+															{{/if}}
 														{{/if}}
 													{{/if}}
 												"
 											>
-											{{#if error_message}}
-												{{#if ../error_message}}
-													<label class="label label-danger" style="display:block;">{{error_message}}</label>
+											{{#if view_state.edit_result.errors}}
+												{{#if ../edit}}
+													{{#if edit}}
+														<label class="label label-danger" style="display:block;">
+															{{#each view_state.edit_result.errors.errors}}
+																<strong>{{message}}</strong>
+															{{/each}}
+														</label>
+													{{/if}}
 												{{/if}}
 											{{/if}}
 
@@ -448,6 +456,7 @@ good hitbox for the click
 																<input type="hidden" name="goto_fail" value="{{pagination.current_page.link}}" />
 																<input type="hidden" name="edit_col" value="{{column_name}}">
 																<input type="hidden" name="edit_id" value="{{../id}}">
+																<input type="hidden" name="preserve_response" value="view_state.edit_result">
 																<!--- <input type="hidden" name="preserve_request" value="true"> --->
 																<input type="text"
 																	   name="{{column_name}}"
@@ -464,7 +473,7 @@ good hitbox for the click
 																		class="btn btn-default btn-sm cancel-button"
 																		style=""
 																	href="{{clear_edit_link}}"
-																	onClick="$('#data-grid-form-{{column_name}}-{{../id}}').hide(); $('#enable-edit-{{column_name}}-{{id}}').show(); return false;"
+																	{{!-- onClick="$('#data-grid-form-{{column_name}}-{{../id}}').hide(); $('#enable-edit-{{column_name}}-{{id}}').show(); return false;" --}}
 																	>cancel</button>
 															</div>
 														</form>

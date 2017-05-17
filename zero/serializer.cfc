@@ -203,7 +203,6 @@ component output="false" displayname=""  {
 				if(structKeyExists(prop,"cfc")){
 					if(includes.keyExists(prop.name) OR (structKeyExists(prop,"fetch") AND prop.fetch CONTAINS "join"))
 					{
-						// writeDump(prop);
 						try{
 
 							local.getRelation = evaluate('entity.get#prop.name#()');
