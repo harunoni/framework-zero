@@ -70,7 +70,7 @@ component {
 
 			if (arrayContains(variables.subsystems, variables.fw.getSubsystem())) {
 				//Early return to skip authentication processing
-				result = true;
+				return false;
 			}
 		}
 
