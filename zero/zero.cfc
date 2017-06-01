@@ -258,8 +258,9 @@ component extends="one" {
 		}
 
 		recurseAndLowerCaseTheKeys(request._zero.controllerResult);
-
 		structAppend(rc, client);
+		// writeDump(rc);
+		// abort;
 
 		switch(request._zero.contentType){
 			case "json":
@@ -464,7 +465,13 @@ component extends="one" {
 						rc[key] = request._zero.controllerResult[key];
 					}
 				}
-				rc.client = client;
+
+				// rc.client = client;
+				if(request._zero.zeroClient.getValues().keyExists("client_state")){
+					rc.client_state = request._zero.zeroClient.getValues().client_state;
+				} else {
+					rc.client_state = {};
+				}
 
 				if(request._zero.keyExists("zeroFormState")){
 					// rc.form_state = recurseAndLowerCaseTheKeys(request._zero.zeroFormState.getFormCache());
@@ -612,7 +619,11 @@ component extends="one" {
 			}
 		}
 
-		// structKeyTranslate(form, true);
+		/*
+		Expand FORM parameters
+			Uses the zeroStructure class to expand flattened
+			form parameters into the full data structure.
+		 */
 		form.append(new zeroStructure(form).getValues());
 		rc.append(new zeroStructure(rc).getValues());
 
@@ -633,6 +644,27 @@ component extends="one" {
 			// abort;
 		}
 
+		//Add new client variables
+		//passed into the form scope into the client
+		if(rc.keyExists("client_state")){
+			var values = request._zero.zeroClient.getValues();
+			if(!values.keyExists("client_state")){
+				values.client_state = {};
+			}
+
+			for(var key in rc.client_state){
+				if(trim(rc.client_state[key]) == ""){
+					values.client_state.delete(key);
+				} else {
+					values.client_state.insert(key, rc.client_state[key]);
+				}
+			}
+			request._zero.zeroClient.persist();
+		}
+		// writeDump(request._zero.zeroClient.getValues());
+		// abort;
+
+		//Copy any client variables into the RC scope
 		var clientValues = duplicate(request._zero.zeroClient.getValues());
 		for(var key in clientValues){
 			if(!rc.keyExists(key)){
